@@ -35,6 +35,7 @@ export default function Home() {
   return (
     <main className="afterglow-landing" id="top">
       <div className="landing-aurora aurora-a" aria-hidden="true" /><div className="landing-aurora aurora-b" aria-hidden="true" />
+      <div className="landing-particles" aria-hidden="true">{Array.from({ length: 24 }, (_, index) => <motion.span key={index} className={`particle particle-${index % 6}`} style={{ left: `${(index * 37 + 9) % 100}%`, top: `${(index * 53 + 7) % 100}%` }} animate={reduceMotion ? undefined : { y: [0, -18 - (index % 5) * 5, 0], x: [0, (index % 2 ? 1 : -1) * (7 + index % 4 * 3), 0], opacity: [0.16, 0.72, 0.16], scale: [0.7, 1.15, 0.7] }} transition={{ duration: 5 + (index % 7) * 1.2, delay: (index % 8) * .35, repeat: Infinity, ease: "easeInOut" }} />)}</div>
       <motion.div className="landing-progress" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.1, ease: "easeOut" }} />
       <header className="landing-nav">
         <a href="#top" className="landing-brand" aria-label="Afterglow home"><span className="brand-mark"><Heart size={20} /><Sparkles size={11} /></span><span>Afterglow</span></a>

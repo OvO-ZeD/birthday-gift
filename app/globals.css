@@ -1160,3 +1160,53 @@ select:focus-visible {
   .afterglow-landing .landing-nav-actions .github-link { min-width: 34px; width: 34px; padding: 0; }
   .afterglow-landing .landing-nav-actions .github-link span { display: none; }
 }
+
+
+/* Compact, wider Afterglow landing pass */
+.afterglow-landing { position: relative; }
+.afterglow-landing .landing-nav,
+.afterglow-landing .landing-hero,
+.afterglow-landing .landing-footer { max-width: 1720px; }
+.afterglow-landing .landing-nav { padding-inline: clamp(22px, 4.5vw, 84px); }
+.afterglow-landing .landing-hero { max-width: 1720px; min-height: min(650px, calc(100svh - 68px)); padding: clamp(22px, 2.8vw, 42px) clamp(22px, 4.5vw, 84px) 48px; gap: clamp(26px, 3.8vw, 66px); }
+.afterglow-landing .landing-hero h1 { font-size: clamp(42px, 4.65vw, 72px); margin-block: 14px 13px; }
+.afterglow-landing .landing-lede { line-height: 1.65; }
+.afterglow-landing .landing-hero-actions { margin-top: 19px; }
+.afterglow-landing .landing-trust-row { margin-top: 16px; }
+.afterglow-landing .landing-feature-strip { max-width: 1580px; padding-inline: clamp(22px, 4vw, 70px); gap: 12px; }
+.afterglow-landing .landing-feature { padding: 17px 17px 18px; }
+.afterglow-landing .landing-feature h2 { margin-top: 10px; }
+.afterglow-landing .landing-how { max-width: 1580px; gap: clamp(28px, 4vw, 64px); padding: 34px clamp(22px, 4vw, 70px); }
+.afterglow-landing .landing-steps { margin-top: 22px; }
+.afterglow-landing .demo-card { min-height: 170px; }
+.afterglow-landing .landing-final-cta { max-width: 1480px; padding: 34px clamp(22px, 4vw, 70px) 30px; }
+.afterglow-landing .landing-final-cta h2 { margin-top: 8px; }
+.afterglow-landing .landing-footer { padding-block: 14px 18px; }
+.landing-particles { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; }
+.landing-particles .particle { position: absolute; display: block; width: 3px; height: 3px; border-radius: 50%; background: #c5baff; box-shadow: 0 0 9px 2px rgba(157,137,255,.5); }
+.landing-particles .particle-1, .landing-particles .particle-4 { width: 2px; height: 2px; background: #f5c9ff; box-shadow: 0 0 12px 3px rgba(218,172,255,.42); }
+.landing-particles .particle-2 { width: 4px; height: 4px; background: #8eabff; box-shadow: 0 0 12px 3px rgba(112,142,255,.4); }
+.afterglow-landing > :not(.landing-particles):not(.landing-aurora) { position: relative; z-index: 1; }
+.afterglow-landing .landing-aurora { z-index: 0; filter: blur(16px); opacity: .62; animation: aurora-drift 18s ease-in-out infinite alternate; }
+.afterglow-landing .aurora-b { animation-delay: -8s; }
+@keyframes aurora-drift { from { transform: translate3d(-2%, -1%, 0) scale(1); } to { transform: translate3d(3%, 2%, 0) scale(1.12); } }
+.afterglow-landing .landing-feature { position: relative; overflow: hidden; transition: transform .35s cubic-bezier(.2,.8,.2,1), border-color .35s, box-shadow .35s; }
+.afterglow-landing .landing-feature::before { position: absolute; inset: -1px; content: ""; pointer-events: none; background: linear-gradient(115deg, transparent 20%, rgba(184,173,255,.1) 48%, transparent 72%); transform: translateX(-130%); transition: transform .7s ease; }
+.afterglow-landing .landing-feature:hover::before { transform: translateX(130%); }
+.afterglow-landing .landing-feature:hover { transform: translateY(-6px); box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 0 24px rgba(114,95,217,.12); }
+.afterglow-landing .hero-image-frame { box-shadow: 0 24px 70px rgba(0,0,0,.34), 0 0 70px rgba(124,102,235,.15); }
+.afterglow-landing .landing-button { transition: transform .25s ease, box-shadow .25s ease, background .25s ease; }
+.afterglow-landing .landing-button:hover { transform: translateY(-2px); }
+@media (max-width: 1100px) {
+  .afterglow-landing .landing-hero { min-height: auto; padding-bottom: 58px; }
+  .afterglow-landing .landing-feature-strip { padding-inline: 22px; }
+  .afterglow-landing .landing-how { padding-inline: 22px; }
+}
+@media (max-width: 760px) {
+  .afterglow-landing .landing-hero { padding: 34px 20px 58px; }
+  .afterglow-landing .landing-feature-strip { padding-inline: 16px; }
+  .afterglow-landing .landing-how { padding: 28px 18px; }
+  .afterglow-landing .landing-final-cta { padding: 30px 20px; }
+  .landing-particles .particle { opacity: .45; }
+}
+@media (prefers-reduced-motion: reduce) { .afterglow-landing .landing-aurora { animation: none; } }
