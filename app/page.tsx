@@ -1,781 +1,87 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUpRight,
-  Camera,
-  Gift,
-  GitBranch,
-  Heart,
-  LockKeyhole,
-  Menu,
-  Music2,
-  Palette,
-  Play,
-  ShieldCheck,
-  Sparkles,
-  Video,
-  X,
-} from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Camera, Gift, GitBranch, Heart, LockKeyhole, Menu, Music2, Palette, Play, ShieldCheck, Sparkles, Video, X } from "lucide-react";
 
 const features = [
-  {
-    icon: Heart,
-    number: "01",
-    title: "Made personal",
-    description:
-      "Turn your memories, inside jokes, photos, and messages into a gift that feels unmistakably yours.",
-  },
-  {
-    icon: Video,
-    number: "02",
-    title: "Moments in motion",
-    description:
-      "Combine photos, videos, music, and thoughtful messages in one cinematic experience.",
-  },
-  {
-    icon: LockKeyhole,
-    number: "03",
-    title: "Just for them",
-    description:
-      "Share a private gift experience through a link made for the person receiving it.",
-  },
-  {
-    icon: Palette,
-    number: "04",
-    title: "Your own atmosphere",
-    description:
-      "Build a visual experience with expressive layouts, beautiful details, and smooth animations.",
-  },
+  { number: "01", icon: Camera, title: "Beautiful memories", description: "Turn favourite photos into a little gallery worth revisiting." },
+  { number: "02", icon: Video, title: "Moving moments", description: "Bring clips and little everyday scenes into the story." },
+  { number: "03", icon: Music2, title: "A personal soundtrack", description: "Set the mood with a song that means something to you." },
+  { number: "04", icon: Heart, title: "Words from the heart", description: "Add a letter that says what a photo never quite can." },
+  { number: "05", icon: Palette, title: "Your own atmosphere", description: "Shape the colours, details, and feeling around your person." },
+  { number: "06", icon: LockKeyhole, title: "Private by design", description: "Share a dedicated gift link with protected media support." },
 ];
 
 const steps = [
-  {
-    number: "01",
-    title: "Collect the moments",
-    description:
-      "Choose the photos, videos, messages, and little details that tell your story.",
-  },
-  {
-    number: "02",
-    title: "Make it yours",
-    description:
-      "Arrange your memories into a personal experience with its own look and feel.",
-  },
-  {
-    number: "03",
-    title: "Send the feeling",
-    description:
-      "Publish your creation and share the link when the moment is right.",
-  },
+  { icon: Camera, title: "Add your moments", text: "Choose photos, videos, a song, and a heartfelt note." },
+  { icon: Palette, title: "Make it yours", text: "Arrange the story and give it a look that feels personal." },
+  { icon: Gift, title: "Send the surprise", text: "Publish your gift and share its private link." },
 ];
 
 const demos = [
-  {
-    title: "A little more you",
-    category: "BIRTHDAY EXPERIENCE",
-    description: "A personal collection of memories and messages.",
-    poster: "/images/afterglow-landing.png",
-    icon: Gift,
-  },
-  {
-    title: "Moments that stay",
-    category: "MEMORY COLLECTION",
-    description: "Bring your favourite photos into one place.",
-    poster: "/images/afterglow-landing.png",
-    icon: Camera,
-  },
-  {
-    title: "Press play on us",
-    category: "VIDEO & MUSIC",
-    description: "Give your memories a soundtrack of their own.",
-    poster: "/images/afterglow-landing.png",
-    icon: Music2,
-  },
+  { title: "A memory in motion", label: "VIDEO MOMENT", poster: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=85", src: "https://videos.pexels.com/video-files/3195394/3195394-hd_1920_1080_25fps.mp4" },
+  { title: "A little world of us", label: "PHOTO STORY", poster: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1200&q=85", src: "https://videos.pexels.com/video-files/854072/854072-hd_1920_1080_25fps.mp4" },
 ];
 
-const githubUrl = "https://github.com/OvO-ZeD/birthday-gift";
-
 export default function Home() {
-  const [activeDemo, setActiveDemo] = useState<number | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const [activeVideo, setActiveVideo] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
 
-  const closeMenu = () => setMobileMenuOpen(false);
+  const reveal = reduceMotion ? {} : { initial: { opacity: 0, y: 22 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.18 }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const } };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0b0b10] text-[#f4f0fa] selection:bg-violet-400/30 selection:text-white">
-      {/* Background atmosphere */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-0 overflow-hidden"
-      >
-        <div className="absolute -top-64 left-1/3 h-[540px] w-[540px] rounded-full bg-violet-700/10 blur-[150px]" />
-        <div className="absolute top-[45%] -right-60 h-[500px] w-[500px] rounded-full bg-indigo-700/10 blur-[150px]" />
-        <div className="absolute bottom-0 -left-40 h-[400px] w-[400px] rounded-full bg-purple-900/10 blur-[130px]" />
-      </div>
-
-      {/* Navigation */}
-      <header className="relative z-30 border-b border-white/[0.07] bg-[#0b0b10]/85 backdrop-blur-xl">
-        <nav className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-12">
-          <a
-            href="#home"
-            className="group flex items-center gap-3"
-            aria-label="Afterglow home"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-300/20 bg-violet-400/10 text-violet-200 transition group-hover:border-violet-300/50 group-hover:bg-violet-400/20">
-              <Sparkles size={18} />
-            </span>
-            <span className="text-[15px] font-semibold tracking-[0.12em]">
-              AFTERGLOW
-              <span className="ml-1.5 font-normal text-white/40">STUDIO</span>
-            </span>
-          </a>
-
-          <div className="hidden items-center gap-8 md:flex">
-            <a
-              href="#features"
-              className="text-sm text-white/60 transition hover:text-white"
-            >
-              Features
-            </a>
-            <a
-              href="#showcase"
-              className="text-sm text-white/60 transition hover:text-white"
-            >
-              Showcase
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-sm text-white/60 transition hover:text-white"
-            >
-              How it works
-            </a>
-            <a
-              href={githubUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-white/65 transition hover:text-white"
-            >
-              <GitBranch size={16} />
-              GitHub
-              <ArrowUpRight size={13} />
-            </a>
-          </div>
-
-          <div className="hidden md:block">
-            <a
-              href="#showcase"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-2.5 text-sm font-medium transition hover:border-violet-300/40 hover:bg-violet-400/10"
-            >
-              Explore the experience
-              <ArrowRight size={15} />
-            </a>
-          </div>
-
-          <button
-            type="button"
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-white/80 md:hidden"
-          >
-            {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
-          </button>
+    <main className="afterglow-landing" id="top">
+      <div className="landing-aurora aurora-a" aria-hidden="true" /><div className="landing-aurora aurora-b" aria-hidden="true" />
+      <motion.div className="landing-progress" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.1, ease: "easeOut" }} />
+      <header className="landing-nav">
+        <a href="#top" className="landing-brand" aria-label="Afterglow home"><span className="brand-mark"><Heart size={20} /><Sparkles size={11} /></span><span>Afterglow</span></a>
+        <nav className={menuOpen ? "landing-links nav-open" : "landing-links"} aria-label="Main navigation">
+          <a href="#top" onClick={() => setMenuOpen(false)}>Home</a><a href="#features" onClick={() => setMenuOpen(false)}>Features</a><a href="#demo" onClick={() => setMenuOpen(false)}>Demo</a><a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
         </nav>
-
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden border-t border-white/[0.07] bg-[#0b0b10] md:hidden"
-            >
-              <div className="flex flex-col gap-1 px-5 py-4">
-                <a
-                  href="#features"
-                  onClick={closeMenu}
-                  className="rounded-lg px-3 py-3 text-sm text-white/75 hover:bg-white/5"
-                >
-                  Features
-                </a>
-                <a
-                  href="#showcase"
-                  onClick={closeMenu}
-                  className="rounded-lg px-3 py-3 text-sm text-white/75 hover:bg-white/5"
-                >
-                  Showcase
-                </a>
-                <a
-                  href="#how-it-works"
-                  onClick={closeMenu}
-                  className="rounded-lg px-3 py-3 text-sm text-white/75 hover:bg-white/5"
-                >
-                  How it works
-                </a>
-                <a
-                  href={githubUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={closeMenu}
-                  className="flex items-center gap-2 rounded-lg px-3 py-3 text-sm text-white/75 hover:bg-white/5"
-                >
-                  <GitBranch size={16} />
-                  GitHub repository
-                  <ArrowUpRight size={14} />
-                </a>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="landing-nav-actions"><a className="nav-login" href="/login">Log in</a><a className="landing-button landing-button-small" href="/studio">Create a gift <ArrowRight size={15} /></a><a className="github-link" href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer" aria-label="View Afterglow on GitHub" title="View on GitHub"><GitBranch size={16} /><span>GitHub</span></a></div>
+        <button className="landing-menu-toggle" type="button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={21} /> : <Menu size={21} />}</button>
       </header>
 
-      {/* Hero */}
-      <section
-        id="home"
-        className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-16 sm:px-8 sm:pt-24 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14 lg:px-12 lg:pb-28 lg:pt-28"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="relative z-10"
-        >
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-violet-300/20 bg-violet-300/[0.07] px-3.5 py-2 text-xs font-medium tracking-wide text-violet-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.8)]" />
-            A different kind of digital gift
-          </div>
-
-          <h1 className="max-w-2xl text-[clamp(2.9rem,7vw,5.5rem)] font-semibold leading-[0.98] tracking-[-0.065em]">
-            Some moments
-            <br />
-            deserve
-            <br />
-            <span className="bg-gradient-to-r from-violet-200 via-purple-300 to-indigo-300 bg-clip-text text-transparent">
-              more than a message.
-            </span>
-          </h1>
-
-          <p className="mt-7 max-w-lg text-base leading-7 text-white/55 sm:text-lg sm:leading-8">
-            Create a personal digital experience with your favourite memories,
-            videos, music, and messages. Something they can open, explore, and
-            remember.
-          </p>
-
-          <div className="mt-9 flex flex-wrap items-center gap-3">
-            <a
-              href="#showcase"
-              className="group inline-flex items-center gap-2.5 rounded-full bg-[#c4b5fd] px-6 py-3.5 text-sm font-semibold text-[#171020] transition hover:bg-[#ddd4ff]"
-            >
-              Discover Afterglow
-              <ArrowRight
-                size={16}
-                className="transition-transform group-hover:translate-x-1"
-              />
-            </a>
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3.5 text-sm font-medium text-white/75 transition hover:border-white/30 hover:bg-white/[0.04]"
-            >
-              How it works
-            </a>
-          </div>
-
-          <div className="mt-10 flex items-center gap-4 border-t border-white/[0.09] pt-6">
-            <div className="flex -space-x-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#0b0b10] bg-[#33294a] text-violet-200">
-                <Heart size={15} />
-              </span>
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#0b0b10] bg-[#262c3f] text-indigo-200">
-                <Camera size={15} />
-              </span>
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#0b0b10] bg-[#37313f] text-white/80">
-                <Music2 size={15} />
-              </span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-white/85">
-                Your memories, your way
-              </p>
-              <p className="mt-0.5 text-xs text-white/40">
-                Personal by design. Made to be shared.
-              </p>
-            </div>
-          </div>
+      <section className="landing-hero" aria-labelledby="landing-title">
+        <div className="landing-hero-copy">
+          <motion.div className="landing-kicker" initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}><span /> A DIGITAL GIFT FOR YOUR FAVOURITE PEOPLE</motion.div>
+          <motion.h1 id="landing-title" initial={reduceMotion ? false : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .8, delay: .08 }}>Turn moments into <em>an unforgettable story.</em></motion.h1>
+          <motion.p className="landing-lede" initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .7, delay: .2 }}>A beautiful, interactive website to celebrate someone special. Bring photos, videos, music, and a heartfelt letter together in one little world made just for them.</motion.p>
+          <motion.div className="landing-hero-actions" initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65, delay: .32 }}><a className="landing-button" href="/studio">Create your gift <ArrowRight size={17} /></a><a className="landing-button landing-button-ghost" href="#demo"><span className="play-outline"><Play size={13} fill="currentColor" /></span> Explore the demo</a></motion.div>
+          <motion.div className="landing-trust-row" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .55 }}><span><ShieldCheck size={15} /> Private sharing</span><span><Sparkles size={15} /> Personal by design</span><span><Heart size={15} /> Made with love</span></motion.div>
+        </div>
+        <motion.div className="landing-hero-visual" initial={reduceMotion ? false : { opacity: 0, scale: .96, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: .15 }}>
+          <div className="hero-image-frame"><img src="/images/afterglow-landing.png" alt="A cinematic obsidian-violet gift box surrounded by floating photographs and glowing memory cards" onError={(event) => { event.currentTarget.style.display = "none"; }} /><div className="hero-image-shade" /></div>
+          <motion.div className="floating-chip chip-photo" animate={reduceMotion ? undefined : { y: [0, -7, 0] }} transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}><Camera size={15} /><span>Little moments</span></motion.div>
+          <motion.div className="floating-chip chip-love" animate={reduceMotion ? undefined : { y: [0, 6, 0] }} transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut" }}><Heart size={15} /><span>Made personal</span></motion.div>
+          <div className="hero-visual-caption"><span className="caption-sparkle"><Sparkles size={15} /></span><span><strong>A little world, just for them</strong><small>Photos · films · music · words</small></span><ArrowUpRight size={18} /></div>
         </motion.div>
+        <a className="landing-scroll" href="#features"><span>DISCOVER THE EXPERIENCE</span><ArrowDown size={14} /></a>
+      </section>
 
-        {/* Hero artwork */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 18 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.15, ease: "easeOut" }}
-          className="relative mx-auto w-full max-w-2xl"
-        >
-          <div className="absolute -inset-5 rounded-[2rem] bg-violet-500/[0.08] blur-3xl" />
+      <section className="landing-feature-strip" id="features" aria-label="Afterglow features">
+        {features.map((feature, index) => { const Icon = feature.icon; return <motion.article className="landing-feature" key={feature.number} {...reveal} transition={{ duration: .65, delay: index * .055 }}><div className="feature-topline"><span>{feature.number}</span><Icon size={18} strokeWidth={1.5} /></div><h2>{feature.title}</h2><p>{feature.description}</p></motion.article>; })}
+      </section>
 
-          <div className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#14131b] shadow-2xl shadow-black/40 sm:rounded-[2rem]">
-            <div className="flex items-center justify-between border-b border-white/[0.09] px-4 py-3.5 sm:px-6">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#c4b5fd]" />
-                <span className="text-[10px] font-medium tracking-[0.22em] text-white/55 sm:text-xs">
-                  A GIFT, REIMAGINED
-                </span>
-              </div>
-              <span className="text-[10px] tracking-wide text-white/35 sm:text-xs">
-                EXPERIENCE 001
-              </span>
-            </div>
-
-            <div className="relative aspect-[5/4] overflow-hidden sm:aspect-[1.13/1]">
-              <img
-                src="/images/afterglow-landing.png"
-                alt="Afterglow Studio visual concept in an atmospheric violet palette"
-                className="absolute inset-0 h-full w-full object-cover object-center"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#100d18]/95 via-[#100d18]/10 to-transparent" />
-
-              <motion.div
-                animate={{ y: [0, -7, 0] }}
-                transition={{
-                  duration: 4.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="absolute right-4 top-5 rounded-xl border border-white/15 bg-[#17131e]/80 px-3 py-2.5 shadow-xl backdrop-blur-xl sm:right-6 sm:top-7 sm:px-4"
-              >
-                <div className="flex items-center gap-2">
-                  <Sparkles size={14} className="text-violet-200" />
-                  <span className="text-[10px] text-white/80 sm:text-xs">
-                    Made just for you
-                  </span>
-                </div>
-              </motion.div>
-
-              <div className="absolute bottom-5 left-5 right-5 sm:bottom-8 sm:left-8 sm:right-8">
-                <p className="mb-2 text-[10px] font-medium tracking-[0.25em] text-violet-200 sm:text-xs">
-                  THE THINGS WE KEEP
-                </p>
-                <h2 className="max-w-md text-3xl font-semibold tracking-[-0.045em] text-white sm:text-4xl lg:text-5xl">
-                  Every memory
-                  <br />
-                  has a place.
-                </h2>
-                <p className="mt-3 max-w-sm text-xs leading-5 text-white/65 sm:text-sm sm:leading-6">
-                  A collection of moments, gathered into something meaningful.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 divide-x divide-white/[0.08] border-t border-white/[0.08] bg-[#121119]">
-              <div className="flex items-center gap-2 px-3 py-4 sm:gap-3 sm:px-5">
-                <Camera size={16} className="shrink-0 text-violet-200" />
-                <span className="text-[10px] text-white/55 sm:text-xs">
-                  Your photos
-                </span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-4 sm:gap-3 sm:px-5">
-                <Video size={16} className="shrink-0 text-violet-200" />
-                <span className="text-[10px] text-white/55 sm:text-xs">
-                  Your videos
-                </span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-4 sm:gap-3 sm:px-5">
-                <Music2 size={16} className="shrink-0 text-violet-200" />
-                <span className="text-[10px] text-white/55 sm:text-xs">
-                  Your soundtrack
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pointer-events-none absolute -bottom-5 -right-2 hidden rounded-2xl border border-white/10 bg-[#18151f]/95 p-4 shadow-2xl backdrop-blur-xl sm:block lg:-right-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-300/10 text-violet-200">
-                <ShieldCheck size={20} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-white/90">
-                  A personal experience
-                </p>
-                <p className="mt-1 text-[10px] text-white/45">
-                  Thoughtfully put together
-                </p>
-              </div>
-            </div>
-          </div>
+      <section className="landing-how" id="how-it-works">
+        <motion.div className="landing-how-copy" {...reveal}><span className="landing-section-kicker">SMALL STEPS, BIG FEELINGS</span><h2>Create a gift <em>in minutes.</em></h2><p>Everything you need to turn a few meaningful things into an experience they can open, explore, and keep.</p><a className="text-link" href="/studio">Start making yours <ArrowRight size={16} /></a>
+          <div className="landing-steps">{steps.map((step, index) => { const Icon = step.icon; return <motion.div className="landing-step" key={step.title} {...reveal} transition={{ duration: .6, delay: index * .08 }}><div className="step-icon"><Icon size={19} /></div><div className="step-copy"><span>STEP 0{index + 1}</span><h3>{step.title}</h3><p>{step.text}</p></div>{index < steps.length - 1 && <div className="step-connector" aria-hidden="true"><ArrowRight size={15} /></div>}</motion.div>; })}</div>
+        </motion.div>
+        <motion.div className="landing-demo-panel" id="demo" {...reveal}>
+          <div className="demo-panel-heading"><div><span className="landing-section-kicker">TAKE A LITTLE LOOK</span><h3>Feel the story.</h3></div><span className="demo-live"><i /> DEMO PREVIEW</span></div>
+          <div className="demo-card-grid">{demos.map((demo, index) => <button className="demo-card" type="button" key={demo.title} onClick={() => { setActiveVideo(index); setVideoFailed(false); }} style={{ backgroundImage: `linear-gradient(180deg,rgba(18,7,20,.05),rgba(18,7,20,.82)),url("${demo.poster}")` }}><span className="demo-card-label">{demo.label}</span><span className="demo-play"><Play size={19} fill="currentColor" /></span><span className="demo-card-title">{demo.title}</span><span className="demo-card-open">PLAY PREVIEW <ArrowUpRight size={13} /></span></button>)}</div>
+          <p className="demo-disclaimer">Preview clips are illustrative examples. Your published gift uses the media you choose.</p>
         </motion.div>
       </section>
 
-      {/* Feature strip */}
-      <section className="relative z-10 border-y border-white/[0.07] bg-white/[0.018]">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-px px-5 py-5 sm:px-8 md:grid-cols-4 lg:px-12">
-          {[
-            "Personal storytelling",
-            "Photos and video",
-            "Smooth animations",
-            "Shareable experiences",
-          ].map((item, index) => (
-            <motion.div
-              key={item}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.07 }}
-              className="flex items-center justify-center gap-2 px-2 py-3 text-center text-[11px] text-white/50 sm:text-xs"
-            >
-              <Sparkles
-                size={12}
-                className="shrink-0 text-violet-300/70"
-              />
-              {item}
-            </motion.div>
-          ))}
-        </div>
-      </section>
+      <section className="landing-final-cta"><motion.div {...reveal}><span className="landing-section-kicker">THE BEST GIFTS FEEL PERSONAL</span><h2>Make something <em>they'll remember.</em></h2><p>Start with a photo. Add the song. Write the words. Let the little things become the whole story.</p><a className="landing-button" href="/studio">Create your first gift <ArrowRight size={17} /></a></motion.div><motion.div className="cta-orbit" aria-hidden="true" animate={reduceMotion ? undefined : { rotate: 360 }} transition={{ duration: 55, repeat: Infinity, ease: "linear" }}><span /><Heart size={31} strokeWidth={1} /><i /><b /></motion.div></section>
 
-      {/* Features */}
-      <section
-        id="features"
-        className="relative z-10 mx-auto max-w-7xl scroll-mt-20 px-5 py-20 sm:px-8 sm:py-24 lg:px-12"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6 }}
-          className="mb-10 flex flex-col justify-between gap-5 sm:flex-row sm:items-end"
-        >
-          <div>
-            <p className="mb-3 text-xs font-medium tracking-[0.22em] text-violet-200">
-              THE DETAILS MATTER
-            </p>
-            <h2 className="max-w-xl text-3xl font-semibold tracking-[-0.05em] sm:text-4xl lg:text-5xl">
-              More than a gift.
-              <br />
-              <span className="text-white/45">A whole experience.</span>
-            </h2>
-          </div>
-          <p className="max-w-md text-sm leading-6 text-white/50">
-            The best gifts are personal. Afterglow brings the little things
-            together in one thoughtful digital experience.
-          </p>
-        </motion.div>
+      <footer className="landing-footer"><a href="#top" className="landing-brand"><span className="brand-mark"><Heart size={18} /><Sparkles size={10} /></span><span>Afterglow</span></a><span>Little moments. Lasting feelings.</span><div><a href="/login">Log in</a><a href="/studio">Create a gift</a><a href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer"><GitBranch size={14} /> GitHub</a></div></footer>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-
-            return (
-              <motion.article
-                key={feature.number}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.5, delay: index * 0.08 }}
-                whileHover={{ y: -4 }}
-                className="group rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 transition-colors hover:border-violet-300/25 hover:bg-violet-300/[0.035] sm:p-6"
-              >
-                <div className="mb-8 flex items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-300/[0.07] text-violet-200 transition group-hover:bg-violet-300/[0.13]">
-                    <Icon size={19} />
-                  </span>
-                  <span className="text-xs tracking-widest text-white/25">
-                    {feature.number}
-                  </span>
-                </div>
-
-                <h3 className="text-lg font-medium tracking-tight">
-                  {feature.title}
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-white/50">
-                  {feature.description}
-                </p>
-              </motion.article>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Showcase */}
-      <section
-        id="showcase"
-        className="relative z-10 scroll-mt-20 border-y border-white/[0.07] bg-[#100f16]/75"
-      >
-        <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-24 lg:px-12">
-          <div className="mb-9 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            <div>
-              <p className="mb-3 text-xs font-medium tracking-[0.22em] text-violet-200">
-                THE SHOWCASE
-              </p>
-              <h2 className="text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
-                Imagine what you could make.
-              </h2>
-            </div>
-            <p className="max-w-sm text-sm leading-6 text-white/45">
-              Explore the kinds of experiences you can create with your own
-              memories and stories.
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {demos.map((demo, index) => {
-              const Icon = demo.icon;
-
-              return (
-                <motion.button
-                  key={demo.title}
-                  type="button"
-                  onClick={() => setActiveDemo(index)}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  whileHover={{ y: -5 }}
-                  className="group overflow-hidden rounded-2xl border border-white/10 bg-[#17151f] text-left transition-colors hover:border-violet-300/30"
-                >
-                  <div className="relative aspect-[1.2/1] overflow-hidden bg-[#1b1625]">
-                    <img
-                      src={demo.poster}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover opacity-65 transition duration-700 group-hover:scale-105 group-hover:opacity-85"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#100d17] via-[#100d17]/15 to-transparent" />
-
-                    <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 backdrop-blur-md">
-                      <Icon size={13} className="text-violet-200" />
-                      <span className="text-[9px] font-medium tracking-[0.15em] text-white/80">
-                        {demo.category}
-                      </span>
-                    </div>
-
-                    <span className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-md transition group-hover:bg-violet-300 group-hover:text-[#171020]">
-                      <Play size={16} fill="currentColor" />
-                    </span>
-
-                    <div className="absolute bottom-5 left-5 right-16">
-                      <h3 className="text-xl font-semibold tracking-tight">
-                        {demo.title}
-                      </h3>
-                      <p className="mt-1.5 text-xs leading-5 text-white/60">
-                        {demo.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between px-5 py-4">
-                    <span className="text-xs text-white/45">
-                      View concept
-                    </span>
-                    <ArrowUpRight
-                      size={16}
-                      className="text-white/45 transition group-hover:text-violet-200"
-                    />
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          <p className="mt-5 text-xs leading-5 text-white/35">
-            These cards are concept previews. They are not finished example
-            gifts or live customer projects.
-          </p>
-        </div>
-      </section>
-
-      {/* Demo preview modal */}
-      <AnimatePresence>
-        {activeDemo !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setActiveDemo(null)}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
-          >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="demo-modal-title"
-              initial={{ opacity: 0, scale: 0.96, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97, y: 10 }}
-              transition={{ duration: 0.2 }}
-              onClick={(event) => event.stopPropagation()}
-              className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-[#14121b] shadow-2xl"
-            >
-              <button
-                type="button"
-                onClick={() => setActiveDemo(null)}
-                aria-label="Close preview"
-                className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white transition hover:bg-white/10"
-              >
-                <X size={17} />
-              </button>
-
-              <div className="relative aspect-[16/9] overflow-hidden">
-                <img
-                  src={demos[activeDemo].poster}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#14121b] to-transparent" />
-              </div>
-
-              <div className="px-6 pb-6 pt-1 sm:px-8 sm:pb-8">
-                <p className="mb-2 text-[10px] font-medium tracking-[0.2em] text-violet-200">
-                  {demos[activeDemo].category}
-                </p>
-                <h2
-                  id="demo-modal-title"
-                  className="text-2xl font-semibold tracking-tight"
-                >
-                  {demos[activeDemo].title}
-                </h2>
-                <p className="mt-3 text-sm leading-6 text-white/55">
-                  {demos[activeDemo].description} This is a visual concept
-                  preview. Your own published gift can use your selected
-                  content and personal details.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setActiveDemo(null)}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-violet-300 px-5 py-3 text-sm font-semibold text-[#171020] transition hover:bg-violet-200"
-                >
-                  Back to showcase
-                  <ArrowRight size={15} />
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* How it works */}
-      <section
-        id="how-it-works"
-        className="relative z-10 mx-auto max-w-7xl scroll-mt-20 px-5 py-20 sm:px-8 sm:py-24 lg:px-12"
-      >
-        <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.5 }}
-          >
-            <p className="mb-3 text-xs font-medium tracking-[0.22em] text-violet-200">
-              SIMPLE BY DESIGN
-            </p>
-            <h2 className="max-w-md text-3xl font-semibold leading-tight tracking-[-0.05em] sm:text-4xl lg:text-5xl">
-              Three steps.
-              <br />
-              <span className="text-white/45">One lasting memory.</span>
-            </h2>
-            <p className="mt-5 max-w-md text-sm leading-7 text-white/50">
-              No elaborate gift wrapping required. Just the moments that matter
-              and a little creativity.
-            </p>
-            <a
-              href="#home"
-              className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-violet-200 transition hover:text-white"
-            >
-              Back to the beginning
-              <ArrowDown size={15} className="rotate-180" />
-            </a>
-          </motion.div>
-
-          <div className="space-y-3">
-            {steps.map((step, index) => (
-              <motion.div
-                key={step.number}
-                initial={{ opacity: 0, x: 18 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, amount: 0.25 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group grid grid-cols-[46px_1fr] gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 transition hover:border-violet-300/20 hover:bg-white/[0.035] sm:grid-cols-[56px_1fr] sm:gap-5 sm:p-6"
-              >
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-300/[0.06] text-sm font-medium text-violet-200 sm:h-12 sm:w-12">
-                  {step.number}
-                </span>
-                <div>
-                  <h3 className="text-base font-medium sm:text-lg">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-white/50">
-                    {step.description}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Closing call to action */}
-      <section className="relative z-10 px-5 pb-20 sm:px-8 sm:pb-24 lg:px-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6 }}
-          className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl border border-violet-300/15 bg-[#14111c] px-6 py-12 text-center sm:px-12 sm:py-16 lg:py-20"
-        >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.15),transparent_60%)]" />
-          <div className="relative">
-            <span className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-300/20 bg-violet-300/10 text-violet-200">
-              <Gift size={22} />
-            </span>
-            <p className="mb-3 text-[10px] font-medium tracking-[0.24em] text-violet-200 sm:text-xs">
-              MAKE IT MEAN SOMETHING
-            </p>
-            <h2 className="mx-auto max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.05em] sm:text-4xl lg:text-5xl">
-              The most personal gifts
-              <br className="hidden sm:block" /> start with a memory.
-            </h2>
-            <p className="mx-auto mt-5 max-w-lg text-sm leading-7 text-white/50">
-              Bring your favourite moments together and make something worth
-              opening again.
-            </p>
-            <a
-              href="#showcase"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#c4b5fd] px-6 py-3.5 text-sm font-semibold text-[#171020] transition hover:bg-[#ddd4ff]"
-            >
-              Explore the showcase
-              <ArrowRight size={16} />
-            </a>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-white/[0.08]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12">
-          <a href="#home" className="flex items-center gap-2.5">
-            <Sparkles size={17} className="text-violet-200" />
-            <span className="text-xs font-semibold tracking-[0.14em]">
-              AFTERGLOW STUDIO
-            </span>
-          </a>
-
-          <p className="text-xs leading-5 text-white/35">
-            Made for the moments that matter.
-          </p>
-
-          <a
-            href={githubUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 text-xs text-white/50 transition hover:text-white"
-          >
-            <GitBranch size={15} />
-            View on GitHub
-            <ArrowUpRight size={13} />
-          </a>
-        </div>
-      </footer>
+      <AnimatePresence>{activeVideo !== null && <motion.div className="landing-video-modal" role="dialog" aria-modal="true" aria-label={`${demos[activeVideo].title} preview`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveVideo(null)}><motion.div className="landing-video-dialog" initial={reduceMotion ? false : { opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }} onClick={event => event.stopPropagation()}><button className="landing-video-close" type="button" onClick={() => setActiveVideo(null)} aria-label="Close video"><X size={21} /></button><div className="video-modal-heading"><span className="landing-section-kicker">ILLUSTRATIVE PREVIEW</span><h3>{demos[activeVideo].title}</h3></div>{videoFailed ? <div className="video-fallback" style={{ backgroundImage: `linear-gradient(180deg,transparent,#170b1a),url("${demos[activeVideo].poster}")` }}><Video size={28} /><p>This sample clip could not load. The rest of the demo is still available.</p><a href={demos[activeVideo].poster} target="_blank" rel="noreferrer">View preview image <ArrowUpRight size={14} /></a></div> : <video className="landing-video" controls autoPlay playsInline poster={demos[activeVideo].poster} src={demos[activeVideo].src} onError={() => setVideoFailed(true)} /> }<p className="video-note">Sample footage is loaded from an external video host. Use your own media when creating a real gift.</p></motion.div></motion.div>}</AnimatePresence>
     </main>
   );
 }

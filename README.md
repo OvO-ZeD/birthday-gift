@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Afterglow Gift Studio
 
-## Getting Started
+Next.js 16 App Router project with the Obsidian Violet landing page, Supabase-backed studio, private gift media routes, login, and publishing endpoints.
 
-First, run the development server:
+## Local setup
 
-```bash
+1. Install Node.js 20+ (Node.js 22 is fine).
+2. Copy `.env.example` to `.env.local` and fill in your own Supabase values. Never commit `.env.local`.
+3. Install dependencies and run the production build:
+
+```powershell
+npm install
+npm run build
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Upload this project to a new GitHub repository or replace the contents of your existing project folder.
+2. In Vercel, configure the same environment variables listed in `.env.example` with the real values from your Supabase project.
+3. Deploy. Check the build log before sharing the URL.
 
-## Learn More
+## Important
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The ZIP intentionally excludes `.env.local`, `.vercel`, `.git`, and `node_modules`. Add your own environment values after extracting it.
+- Keep `SUPABASE_SECRET_KEY` and `GIFT_ACCESS_SECRET` server-side only. Never expose them in client-side code.
+- The homepage showcase uses illustrative external sample video/image URLs. The hero art is included at `public/images/afterglow-landing.png`.
+- Existing gift studio, authentication, protected media endpoints, and publishing files are included. Supabase database/storage permissions must be configured in your own project for publishing to work.

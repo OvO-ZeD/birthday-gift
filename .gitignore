@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Supabase CLI temporary files
 supabase/.temp/
+
+# Keep the safe template, never commit real env files
+!.env.example
