@@ -1,7 +1,10 @@
 
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "./database.types";
 
-let browserClient: ReturnType<typeof createBrowserClient> | undefined;
+let browserClient: ReturnType<
+  typeof createBrowserClient<Database>
+> | undefined;
 
 export function createClient() {
   if (!browserClient) {
@@ -14,7 +17,7 @@ export function createClient() {
       );
     }
 
-    browserClient = createBrowserClient(url, key);
+    browserClient = createBrowserClient<Database>(url, key);
   }
 
   return browserClient;

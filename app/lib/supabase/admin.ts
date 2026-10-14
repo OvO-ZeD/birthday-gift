@@ -2,8 +2,11 @@
 import "server-only";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 
-let adminClient: ReturnType<typeof createSupabaseClient> | null = null;
+let adminClient: ReturnType<
+  typeof createSupabaseClient<Database>
+> | null = null;
 
 export function createAdminClient() {
   if (adminClient) return adminClient;
@@ -19,13 +22,17 @@ export function createAdminClient() {
     throw new Error("Missing SUPABASE_SECRET_KEY in .env.local.");
   }
 
-  adminClient = createSupabaseClient(supabaseUrl, secretKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false,
-    },
-  });
+  adminClient = createSupabaseClient<Database>(
+    supabaseUrl,
+    secretKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+    }
+  );
 
   return adminClient;
 }

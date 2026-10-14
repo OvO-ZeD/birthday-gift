@@ -1,6 +1,7 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { Database } from "./database.types";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -12,7 +13,7 @@ export async function createClient() {
     throw new Error("Supabase environment variables are missing.");
   }
 
-  return createServerClient(url, key, {
+  return createServerClient<Database>(url, key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -24,7 +25,7 @@ export async function createClient() {
           });
         } catch {
           // Server Components cannot always write cookies.
-          // A middleware/proxy refresh layer will handle session updates.
+          // A middleware/proxy refresh layer can handle session updates.
         }
       },
     },
