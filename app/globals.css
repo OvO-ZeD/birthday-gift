@@ -1210,3 +1210,91 @@ select:focus-visible {
   .landing-particles .particle { opacity: .45; }
 }
 @media (prefers-reduced-motion: reduce) { .afterglow-landing .landing-aurora { animation: none; } }
+
+
+/* AFTERGLOW AMBIENT MOTION PASS: richer aurora, light ribbons and drifting particles */
+.afterglow-landing {
+  background-color: #080910;
+  background-image:
+    radial-gradient(ellipse at 76% 14%, rgba(126, 74, 255, .34), transparent 35%),
+    radial-gradient(ellipse at 18% 34%, rgba(205, 54, 174, .22), transparent 38%),
+    radial-gradient(ellipse at 84% 64%, rgba(57, 93, 218, .20), transparent 34%),
+    radial-gradient(ellipse at 40% 92%, rgba(142, 54, 186, .18), transparent 42%),
+    linear-gradient(145deg, #080910 0%, #14102b 46%, #090a17 100%);
+}
+.afterglow-landing .landing-aurora {
+  filter: blur(34px);
+  opacity: .9;
+  mix-blend-mode: screen;
+}
+.afterglow-landing .aurora-a {
+  width: clamp(340px, 48vw, 760px);
+  right: -8%; top: 2%;
+  background: radial-gradient(ellipse, rgba(139, 91, 255, .38), rgba(205, 65, 190, .16) 42%, transparent 72%);
+  animation: afterglow-aurora-a 16s ease-in-out infinite alternate;
+}
+.afterglow-landing .aurora-b {
+  width: clamp(320px, 42vw, 650px);
+  left: -12%; top: 32%;
+  background: radial-gradient(ellipse, rgba(83, 105, 255, .28), rgba(206, 69, 173, .13) 48%, transparent 72%);
+  animation: afterglow-aurora-b 20s ease-in-out infinite alternate;
+}
+.afterglow-landing .landing-particles {
+  background:
+    radial-gradient(ellipse at 50% 15%, rgba(133, 89, 255, .09), transparent 50%),
+    radial-gradient(ellipse at 90% 70%, rgba(226, 83, 198, .08), transparent 45%);
+}
+.afterglow-landing .landing-particles::before,
+.afterglow-landing .landing-particles::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  width: 125%; height: 42%; left: -12%;
+  border-radius: 50%;
+  border-top: 1px solid rgba(190, 151, 255, .23);
+  border-bottom: 1px solid rgba(222, 96, 226, .10);
+  filter: drop-shadow(0 0 7px rgba(143, 104, 255, .4));
+  transform: rotate(-12deg);
+  animation: afterglow-light-ribbon 18s ease-in-out infinite alternate;
+}
+.afterglow-landing .landing-particles::before { top: 17%; box-shadow: 0 -12px 28px rgba(119, 83, 255, .07), inset 0 12px 24px rgba(181, 105, 255, .04); }
+.afterglow-landing .landing-particles::after { top: 48%; transform: rotate(9deg); border-color: rgba(234, 117, 218, .14); animation-delay: -9s; animation-duration: 23s; }
+.afterglow-landing .landing-particles .particle {
+  width: 3px; height: 3px;
+  background: #d8caff;
+  box-shadow: 0 0 8px 2px rgba(164, 136, 255, .7), 0 0 20px 5px rgba(124, 94, 255, .24);
+}
+.afterglow-landing .landing-particles .particle-1,
+.afterglow-landing .landing-particles .particle-4 {
+  background: #ffc9f2;
+  box-shadow: 0 0 10px 3px rgba(255, 166, 238, .68), 0 0 25px 6px rgba(212, 87, 255, .24);
+}
+.afterglow-landing .landing-particles .particle-2 { width: 4px; height: 4px; background: #9cbcff; box-shadow: 0 0 12px 4px rgba(112, 142, 255, .58), 0 0 28px 7px rgba(112, 142, 255, .2); }
+.afterglow-landing .landing-feature,
+.afterglow-landing .landing-demo-panel,
+.afterglow-landing .hero-image-frame {
+  backdrop-filter: blur(12px);
+}
+.afterglow-landing .landing-feature { border-color: rgba(180, 158, 255, .24); }
+.afterglow-landing .landing-feature:hover { border-color: rgba(207, 174, 255, .62); box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 0 30px rgba(143,105,255,.2); }
+.afterglow-landing .hero-image-frame { border-color: rgba(193, 164, 255, .38); box-shadow: 0 24px 70px rgba(0,0,0,.34), 0 0 65px rgba(124,102,235,.24), 0 0 110px rgba(199,72,218,.10); }
+@keyframes afterglow-aurora-a {
+  0% { transform: translate3d(-2%, -1%, 0) scale(.92) rotate(0deg); }
+  50% { transform: translate3d(3%, 4%, 0) scale(1.08) rotate(8deg); }
+  100% { transform: translate3d(-5%, 8%, 0) scale(1.02) rotate(-6deg); }
+}
+@keyframes afterglow-aurora-b {
+  0% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate3d(7%, -3%, 0) scale(1.12) rotate(-7deg); }
+  100% { transform: translate3d(3%, 5%, 0) scale(.95) rotate(5deg); }
+}
+@keyframes afterglow-light-ribbon {
+  0% { translate: -2% -8px; rotate: -2deg; opacity: .35; }
+  50% { translate: 2% 10px; opacity: .85; }
+  100% { translate: -1% -3px; rotate: 2deg; opacity: .5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .afterglow-landing .landing-aurora,
+  .afterglow-landing .landing-particles::before,
+  .afterglow-landing .landing-particles::after { animation: none !important; }
+}
