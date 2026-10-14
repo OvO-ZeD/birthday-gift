@@ -55,10 +55,7 @@ export default function Home() {
           <motion.div className="landing-trust-row" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .55 }}><span><ShieldCheck size={15} /> Private sharing</span><span><Sparkles size={15} /> Personal by design</span><span><Heart size={15} /> Made with love</span></motion.div>
         </div>
         <motion.div className="landing-hero-visual" initial={reduceMotion ? false : { opacity: 0, scale: .96, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: .15 }}>
-          <div className="hero-image-frame"><img src="/images/afterglow-landing.png" alt="A cinematic obsidian-violet gift box surrounded by floating photographs and glowing memory cards" onError={(event) => { event.currentTarget.style.display = "none"; }} /><div className="hero-image-shade" /></div>
-          <motion.div className="floating-chip chip-photo" animate={reduceMotion ? undefined : { y: [0, -7, 0] }} transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}><Camera size={15} /><span>Little moments</span></motion.div>
-          <motion.div className="floating-chip chip-love" animate={reduceMotion ? undefined : { y: [0, 6, 0] }} transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut" }}><Heart size={15} /><span>Made personal</span></motion.div>
-          <div className="hero-visual-caption"><span className="caption-sparkle"><Sparkles size={15} /></span><span><strong>A little world, just for them</strong><small>Photos · films · music · words</small></span><ArrowUpRight size={18} /></div>
+          <div className="hero-image-frame"><img src="/images/afterglow-landing.png" alt="A couple sitting close together beside a lake at sunset, surrounded by warm lantern light beneath a violet-pink sky" /></div>
         </motion.div>
         <a className="landing-scroll" href="#features"><span>DISCOVER THE EXPERIENCE</span><ArrowDown size={14} /></a>
       </section>
