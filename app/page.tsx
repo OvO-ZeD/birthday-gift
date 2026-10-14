@@ -1,163 +1,87 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowDown, ArrowRight, ArrowUpRight, Heart, Play, Sparkles, Volume2, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Camera, GitBranch, Gift, Heart, LockKeyhole, Menu, Music2, Palette, Play, ShieldCheck, Sparkles, Video, X } from "lucide-react";
 
-type Memory = { src: string; title: string; caption: string; art: string; position: string };
-type Film = { src: string; poster: string; title: string; number: string; art: string };
-
-const photos: Memory[] = [
-  { src: "/images/memory-01.jpg", title: "The little things", caption: "The moments I wish I could pause.", art: "art-rose", position: "center" },
-  { src: "/images/memory-02.jpg", title: "My favourite days", caption: "Ordinary days made unforgettable.", art: "art-lilac", position: "center" },
-  { src: "/images/memory-03.jpg", title: "Just us", caption: "My favourite place is beside you.", art: "art-sunset", position: "center" },
-  { src: "/images/memory-04.jpg", title: "A thousand memories", caption: "And a thousand more to come.", art: "art-night", position: "center" },
+const features = [
+  { number: "01", icon: Camera, title: "Beautiful memories", description: "Turn favourite photos into a little gallery worth revisiting." },
+  { number: "02", icon: Video, title: "Moving moments", description: "Bring clips and little everyday scenes into the story." },
+  { number: "03", icon: Music2, title: "A personal soundtrack", description: "Set the mood with a song that means something to you." },
+  { number: "04", icon: Heart, title: "Words from the heart", description: "Add a letter that says what a photo never quite can." },
+  { number: "05", icon: Palette, title: "Your own atmosphere", description: "Shape the colours, details, and feeling around your person." },
+  { number: "06", icon: LockKeyhole, title: "Private by design", description: "Share a dedicated gift link with protected media support." },
 ];
 
-const films: Film[] = [
-  { src: "/videos/moment-01.mp4", poster: "/images/video-poster-01.jpg", title: "A moment to remember", number: "FILM 01", art: "film-rose" },
-  { src: "/videos/moment-02.mp4", poster: "/images/video-poster-02.jpg", title: "If only time could pause", number: "FILM 02", art: "film-lilac" },
+const steps = [
+  { icon: Camera, title: "Add your moments", text: "Choose photos, videos, a song, and a heartfelt note." },
+  { icon: Palette, title: "Make it yours", text: "Arrange the story and give it a look that feels personal." },
+  { icon: Gift, title: "Send the surprise", text: "Publish your gift and share its private link." },
 ];
 
-function MemoryCard({ memory, index, onOpen }: { memory: Memory; index: number; onOpen: () => void }) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const reduceMotion = useReducedMotion();
-  return (
-    <motion.button
-      type="button"
-      className={`memory-card memory-card-${index + 1}`}
-      onClick={onOpen}
-      aria-label={`Open ${memory.title}`}
-      initial={reduceMotion ? false : { opacity: 0, y: 34, rotate: index % 2 ? 1.5 : -1.5 }}
-      whileInView={{ opacity: 1, y: 0, rotate: 0 }}
-      whileHover={reduceMotion ? undefined : { y: -9, rotate: index % 2 ? -0.5 : 0.5 }}
-      viewport={{ once: true, amount: 0.15 }}
-      transition={{ duration: 0.75, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className={`memory-image ${memory.art}`}>
-        {!imageFailed ? (
-          <img src={memory.src} alt={memory.title} loading="lazy" onError={() => setImageFailed(true)} style={{ objectPosition: memory.position }} />
-        ) : (
-          <div className="memory-art-fallback" aria-label="Decorative memory placeholder">
-            <span className="fallback-orb" />
-            <span className="fallback-ring" />
-            <Heart size={25} strokeWidth={1} />
-            <span className="fallback-label">A MEMORY, JUST FOR YOU</span>
-          </div>
-        )}
-        <span className="memory-index">0{index + 1}</span>
-        <span className="memory-open"><ArrowUpRight size={19} /></span>
-      </div>
-      <div className="memory-caption"><span className="caption-number">0{index + 1}</span><div><h3>{memory.title}</h3><p>{memory.caption}</p></div></div>
-    </motion.button>
-  );
-}
-
-function FilmCard({ film, index }: { film: Film; index: number }) {
-  const [failed, setFailed] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const reduceMotion = useReducedMotion();
-
-  async function togglePlayback() {
-    const video = videoRef.current;
-    if (!video || failed) return;
-    if (video.paused) {
-      try { await video.play(); } catch { setFailed(true); }
-    } else video.pause();
-  }
-
-  return (
-    <motion.article className="film-card" initial={reduceMotion ? false : { opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.8, delay: index * 0.13 }}>
-      <div className={`film-frame ${film.art}`}>
-        {!failed && <video ref={videoRef} src={film.src} poster={film.poster} preload="none" playsInline onError={() => setFailed(true)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />}
-        {failed && <div className="film-art-fallback"><span className="film-glow" /><Sparkles size={27} strokeWidth={1} /><span>YOUR LITTLE FILM</span><small>Add a clip at <code>{film.src}</code></small></div>}
-        {!failed && <button className="film-play" type="button" onClick={togglePlayback} aria-label={playing ? "Pause film" : "Play film"}>{playing ? <span className="pause-mark">Ⅱ</span> : <Play size={22} fill="currentColor" />}</button>}
-        <span className="film-number">{film.number}</span>
-        {playing && <span className="playing-indicator"><i /> PLAYING</span>}
-      </div>
-      <div className="film-caption"><h3>{film.title}</h3><p>A little moment, kept forever.</p></div>
-    </motion.article>
-  );
-}
+const demos = [
+  { title: "A memory in motion", label: "VIDEO MOMENT", poster: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=85", src: "https://videos.pexels.com/video-files/3195394/3195394-hd_1920_1080_25fps.mp4" },
+  { title: "A little world of us", label: "PHOTO STORY", poster: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1200&q=85", src: "https://videos.pexels.com/video-files/854072/854072-hd_1920_1080_25fps.mp4" },
+];
 
 export default function Home() {
-  const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null);
-  const [musicOpen, setMusicOpen] = useState(false);
-  const [musicPlaying, setMusicPlaying] = useState(false);
-  const [opened, setOpened] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const reduceMotion = useReducedMotion();
+  const [activeVideo, setActiveVideo] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") { setSelectedPhoto(null); setMusicOpen(false); }
-      if (event.key === "ArrowRight" && selectedPhoto !== null) setSelectedPhoto((selectedPhoto + 1) % photos.length);
-      if (event.key === "ArrowLeft" && selectedPhoto !== null) setSelectedPhoto((selectedPhoto - 1 + photos.length) % photos.length);
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedPhoto]);
-
-  function goToMemories() {
-    setOpened(true);
-    document.getElementById("memories")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
-  }
-
-  async function toggleMusic() {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (audio.paused) {
-      try { await audio.play(); setMusicPlaying(true); }
-      catch { setMusicOpen(true); }
-    } else { audio.pause(); setMusicPlaying(false); }
-  }
+  const reveal = reduceMotion ? {} : { initial: { opacity: 0, y: 22 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.18 }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const } };
 
   return (
-    <main className="birthday-site" id="top">
-      <div className="ambient ambient-one" aria-hidden="true" /><div className="ambient ambient-two" aria-hidden="true" /><div className="grain" aria-hidden="true" />
-      <header className="topbar"><a className="brand" href="#top" aria-label="Back to beginning"><Heart size={17} strokeWidth={1.5} /><span>FOR YOU, ALWAYS</span></a><div className="topbar-note"><span className="status-dot" /> A LITTLE SOMETHING SPECIAL</div></header>
+    <main className="afterglow-landing" id="top">
+      <div className="landing-aurora aurora-a" aria-hidden="true" /><div className="landing-aurora aurora-b" aria-hidden="true" />
+      <motion.div className="landing-progress" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.1, ease: "easeOut" }} />
+      <header className="landing-nav">
+        <a href="#top" className="landing-brand" aria-label="Afterglow home"><span className="brand-mark"><Heart size={20} /><Sparkles size={11} /></span><span>Afterglow</span></a>
+        <nav className={menuOpen ? "landing-links nav-open" : "landing-links"} aria-label="Main navigation">
+          <a href="#top" onClick={() => setMenuOpen(false)}>Home</a><a href="#features" onClick={() => setMenuOpen(false)}>Features</a><a href="#demo" onClick={() => setMenuOpen(false)}>Demo</a><a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
+        </nav>
+        <div className="landing-nav-actions"><a className="nav-login" href="/login">Log in</a><a className="landing-button landing-button-small" href="/studio">Create a gift <ArrowRight size={15} /></a><a className="github-link" href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer" aria-label="View Afterglow on GitHub" title="View on GitHub"><GitBranch size={18} /></a></div>
+        <button className="landing-menu-toggle" type="button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={21} /> : <Menu size={21} />}</button>
+      </header>
 
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-copy">
-          <motion.div className="eyebrow hero-eyebrow" initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}><span className="eyebrow-line" />A LITTLE WORLD, MADE FOR YOU<span className="eyebrow-line" /></motion.div>
-          <motion.h1 id="hero-title" className="hero-title" initial={reduceMotion ? false : { opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.12 }}>For my<br /><em>favourite</em><br />person.</motion.h1>
-          <motion.p className="hero-description" initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.85, delay: 0.32 }}>A collection of moments, memories, and words<br className="desktop-break" /> to celebrate the most beautiful you.</motion.p>
-          <motion.button className="enter-button" type="button" onClick={goToMemories} whileHover={reduceMotion ? undefined : { scale: 1.025 }} whileTap={reduceMotion ? undefined : { scale: 0.98 }} initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.5 }}><Sparkles size={17} strokeWidth={1.5} /><span>{opened ? "CONTINUE OUR STORY" : "ENTER YOUR LITTLE WORLD"}</span><ArrowRight size={17} /></motion.button>
-          <div className="hero-footnote"><Heart size={13} /> MADE WITH ALL MY LOVE</div>
+      <section className="landing-hero" aria-labelledby="landing-title">
+        <div className="landing-hero-copy">
+          <motion.div className="landing-kicker" initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}><span /> A DIGITAL GIFT FOR YOUR FAVOURITE PEOPLE</motion.div>
+          <motion.h1 id="landing-title" initial={reduceMotion ? false : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .8, delay: .08 }}>Turn moments into <em>an unforgettable story.</em></motion.h1>
+          <motion.p className="landing-lede" initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .7, delay: .2 }}>A beautiful, interactive website to celebrate someone special. Bring photos, videos, music, and a heartfelt letter together in one little world made just for them.</motion.p>
+          <motion.div className="landing-hero-actions" initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65, delay: .32 }}><a className="landing-button" href="/studio">Create your gift <ArrowRight size={17} /></a><a className="landing-button landing-button-ghost" href="#demo"><span className="play-outline"><Play size={13} fill="currentColor" /></span> Explore the demo</a></motion.div>
+          <motion.div className="landing-trust-row" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .55 }}><span><ShieldCheck size={15} /> Private sharing</span><span><Sparkles size={15} /> Personal by design</span><span><Heart size={15} /> Made with love</span></motion.div>
         </div>
-
-        <motion.div className="hero-art" initial={reduceMotion ? false : { opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.2, delay: 0.12 }}>
-          <div className="art-halo" /><div className="art-orbit orbit-one" /><div className="art-orbit orbit-two" />
-          <motion.div className="polaroid polaroid-back" animate={reduceMotion ? undefined : { y: [0, -7, 0], rotate: [7, 8.5, 7] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}><div className="photo-placeholder photo-sunset"><span className="photo-sun" /><span className="photo-horizon" /></div><div className="polaroid-caption">the days we keep</div></motion.div>
-          <motion.div className="polaroid polaroid-front" animate={reduceMotion ? undefined : { y: [0, 8, 0], rotate: [-8, -6.5, -8] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}><div className="photo-placeholder photo-rose"><span className="rose-glow" /><span className="rose-petal petal-one" /><span className="rose-petal petal-two" /><span className="rose-petal petal-three" /><span className="rose-stem" /></div><div className="polaroid-caption">my favourite person ♡</div></motion.div>
-          <motion.div className="floating-note note-top" animate={reduceMotion ? undefined : { y: [0, -5, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Sparkles size={15} /><span>a thousand little moments</span></motion.div>
-          <motion.div className="floating-note note-bottom" animate={reduceMotion ? undefined : { y: [0, 5, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}><Heart size={15} /><span>you make life beautiful</span></motion.div>
+        <motion.div className="landing-hero-visual" initial={reduceMotion ? false : { opacity: 0, scale: .96, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: .15 }}>
+          <div className="hero-image-frame"><img src="/images/afterglow-landing.png" alt="Afterglow's dreamy purple and rose-gold digital gift concept, with floating photographs and a glowing gift box" /><div className="hero-image-shade" /></div>
+          <motion.div className="floating-chip chip-photo" animate={reduceMotion ? undefined : { y: [0, -7, 0] }} transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}><Camera size={15} /><span>Little moments</span></motion.div>
+          <motion.div className="floating-chip chip-love" animate={reduceMotion ? undefined : { y: [0, 6, 0] }} transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut" }}><Heart size={15} /><span>Made personal</span></motion.div>
+          <div className="hero-visual-caption"><span className="caption-sparkle"><Sparkles size={15} /></span><span><strong>A little world, just for them</strong><small>Photos · films · music · words</small></span><ArrowUpRight size={18} /></div>
         </motion.div>
-        <a href="#memories" className="scroll-cue" onClick={(event) => { event.preventDefault(); goToMemories(); }}><span>SCROLL TO DISCOVER</span><ArrowDown size={15} /></a>
-        <div className="hero-index"><span>01</span><span className="index-line" /><span>THE BEGINNING</span></div>
+        <a className="landing-scroll" href="#features"><span>DISCOVER THE EXPERIENCE</span><ArrowDown size={14} /></a>
       </section>
 
-      <section id="memories" className="memories-section">
-        <div className="section-heading"><span className="eyebrow">CHAPTER ONE · OUR LITTLE UNIVERSE</span><h2>If I could keep<br /><em>anything forever...</em></h2><p>It would be the little moments that somehow became my favourite memories.</p></div>
-        <div className="memory-grid">{photos.map((memory, index) => <MemoryCard key={memory.src} memory={memory} index={index} onOpen={() => setSelectedPhoto(index)} />)}</div>
-        <div className="section-endnote"><span /> FOUR LITTLE WINDOWS INTO OUR WORLD <span /></div>
+      <section className="landing-feature-strip" id="features" aria-label="Afterglow features">
+        {features.map((feature, index) => { const Icon = feature.icon; return <motion.article className="landing-feature" key={feature.number} {...reveal} transition={{ duration: .65, delay: index * .055 }}><div className="feature-topline"><span>{feature.number}</span><Icon size={18} strokeWidth={1.5} /></div><h2>{feature.title}</h2><p>{feature.description}</p></motion.article>; })}
       </section>
 
-      <section className="films-section"><div className="section-heading"><span className="eyebrow">CHAPTER TWO · LITTLE FILMS, BIG FEELINGS</span><h2>Some moments<br /><em>should move forever.</em></h2><p>The little clips, the laughter, the days we wish lasted longer.</p></div><div className="film-grid">{films.map((film, index) => <FilmCard key={film.src} film={film} index={index} />)}</div></section>
+      <section className="landing-how" id="how-it-works">
+        <motion.div className="landing-how-copy" {...reveal}><span className="landing-section-kicker">SMALL STEPS, BIG FEELINGS</span><h2>Create a gift <em>in minutes.</em></h2><p>Everything you need to turn a few meaningful things into an experience they can open, explore, and keep.</p><a className="text-link" href="/studio">Start making yours <ArrowRight size={16} /></a>
+          <div className="landing-steps">{steps.map((step, index) => { const Icon = step.icon; return <motion.div className="landing-step" key={step.title} {...reveal} transition={{ duration: .6, delay: index * .08 }}><div className="step-icon"><Icon size={19} /></div><div className="step-copy"><span>STEP 0{index + 1}</span><h3>{step.title}</h3><p>{step.text}</p></div>{index < steps.length - 1 && <div className="step-connector" aria-hidden="true"><ArrowRight size={15} /></div>}</motion.div>; })}</div>
+        </motion.div>
+        <motion.div className="landing-demo-panel" id="demo" {...reveal}>
+          <div className="demo-panel-heading"><div><span className="landing-section-kicker">TAKE A LITTLE LOOK</span><h3>Feel the story.</h3></div><span className="demo-live"><i /> DEMO PREVIEW</span></div>
+          <div className="demo-card-grid">{demos.map((demo, index) => <button className="demo-card" type="button" key={demo.title} onClick={() => { setActiveVideo(index); setVideoFailed(false); }} style={{ backgroundImage: `linear-gradient(180deg,rgba(18,7,20,.05),rgba(18,7,20,.82)),url("${demo.poster}")` }}><span className="demo-card-label">{demo.label}</span><span className="demo-play"><Play size={19} fill="currentColor" /></span><span className="demo-card-title">{demo.title}</span><span className="demo-card-open">PLAY PREVIEW <ArrowUpRight size={13} /></span></button>)}</div>
+          <p className="demo-disclaimer">Preview clips are illustrative examples. Your published gift uses the media you choose.</p>
+        </motion.div>
+      </section>
 
-      <section className="letter-section"><motion.div className="letter-panel" initial={reduceMotion ? false : { opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.8 }}><div className="letter-sparkle"><Sparkles size={22} strokeWidth={1.2} /></div><span className="eyebrow">CHAPTER THREE · A NOTE FROM ME TO YOU</span><h2>And if there is<br /><em>one thing I hope you know...</em></h2><p>You make ordinary days feel extraordinary. This little world is only a small way to celebrate you.</p><button type="button" className="enter-button" onClick={() => setMusicOpen(true)}><Heart size={16} /><span>A LITTLE MORE LOVE</span><ArrowRight size={16} /></button><div className="letter-watermark">♡</div></motion.div></section>
+      <section className="landing-final-cta"><motion.div {...reveal}><span className="landing-section-kicker">THE BEST GIFTS FEEL PERSONAL</span><h2>Make something <em>they'll remember.</em></h2><p>Start with a photo. Add the song. Write the words. Let the little things become the whole story.</p><a className="landing-button" href="/studio">Create your first gift <ArrowRight size={17} /></a></motion.div><motion.div className="cta-orbit" aria-hidden="true" animate={reduceMotion ? undefined : { rotate: 360 }} transition={{ duration: 55, repeat: Infinity, ease: "linear" }}><span /><Heart size={31} strokeWidth={1} /><i /><b /></motion.div></section>
 
-      <footer className="site-footer"><span>MADE WITH LOVE, JUST FOR YOU</span><Heart size={14} /><a href="#top">BACK TO THE BEGINNING ↑</a></footer>
-      <audio ref={audioRef} src="/audio/birthday-song.mp3" loop preload="none" onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} />
-      <button className={`music-toggle ${musicPlaying ? "music-active" : ""}`} type="button" onClick={toggleMusic} aria-label={musicPlaying ? "Pause music" : "Play music"} title="Play or pause your soundtrack"><Volume2 size={15} /><span>{musicPlaying ? "MUSIC ON" : "MUSIC OFF"}</span><span className="music-equalizer" aria-hidden="true"><i /><i /><i /></span></button>
+      <footer className="landing-footer"><a href="#top" className="landing-brand"><span className="brand-mark"><Heart size={18} /><Sparkles size={10} /></span><span>Afterglow</span></a><span>Little moments. Lasting feelings.</span><div><a href="/login">Log in</a><a href="/studio">Create a gift</a><a href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer"><GitBranch size={14} /> GitHub</a></div></footer>
 
-      <AnimatePresence>
-        {selectedPhoto !== null && <motion.div className="lightbox" role="dialog" aria-modal="true" aria-label="Memory photo viewer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedPhoto(null)}><button className="lightbox-close" type="button" onClick={() => setSelectedPhoto(null)} aria-label="Close photo viewer"><X size={23} /></button><motion.div className="lightbox-content" initial={reduceMotion ? false : { scale: 0.94, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97 }} onClick={(event) => event.stopPropagation()}><div className={`lightbox-image ${photos[selectedPhoto].art}`}><img src={photos[selectedPhoto].src} alt={photos[selectedPhoto].title} onError={(event) => { event.currentTarget.style.display = "none"; }} /></div><span className="eyebrow">MEMORY 0{selectedPhoto + 1} / 0{photos.length}</span><h3>{photos[selectedPhoto].title}</h3><p>{photos[selectedPhoto].caption}</p><div className="lightbox-navigation"><button type="button" onClick={() => setSelectedPhoto((selectedPhoto - 1 + photos.length) % photos.length)}>← PREVIOUS</button><button type="button" onClick={() => setSelectedPhoto((selectedPhoto + 1) % photos.length)}>NEXT MEMORY →</button></div></motion.div></motion.div>}
-      </AnimatePresence>
-      <AnimatePresence>
-        {musicOpen && <motion.div className="lightbox" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMusicOpen(false)}><motion.div className="music-message" role="dialog" aria-modal="true" aria-label="A little note" initial={reduceMotion ? false : { scale: 0.95, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97 }} onClick={(event) => event.stopPropagation()}><button className="lightbox-close" type="button" onClick={() => setMusicOpen(false)} aria-label="Close"><X size={22} /></button><Heart size={28} strokeWidth={1.2} /><span className="eyebrow">A SMALL NOTE, WITH A LOT OF LOVE</span><h3>Every little thing<br /><em>reminds me of you.</em></h3><p>Add your own soundtrack at <code>public/audio/birthday-song.mp3</code>. Music starts only when someone presses play, so the experience stays in their hands.</p><button type="button" className="enter-button" onClick={() => setMusicOpen(false)}><span>BACK TO OUR STORY</span><ArrowRight size={16} /></button></motion.div></motion.div>}
-      </AnimatePresence>
+      <AnimatePresence>{activeVideo !== null && <motion.div className="landing-video-modal" role="dialog" aria-modal="true" aria-label={`${demos[activeVideo].title} preview`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveVideo(null)}><motion.div className="landing-video-dialog" initial={reduceMotion ? false : { opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }} onClick={event => event.stopPropagation()}><button className="landing-video-close" type="button" onClick={() => setActiveVideo(null)} aria-label="Close video"><X size={21} /></button><div className="video-modal-heading"><span className="landing-section-kicker">ILLUSTRATIVE PREVIEW</span><h3>{demos[activeVideo].title}</h3></div>{videoFailed ? <div className="video-fallback" style={{ backgroundImage: `linear-gradient(180deg,transparent,#170b1a),url("${demos[activeVideo].poster}")` }}><Video size={28} /><p>This sample clip could not load. The rest of the demo is still available.</p><a href={demos[activeVideo].poster} target="_blank" rel="noreferrer">View preview image <ArrowUpRight size={14} /></a></div> : <video className="landing-video" controls autoPlay playsInline poster={demos[activeVideo].poster} src={demos[activeVideo].src} onError={() => setVideoFailed(true)} /> }<p className="video-note">Sample footage is loaded from an external video host. Use your own media when creating a real gift.</p></motion.div></motion.div>}</AnimatePresence>
     </main>
   );
 }

@@ -13,11 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "A Little Something for You ♡",
-  description: "A little world made just for your birthday.",
-  robots: {
-    index: false,
-    follow: false,
+  title: "Afterglow | Turn Moments Into an Unforgettable Story",
+  description: "Create a personal digital gift with photos, videos, music, and a heartfelt letter. Make a little world for someone special.",
+  openGraph: {
+    title: "Afterglow | Digital Gifts Made Personal",
+    description: "Turn meaningful moments into an unforgettable story.",
+    type: "website",
   },
 };
 
