@@ -11,6 +11,15 @@ import "./login.css";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const requestedNext = searchParams.get("next");
+  const safeNext =
+    requestedNext &&
+    requestedNext.startsWith("/") &&
+    !requestedNext.startsWith("//") &&
+    !requestedNext.includes("\\") &&
+    !/[\r\n]/.test(requestedNext)
+      ? requestedNext
+      : "/studio";
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -33,14 +42,14 @@ function LoginForm() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=/studio`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
           },
         });
 
         if (error) throw error;
 
         if (data.session) {
-          router.replace("/studio");
+          router.replace(safeNext);
           router.refresh();
           return;
         }
@@ -56,7 +65,7 @@ function LoginForm() {
 
         if (error) throw error;
 
-        router.replace("/studio");
+        router.replace(safeNext);
         router.refresh();
         return;
       }

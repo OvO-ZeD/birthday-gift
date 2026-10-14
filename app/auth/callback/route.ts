@@ -8,7 +8,11 @@ export async function GET(request: Request) {
   const next = searchParams.get("next");
 
   const safeNext =
-    next && next.startsWith("/") && !next.startsWith("//")
+    next &&
+    next.startsWith("/") &&
+    !next.startsWith("//") &&
+    !next.includes("\\") &&
+    !/[\r\n]/.test(next)
       ? next
       : "/studio";
 
