@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowDown, ArrowRight, ArrowUpRight, Camera, Gift, GitBranch, Heart, LockKeyhole, Menu, Music2, Palette, Play, ShieldCheck, Sparkles, Video, X } from "lucide-react";
 
@@ -79,7 +80,19 @@ export default function Home() {
 
       <footer className="landing-footer"><a href="#top" className="landing-brand"><span className="brand-mark"><Heart size={18} /><Sparkles size={10} /></span><span>Afterglow</span></a><span>Little moments. Lasting feelings.</span><div><a href="/login">Log in</a><a href="/studio">Create a gift</a><a href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer"><GitBranch size={14} /> GitHub</a></div></footer>
 
-      <AnimatePresence>{activeVideo !== null && <motion.div className="landing-video-modal" role="dialog" aria-modal="true" aria-label={`${demos[activeVideo].title} preview`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveVideo(null)}><motion.div className="landing-video-dialog" initial={reduceMotion ? false : { opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }} onClick={event => event.stopPropagation()}><button className="landing-video-close" type="button" onClick={() => setActiveVideo(null)} aria-label="Close video"><X size={21} /></button><div className="video-modal-heading"><span className="landing-section-kicker">ILLUSTRATIVE PREVIEW</span><h3>{demos[activeVideo].title}</h3></div>{videoFailed ? <div className="video-fallback" style={{ backgroundImage: `linear-gradient(180deg,transparent,#170b1a),url("${demos[activeVideo].poster}")` }}><Video size={28} /><p>This sample clip could not load. The rest of the demo is still available.</p><a href={demos[activeVideo].poster} target="_blank" rel="noreferrer">View preview image <ArrowUpRight size={14} /></a></div> : <video className="landing-video" controls autoPlay playsInline poster={demos[activeVideo].poster} src={demos[activeVideo].src} onError={() => setVideoFailed(true)} /> }<p className="video-note">Sample footage is loaded from an external video host. Use your own media when creating a real gift.</p></motion.div></motion.div>}</AnimatePresence>
+      {activeVideo !== null && createPortal(
+        <AnimatePresence>
+          <motion.div className="landing-video-modal" role="dialog" aria-modal="true" aria-label={`${demos[activeVideo].title} preview`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveVideo(null)}>
+            <motion.div className="landing-video-dialog" initial={reduceMotion ? false : { opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }} onClick={event => event.stopPropagation()}>
+              <button className="landing-video-close" type="button" onClick={() => setActiveVideo(null)} aria-label="Close video"><X size={21} /></button>
+              <div className="video-modal-heading"><span className="landing-section-kicker">ILLUSTRATIVE PREVIEW</span><h3>{demos[activeVideo].title}</h3></div>
+              {videoFailed ? <div className="video-fallback" style={{ backgroundImage: `linear-gradient(180deg,transparent,#170b1a),url("${demos[activeVideo].poster}")` }}><Video size={28} /><p>This sample clip could not load. The rest of the demo is still available.</p><a href={demos[activeVideo].poster} target="_blank" rel="noreferrer">View preview image <ArrowUpRight size={14} /></a></div> : <video className="landing-video" controls autoPlay playsInline poster={demos[activeVideo].poster} src={demos[activeVideo].src} onError={() => setVideoFailed(true)} />}
+              <p className="video-note">Sample footage is loaded from an external video host. Use your own media when creating a real gift.</p>
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
     </main>
   );
 }
