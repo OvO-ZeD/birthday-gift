@@ -1,0 +1,128 @@
+
+.auth-page {
+  min-height: 100svh;
+  padding: 32px 20px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(128, 49, 91, .22), transparent 45%),
+    radial-gradient(ellipse at 85% 85%, rgba(94, 52, 124, .18), transparent 42%),
+    #160d17;
+  color: #f5e9e6;
+}
+
+.auth-back {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  color: #d8bfcf;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.auth-card {
+  width: min(100%, 440px);
+  padding: clamp(28px, 6vw, 48px);
+  border: 1px solid rgba(255, 224, 235, .13);
+  border-radius: 24px;
+  background: rgba(38, 21, 36, .78);
+  box-shadow: 0 28px 100px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(18px);
+}
+
+.auth-eyebrow {
+  color: #e6a7c5;
+  font-size: 10px;
+  letter-spacing: .2em;
+}
+
+.auth-card h1 {
+  margin: 20px 0 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(36px, 8vw, 52px);
+  font-weight: 400;
+  letter-spacing: -.04em;
+}
+
+.auth-description {
+  color: #c8b3c2;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.auth-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.auth-form label {
+  margin-top: 8px;
+  color: #e6d4df;
+  font-size: 12px;
+}
+
+.auth-form input {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 224, 235, .17);
+  border-radius: 10px;
+  outline: none;
+  background: rgba(12, 8, 14, .45);
+  color: #fff4f8;
+}
+
+.auth-form input:focus {
+  border-color: #d78db4;
+  box-shadow: 0 0 0 3px rgba(215, 141, 180, .12);
+}
+
+.auth-form > button {
+  min-height: 48px;
+  margin-top: 14px;
+  border: 0;
+  border-radius: 10px;
+  background: #d68eaf;
+  color: #24121e;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-form > button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.auth-message {
+  overflow-wrap: anywhere;
+  color: #f1b9d0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.auth-switch {
+  margin-top: 24px;
+  color: #c8b3c2;
+  text-align: center;
+  font-size: 13px;
+}
+
+.auth-switch button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #f1b4d0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+  .auth-back {
+    top: 18px;
+    left: 20px;
+  }
+}
