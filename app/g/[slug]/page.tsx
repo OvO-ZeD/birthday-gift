@@ -75,9 +75,7 @@ export default async function GiftPage({ params }: GiftPageProps) {
             ) : (
               <video src={`/api/gifts/${encodeURIComponent(slug)}/media/${item.id}`} controls playsInline />
             )}
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            <h2>{item.title || "A favourite moment"}</h2>
-            {item.caption && <p>{item.caption}</p>}
+            
           </article>
         ))}
       </section>
