@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowDown, ArrowRight, ArrowUpRight, Camera, GitBranch, Gift, Heart, LockKeyhole, Menu, Music2, Palette, Play, ShieldCheck, Sparkles, Video, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Camera, Gift, Github, Heart, LockKeyhole, Menu, Music2, Palette, Play, ShieldCheck, Sparkles, Video, X } from "lucide-react";
 
 const features = [
   { number: "01", icon: Camera, title: "Beautiful memories", description: "Turn favourite photos into a little gallery worth revisiting." },
@@ -41,7 +41,7 @@ export default function Home() {
         <nav className={menuOpen ? "landing-links nav-open" : "landing-links"} aria-label="Main navigation">
           <a href="#top" onClick={() => setMenuOpen(false)}>Home</a><a href="#features" onClick={() => setMenuOpen(false)}>Features</a><a href="#demo" onClick={() => setMenuOpen(false)}>Demo</a><a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
         </nav>
-        <div className="landing-nav-actions"><a className="nav-login" href="/login">Log in</a><a className="landing-button landing-button-small" href="/studio">Create a gift <ArrowRight size={15} /></a><a className="github-link" href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer" aria-label="View Afterglow on GitHub" title="View on GitHub"><GitBranch size={18} /></a></div>
+        <div className="landing-nav-actions"><a className="nav-login" href="/login">Log in</a><a className="landing-button landing-button-small" href="/studio">Create a gift <ArrowRight size={15} /></a><a className="github-link" href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer" aria-label="View Afterglow on GitHub" title="View on GitHub"><Github size={16} /><span>GitHub</span></a></div>
         <button className="landing-menu-toggle" type="button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={21} /> : <Menu size={21} />}</button>
       </header>
 
@@ -54,7 +54,7 @@ export default function Home() {
           <motion.div className="landing-trust-row" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .55 }}><span><ShieldCheck size={15} /> Private sharing</span><span><Sparkles size={15} /> Personal by design</span><span><Heart size={15} /> Made with love</span></motion.div>
         </div>
         <motion.div className="landing-hero-visual" initial={reduceMotion ? false : { opacity: 0, scale: .96, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: .15 }}>
-          <div className="hero-image-frame"><img src="/images/afterglow-landing.png" alt="Afterglow's dreamy purple and rose-gold digital gift concept, with floating photographs and a glowing gift box" /><div className="hero-image-shade" /></div>
+          <div className="hero-image-frame"><img src="/images/afterglow-landing.png" alt="A cinematic obsidian-violet gift box surrounded by floating photographs and glowing memory cards" onError={(event) => { event.currentTarget.style.display = "none"; }} /><div className="hero-image-shade" /></div>
           <motion.div className="floating-chip chip-photo" animate={reduceMotion ? undefined : { y: [0, -7, 0] }} transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}><Camera size={15} /><span>Little moments</span></motion.div>
           <motion.div className="floating-chip chip-love" animate={reduceMotion ? undefined : { y: [0, 6, 0] }} transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut" }}><Heart size={15} /><span>Made personal</span></motion.div>
           <div className="hero-visual-caption"><span className="caption-sparkle"><Sparkles size={15} /></span><span><strong>A little world, just for them</strong><small>Photos · films · music · words</small></span><ArrowUpRight size={18} /></div>
