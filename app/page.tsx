@@ -21,8 +21,8 @@ const steps = [
 ];
 
 const demos = [
-  { title: "A memory in motion", label: "VIDEO MOMENT", poster: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=85", src: "https://videos.pexels.com/video-files/3195394/3195394-hd_1920_1080_25fps.mp4" },
-  { title: "A little world of us", label: "PHOTO STORY", poster: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1200&q=85", src: "https://videos.pexels.com/video-files/854072/854072-hd_1920_1080_25fps.mp4" },
+  { title: "A memory in motion", label: "VIDEO MOMENT", poster: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=760&q=65", src: "https://videos.pexels.com/video-files/3195394/3195394-hd_1920_1080_25fps.mp4" },
+  { title: "A little world of us", label: "PHOTO STORY", poster: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=760&q=65", src: "https://videos.pexels.com/video-files/854072/854072-hd_1920_1080_25fps.mp4" },
 ];
 
 export default function Home() {
@@ -31,12 +31,12 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
 
-  const reveal = reduceMotion ? {} : { initial: { opacity: 0, y: 22 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.18 }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const } };
+  const reveal = reduceMotion ? { initial: false as const } : { initial: false as const, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.12 }, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const } };
 
   return (
     <main className="afterglow-landing" id="top">
       <div className="landing-aurora aurora-a" aria-hidden="true" /><div className="landing-aurora aurora-b" aria-hidden="true" />
-      <div className="landing-particles" aria-hidden="true">{Array.from({ length: 24 }, (_, index) => <motion.span key={index} className={`particle particle-${index % 6}`} style={{ left: `${(index * 37 + 9) % 100}%`, top: `${(index * 53 + 7) % 100}%` }} animate={reduceMotion ? undefined : { y: [0, -18 - (index % 5) * 5, 0], x: [0, (index % 2 ? 1 : -1) * (7 + index % 4 * 3), 0], opacity: [0.16, 0.72, 0.16], scale: [0.7, 1.15, 0.7] }} transition={{ duration: 5 + (index % 7) * 1.2, delay: (index % 8) * .35, repeat: Infinity, ease: "easeInOut" }} />)}</div>
+      <div className="landing-particles" aria-hidden="true">{Array.from({ length: 14 }, (_, index) => <motion.span key={index} className={`particle particle-${index % 6}`} style={{ left: `${(index * 37 + 9) % 100}%`, top: `${(index * 53 + 7) % 100}%` }} animate={reduceMotion ? undefined : { y: [0, -18 - (index % 5) * 5, 0], x: [0, (index % 2 ? 1 : -1) * (7 + index % 4 * 3), 0], opacity: [0.16, 0.72, 0.16], scale: [0.7, 1.15, 0.7] }} transition={{ duration: 5 + (index % 7) * 1.2, delay: (index % 8) * .35, repeat: Infinity, ease: "easeInOut" }} />)}</div>
       <motion.div className="landing-progress" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.1, ease: "easeOut" }} />
       <header className="landing-nav">
         <a href="#top" className="landing-brand" aria-label="Afterglow home"><span className="brand-mark"><Heart size={20} /><Sparkles size={11} /></span><span>Afterglow</span></a>
@@ -49,14 +49,14 @@ export default function Home() {
 
       <section className="landing-hero" aria-labelledby="landing-title">
         <div className="landing-hero-copy">
-          <motion.div className="landing-kicker" initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}><span /> A DIGITAL GIFT FOR YOUR FAVOURITE PEOPLE</motion.div>
-          <motion.h1 id="landing-title" initial={reduceMotion ? false : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .8, delay: .08 }}>Turn moments into <em>an unforgettable story.</em></motion.h1>
-          <motion.p className="landing-lede" initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .7, delay: .2 }}>A beautiful, interactive website to celebrate someone special. Bring photos, videos, music, and a heartfelt letter together in one little world made just for them.</motion.p>
-          <motion.div className="landing-hero-actions" initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65, delay: .32 }}><a className="landing-button" href="/studio">Create your gift <ArrowRight size={17} /></a><a className="landing-button landing-button-ghost" href="#demo"><span className="play-outline"><Play size={13} fill="currentColor" /></span> Explore the demo</a></motion.div>
-          <motion.div className="landing-trust-row" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .55 }}><span><ShieldCheck size={15} /> Private sharing</span><span><Sparkles size={15} /> Personal by design</span><span><Heart size={15} /> Made with love</span></motion.div>
+          <motion.div className="landing-kicker" initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: .24 }}><span /> A DIGITAL GIFT FOR YOUR FAVOURITE PEOPLE</motion.div>
+          <motion.h1 id="landing-title" initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: .28 }}>Turn moments into <em>an unforgettable story.</em></motion.h1>
+          <motion.p className="landing-lede" initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: .24 }}>A beautiful, interactive website to celebrate someone special. Bring photos, videos, music, and a heartfelt letter together in one little world made just for them.</motion.p>
+          <motion.div className="landing-hero-actions" initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: .24 }}><a className="landing-button" href="/studio">Create your gift <ArrowRight size={17} /></a><a className="landing-button landing-button-ghost" href="#demo"><span className="play-outline"><Play size={13} fill="currentColor" /></span> Explore the demo</a></motion.div>
+          <motion.div className="landing-trust-row" initial={false} animate={{ opacity: 1 }} transition={{ duration: .2 }}><span><ShieldCheck size={15} /> Private sharing</span><span><Sparkles size={15} /> Personal by design</span><span><Heart size={15} /> Made with love</span></motion.div>
         </div>
-        <motion.div className="landing-hero-visual" initial={reduceMotion ? false : { opacity: 0, scale: .96, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: .15 }}>
-          <div className="hero-image-frame"><img src="/images/afterglow-landing.png" alt="A couple sitting close together beside a lake at sunset, surrounded by warm lantern light beneath a violet-pink sky" /></div>
+        <motion.div className="landing-hero-visual" initial={false} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: .28 }}>
+          <div className="hero-image-frame"><img src="/images/afterglow-landing.webp" alt="A couple sitting close together beside a lake at sunset, surrounded by warm lantern light beneath a violet-pink sky" width={1672} height={941} fetchPriority="high" decoding="async" /></div>
         </motion.div>
         <a className="landing-scroll" href="#features"><span>DISCOVER THE EXPERIENCE</span><ArrowDown size={14} /></a>
       </section>
