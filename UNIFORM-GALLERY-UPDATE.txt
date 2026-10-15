@@ -1,0 +1,9 @@
+Afterglow uniform cinematic gallery update
+
+- Uses consistent 4:5 media tiles so mixed portrait and landscape assets align cleanly.
+- Uses object-fit: cover to fill the tile. This crops some edges of landscape or unusually framed media.
+- Centers incomplete rows using a wrapping flex layout, so 1, 2, 4, or other odd/even counts do not leave a visually lopsided last row.
+- Three columns on wider screens and two columns on tablets/phones.
+- Existing optional user captions are retained; no automatic file-name labels are added by this CSS.
+
+Before deploying, run npm ci and npm run build. Keep .env.local and .git when copying files.
