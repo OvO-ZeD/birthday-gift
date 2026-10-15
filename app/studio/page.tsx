@@ -91,6 +91,8 @@ export default function StudioPage() {
   const [authReady, setAuthReady] = useState(false);
 
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, filename: "" });
 
   const [giftId, setGiftId] = useState<string | null>(null);
 
@@ -401,116 +403,74 @@ export default function StudioPage() {
 
 
       const savedItems: MediaItem[] = [];
+      const pendingUploads = items.filter((item) => !item.storagePath && Boolean(item.file));
+      let completedUploads = 0;
+      setUploadProgress({ current: 0, total: pendingUploads.length, filename: "" });
 
       for (let position = 0; position < items.length; position += 1) {
-
         const item = items[position];
-
         let storagePath = item.storagePath;
-
         let dbId = item.dbId;
-
         let previewUrl = item.url;
-
-
+        let savedFile: File | undefined = item.file;
 
         if (!storagePath) {
-
           if (!item.file) throw new Error(`The original file for "${item.title}" is unavailable. Remove it and upload it again.`);
-
+          setUploadProgress({ current: completedUploads + 1, total: pendingUploads.length, filename: item.originalFilename });
+          setNotice(`Uploading ${completedUploads + 1} of ${pendingUploads.length}: ${item.originalFilename}`);
           const safeName = item.originalFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
-
           storagePath = `${currentGiftId}/${crypto.randomUUID()}-${safeName}`;
-
-          const { error: uploadError } = await supabase
-
-            .storage.from("gift-media")
-
-            .upload(storagePath, item.file, {
-
-              contentType: item.mimeType,
-
-              upsert: false,
-
-              cacheControl: "3600",
-
-            });
-
+          const { error: uploadError } = await supabase.storage.from("gift-media").upload(storagePath, item.file, {
+            contentType: item.mimeType,
+            upsert: false,
+            cacheControl: "3600",
+          });
           if (uploadError) throw new Error(`Upload failed for "${item.originalFilename}": ${uploadError.message}`);
 
-
-
-          const { data: inserted, error: insertError } = await supabase
-
-            .from("gift_media")
-
-            .insert({
-
-              gift_id: currentGiftId,
-
-              kind: item.kind,
-
-              storage_path: storagePath,
-
-              original_filename: item.originalFilename,
-
-              mime_type: item.mimeType,
-
-              size_bytes: item.sizeBytes,
-
-              title: item.title,
-
-              caption: item.caption,
-
-              position,
-
-            })
-
-            .select("id")
-
-            .single();
+          const { data: inserted, error: insertError } = await supabase.from("gift_media").insert({
+            gift_id: currentGiftId,
+            kind: item.kind,
+            storage_path: storagePath,
+            original_filename: item.originalFilename,
+            mime_type: item.mimeType,
+            size_bytes: item.sizeBytes,
+            title: item.title,
+            caption: item.caption,
+            position,
+          }).select("id").single();
 
           if (insertError) {
-
             await supabase.storage.from("gift-media").remove([storagePath]);
-
             throw insertError;
-
           }
-
           dbId = inserted.id;
 
+          // Checkpoint each successful upload immediately so retrying after a mobile
+          // interruption does not upload the same file or create duplicate rows.
+          const checkpoint = { ...item, dbId, storagePath };
+          setItems((current) => current.map((entry) => entry.id === item.id ? checkpoint : entry));
+          completedUploads += 1;
         } else if (dbId) {
-
-          const { error: updateMediaError } = await supabase
-
-            .from("gift_media")
-
+          const { error: updateMediaError } = await supabase.from("gift_media")
             .update({ title: item.title, caption: item.caption, position })
-
-            .eq("id", dbId)
-
-            .eq("gift_id", currentGiftId);
-
+            .eq("id", dbId).eq("gift_id", currentGiftId);
           if (updateMediaError) throw updateMediaError;
-
         }
-
-
 
         if (item.file && item.url.startsWith("blob:")) {
-
-          const { data: signed } = await supabase.storage.from("gift-media").createSignedUrl(storagePath, 3600);
-
-          if (signed?.signedUrl) previewUrl = signed.signedUrl;
-
+          const { data: signed, error: signedError } = await supabase.storage.from("gift-media").createSignedUrl(storagePath, 3600);
+          if (signedError || !signed?.signedUrl) {
+            throw signedError || new Error(`Uploaded ${item.originalFilename}, but its preview could not be refreshed. Tap Save draft to retry.`);
+          }
+          previewUrl = signed.signedUrl;
+          URL.revokeObjectURL(item.url);
+          savedFile = undefined;
         }
 
-        savedItems.push({ ...item, dbId, storagePath, url: previewUrl, file: undefined });
-
+        const savedItem = { ...item, dbId, storagePath, url: previewUrl, file: savedFile };
+        savedItems.push(savedItem);
+        setItems((current) => current.map((entry) => entry.id === item.id ? savedItem : entry));
       }
-
-
 
       setItems(savedItems);
 
@@ -542,6 +502,10 @@ export default function StudioPage() {
 
 
   const addFiles = (files: FileList | File[]) => {
+    if (saving || publishing) {
+      setNotice("Please wait for the current save or publish to finish before adding more files.");
+      return;
+    }
     const limits = { image: 25 * 1024 * 1024, video: 150 * 1024 * 1024, audio: 30 * 1024 * 1024 };
     const allowedExtensions: Record<MediaItem["kind"], string[]> = {
       image: ["jpg", "jpeg", "png", "webp", "gif", "avif"],
@@ -705,6 +669,7 @@ export default function StudioPage() {
 
 
   const publish = async () => {
+    if (publishing || saving) return;
     if (mediaItems.length === 0) {
       setNotice("Add at least one photo or video before publishing.");
       return;
@@ -722,6 +687,7 @@ export default function StudioPage() {
     }
 
     try {
+      setPublishing(true);
       setNotice("Publishing your gift securely…");
       const response = await fetch("/api/gifts/publish", {
         method: "POST",
@@ -742,6 +708,8 @@ export default function StudioPage() {
       setNotice("Your gift is published and ready to share.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not publish your gift. Please try again.");
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -767,9 +735,9 @@ export default function StudioPage() {
 
           <span className="draft-status"><span /> {saving ? "Saving to cloud…" : authReady ? (giftId ? "Cloud draft" : "New draft") : "Checking sign-in…"}</span>
 
-          <button className="studio-button quiet" onClick={() => void saveDraft()} disabled={!authReady || saving}><Save size={15} /> {saving ? "Saving…" : "Save draft"}</button>
+          <button className="studio-button quiet" onClick={() => void saveDraft()} disabled={!authReady || saving || publishing}><Save size={15} /> {saving ? "Saving…" : "Save draft"}</button>
 
-          <button className="studio-button primary" onClick={() => setPreview(true)}><Eye size={15} /> Preview gift</button>
+          <button className="studio-button primary" onClick={() => setPreview(true)} disabled={saving || publishing}><Eye size={15} /> Preview gift</button>
 
         </div>
 
@@ -841,13 +809,17 @@ export default function StudioPage() {
 
             </div>
 
-
+            {saving && uploadProgress.total > 0 && <div className="upload-progress" role="status" aria-live="polite">
+              <div className="upload-progress-copy"><strong>Saving your memories</strong><span>{uploadProgress.current} of {uploadProgress.total}{uploadProgress.filename ? ` · ${uploadProgress.filename}` : ""}</span></div>
+              <div className="upload-progress-track"><i style={{ width: `${Math.min(100, uploadProgress.total ? (uploadProgress.current / uploadProgress.total) * 100 : 0)}%` }} /></div>
+              <small>Keep this page open until the save finishes. Large videos can take a little longer on mobile.</small>
+            </div>}
 
             {mediaItems.length > 0 ? <div className="media-grid">{mediaItems.map((item, index) => <article key={item.id} className={`media-tile ${activeId === item.id ? "active" : ""}`} onClick={() => setActiveId(item.id)}>
 
               <div className="media-thumb">
 
-                {item.kind === "image" ? <img src={item.url} alt={item.title} /> : <video src={item.url} muted preload="metadata" />}
+                {item.kind === "image" ? <img src={item.url} alt={item.title} loading="lazy" decoding="async" /> : <video src={item.url} muted preload="none" playsInline />}
 
                 <span className="media-index">{String(index + 1).padStart(2, "0")}</span><span className="media-kind">{item.kind === "image" ? <FileImage size={13} /> : <FileVideo size={13} />}{item.kind}</span>
 
@@ -863,7 +835,7 @@ export default function StudioPage() {
 
             {activeItem && <div className="item-editor">
 
-              <div className="item-editor-preview">{activeItem.kind === "image" ? <img src={activeItem.url} alt="" /> : <video src={activeItem.url} controls />}</div>
+              <div className="item-editor-preview">{activeItem.kind === "image" ? <img src={activeItem.url} alt="" decoding="async" /> : <video src={activeItem.url} controls preload="metadata" playsInline />}</div>
 
               <div className="item-fields"><div className="field-heading"><div><span className="step-label">SELECTED MEMORY</span><h3>Edit its little details</h3></div><button className="icon-button" onClick={() => setActiveId(null)} aria-label="Close editor"><X size={16} /></button></div>
 
@@ -917,7 +889,12 @@ export default function StudioPage() {
 
 
 
-          <div className="publish-bar"><div><span className="publish-mark"><Sparkles size={17} /></span><div><strong>Ready to see your story?</strong><small>Preview it before sharing it with the world.</small></div></div><button className="studio-button primary large" onClick={() => setPreview(true)}><Eye size={16} /> Preview your gift <ArrowRight size={16} /></button></div>
+          <div className="publish-bar"><div><span className="publish-mark"><Sparkles size={17} /></span><div><strong>Ready to see your story?</strong><small>Preview it before sharing it with the world.</small></div></div><button className="studio-button primary large" onClick={() => setPreview(true)} disabled={saving || publishing}><Eye size={16} /> Preview your gift <ArrowRight size={16} /></button></div>
+
+          <div className="mobile-action-dock" aria-label="Gift actions">
+            <button className="studio-button quiet" onClick={() => void saveDraft()} disabled={!authReady || saving || publishing}><Save size={15} /> {saving ? "Saving…" : "Save draft"}</button>
+            <button className="studio-button primary" onClick={() => setPreview(true)} disabled={saving || publishing}><Eye size={15} /> Preview / share</button>
+          </div>
 
           {notice && <div className="studio-notice" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="Dismiss message"><X size={14} /></button></div>}
 
@@ -959,11 +936,11 @@ export default function StudioPage() {
 
           <div className="preview-hero"><span className="preview-eyebrow">MADE FOR {recipient.toUpperCase() || "YOU"}</span><h2>{title || "A little world for you"}</h2><p>Some people make ordinary days feel extraordinary.</p><a href="#preview-memories" onClick={(event) => { event.preventDefault(); document.getElementById("preview-memories")?.scrollIntoView({ behavior: "smooth" }); }}>EXPLORE YOUR MEMORIES <ArrowDown size={14} /></a></div>
 
-          <div className="preview-memories" id="preview-memories">{mediaItems.map((item, index) => <article key={item.id} className="preview-memory">{item.kind === "image" ? <img src={item.url} alt={item.title} /> : <video src={item.url} controls playsInline /> }<span>{String(index + 1).padStart(2, "0")}</span><h3>{item.title}</h3>{item.caption && <p>{item.caption}</p>}</article>)}</div>
+          <div className="preview-memories" id="preview-memories">{mediaItems.map((item, index) => <article key={item.id} className="preview-memory">{item.kind === "image" ? <img src={item.url} alt={item.title} loading="lazy" decoding="async" /> : <video src={item.url} controls preload="metadata" playsInline /> }<span>{String(index + 1).padStart(2, "0")}</span><h3>{item.title}</h3>{item.caption && <p>{item.caption}</p>}</article>)}</div>
 
           <div className="preview-letter"><Heart size={22} /><span>A NOTE FROM ME TO YOU</span><p>{letter}</p><small>MADE WITH LOVE, JUST FOR YOU</small></div>
 
-          <div className="preview-bottom"><button className="studio-button quiet" onClick={() => setPreview(false)}>Back to editor</button><button className="studio-button primary" onClick={publish}><Sparkles size={15} /> Create preview link</button></div>
+          <div className="preview-bottom"><button className="studio-button quiet" onClick={() => setPreview(false)}>Back to editor</button><button className="studio-button primary" onClick={publish} disabled={saving || publishing}>{publishing ? "Publishing…" : saving ? "Saving…" : <><Sparkles size={15} /> Create preview link</>}</button></div>
 
           {published && giftSlug && (
             <div className="preview-publish-result">

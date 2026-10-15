@@ -923,3 +923,49 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Mobile upload reliability: keep progress visible while large media uploads. */
+.upload-progress {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: 10px;
+  background: var(--studio-panel, rgba(255,255,255,.035));
+}
+.upload-progress-copy {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+}
+.upload-progress-copy strong { font-weight: 650; }
+.upload-progress-copy span { color: var(--studio-muted); text-align: right; overflow-wrap: anywhere; }
+.upload-progress-track { height: 5px; margin-top: 10px; border-radius: 99px; background: var(--studio-border); overflow: hidden; }
+.upload-progress-track i { display: block; height: 100%; border-radius: inherit; background: var(--studio-accent); transition: width .2s ease; }
+.upload-progress small { display: block; margin-top: 8px; color: var(--studio-muted); font-size: 10px; line-height: 1.5; }
+.studio-shell button:disabled { opacity: .58; cursor: wait; }
+@media (max-width: 760px) {
+  .upload-progress-copy { flex-direction: column; gap: 4px; }
+  .upload-progress-copy span { text-align: left; }
+  .studio-shell .media-thumb video { pointer-events: none; }
+  .studio-shell .media-thumb img { object-position: center; }
+}
+
+.mobile-action-dock { display: none; }
+@media (max-width: 760px) {
+  .studio-main { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+  .mobile-action-dock {
+    position: fixed;
+    z-index: 40;
+    left: 0; right: 0; bottom: 0;
+    display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+    gap: 9px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--studio-border);
+    background: rgba(20, 13, 22, .96);
+    backdrop-filter: blur(18px);
+  }
+  .theme-ivory .mobile-action-dock { background: rgba(244,236,231,.96); }
+  .mobile-action-dock .studio-button { min-width: 0; width: 100%; min-height: 46px; justify-content: center; }
+}
