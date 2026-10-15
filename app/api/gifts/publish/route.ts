@@ -57,12 +57,12 @@ export async function POST(request: Request) {
 
     if (updateError) throw updateError;
 
-    return NextResponse.json({ slug: gift.slug, published: true });
+    return NextResponse.json({ slug: gift.slug, published: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Gift publish failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not publish this gift." },
-      { status: 500 },
+      { error: "Could not publish this gift. Please try again." },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

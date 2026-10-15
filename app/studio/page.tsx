@@ -542,67 +542,62 @@ export default function StudioPage() {
 
 
   const addFiles = (files: FileList | File[]) => {
+    const limits = { image: 25 * 1024 * 1024, video: 150 * 1024 * 1024, audio: 30 * 1024 * 1024 };
+    const allowedExtensions: Record<MediaItem["kind"], string[]> = {
+      image: ["jpg", "jpeg", "png", "webp", "gif", "avif"],
+      video: ["mp4", "webm", "mov", "m4v"],
+      audio: ["mp3", "m4a", "aac", "wav", "ogg", "oga", "webm"],
+    };
+    const candidates = Array.from(files);
+    const accepted: { file: File; kind: MediaItem["kind"] }[] = [];
+    const rejected: string[] = [];
 
-    const accepted = Array.from(files).filter((file) =>
+    for (const file of candidates) {
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      const kind = (Object.keys(allowedExtensions) as MediaItem["kind"][]).find((candidate) => {
+        const mimeMatches = candidate === "image" ? file.type.startsWith("image/") : candidate === "video" ? file.type.startsWith("video/") : file.type.startsWith("audio/");
+        return mimeMatches || allowedExtensions[candidate].includes(extension);
+      });
+      if (!kind || !allowedExtensions[kind].includes(extension)) {
+        rejected.push(`${file.name}: unsupported format`);
+        continue;
+      }
+      if (file.size <= 0 || file.size > limits[kind]) {
+        const maxMb = Math.round(limits[kind] / (1024 * 1024));
+        rejected.push(`${file.name}: maximum ${maxMb} MB`);
+        continue;
+      }
+      accepted.push({ file, kind });
+    }
 
-      file.type.startsWith("image/") ||
+    const currentVisualCount = items.filter((item) => item.kind !== "audio").length;
+    const visualCount = accepted.filter((item) => item.kind !== "audio").length;
+    if (currentVisualCount + visualCount > 40) {
+      setNotice("A gift can contain up to 40 photos and videos. Remove a few items before adding more.");
+      return;
+    }
 
-      file.type.startsWith("video/") ||
-
-      file.type.startsWith("audio/")
-
-    );
-
-    const next: MediaItem[] = accepted.map((file) => {
-
-      const kind = file.type.startsWith("image/")
-
-        ? "image"
-
-        : file.type.startsWith("video/")
-
-        ? "video"
-
-        : "audio";
-
-      return {
-
-        id: makeId(),
-
-        file,
-
-        url: URL.createObjectURL(file),
-
-        originalFilename: file.name,
-
-        mimeType: file.type || "application/octet-stream",
-
-        sizeBytes: file.size,
-
-        kind,
-
-        title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
-
-        caption: "",
-
-      };
-
-    });
+    const next: MediaItem[] = accepted.map(({ file, kind }) => ({
+      id: makeId(),
+      file,
+      url: URL.createObjectURL(file),
+      originalFilename: file.name,
+      mimeType: file.type || (kind === "image" ? "image/jpeg" : kind === "video" ? "video/mp4" : "audio/mpeg"),
+      sizeBytes: file.size,
+      kind,
+      title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
+      caption: "",
+    }));
 
     const audio = next.filter((item) => item.kind === "audio");
-
     const visual = next.filter((item) => item.kind !== "audio");
-
     setItems((current) => [...current.filter((item) => item.kind !== "audio"), ...visual, ...audio.slice(-1)]);
-
     if (visual[0]) setActiveId(visual[0].id);
 
-    if (audio.length) setNotice("Soundtrack added for this preview.");
-
-    else if (visual.length) setNotice(`${visual.length} item${visual.length === 1 ? "" : "s"} added.`);
-
-    else setNotice("Choose image, video, or audio files to continue.");
-
+    const summary = rejected.length ? ` ${rejected.length} file${rejected.length === 1 ? " was" : "s were"} skipped: ${rejected.slice(0, 2).join("; ")}${rejected.length > 2 ? "; and more" : ""}.` : "";
+    if (audio.length) setNotice(`Soundtrack added for this preview.${summary}`);
+    else if (visual.length) setNotice(`${visual.length} item${visual.length === 1 ? "" : "s"} added.${summary}`);
+    else setNotice(rejected.length ? `No files were added.${summary}` : "Choose image, video, or audio files to continue.");
   };
 
 
@@ -840,9 +835,9 @@ export default function StudioPage() {
 
               <small>Save your draft to upload selected media to your private Supabase storage bucket.</small>
 
-              <input ref={fileInput} hidden type="file" multiple accept="image/*,video/*" onChange={onFileChange} />
+              <input ref={fileInput} hidden type="file" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.webm,.mov,.m4v,image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime" onChange={onFileChange} />
 
-              <input ref={audioInput} hidden type="file" accept="audio/*" onChange={onFileChange} />
+              <input ref={audioInput} hidden type="file" accept=".mp3,.m4a,.aac,.wav,.ogg,.oga,.webm,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/ogg,audio/webm" onChange={onFileChange} />
 
             </div>
 

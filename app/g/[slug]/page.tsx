@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import {
@@ -11,6 +12,11 @@ import "./gift.css";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const metadata: Metadata = {
+  title: "A personal gift | Afterglow",
+  description: "A personal collection of memories, made to be shared privately.",
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false, noimageindex: true } },
+};
 
 type GiftPageProps = { params: Promise<{ slug: string }> };
 

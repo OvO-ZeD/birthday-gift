@@ -18,7 +18,7 @@ export async function POST(
     const body = await request.json();
     const password = typeof body.password === "string" ? body.password : "";
     if (!password || password.length > 1024) {
-      return NextResponse.json({ error: "Enter the gift password." }, { status: 400 });
+      return NextResponse.json({ error: "Enter the gift password." }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
 
     const admin = createAdminClient();
@@ -30,18 +30,18 @@ export async function POST(
       .maybeSingle();
 
     if (error) throw error;
-    if (!gift) return NextResponse.json({ error: "This gift is unavailable." }, { status: 404 });
+    if (!gift) return NextResponse.json({ error: "This gift is unavailable." }, { status: 404, headers: { "Cache-Control": "no-store" } });
 
     if (!gift.password_enabled) {
-      return NextResponse.json({ error: "This gift does not require a password." }, { status: 400 });
+      return NextResponse.json({ error: "This gift does not require a password." }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
 
     if (!gift.password_hash || !(await verifyGiftPassword(password, gift.password_hash))) {
-      return NextResponse.json({ error: "That password doesn't match. Try again." }, { status: 401 });
+      return NextResponse.json({ error: "That password doesn't match. Try again." }, { status: 401, headers: { "Cache-Control": "no-store" } });
     }
 
     const { token, maxAge } = createGiftAccessToken(slug);
-    const response = NextResponse.json({ ok: true });
+    const response = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
     response.cookies.set(giftAccessCookieName(slug), token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -53,8 +53,8 @@ export async function POST(
   } catch (error) {
     console.error("Gift unlock failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not unlock this gift." },
-      { status: 500 },
+      { error: "Could not unlock this gift. Please try again." },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

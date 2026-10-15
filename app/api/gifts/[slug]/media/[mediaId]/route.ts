@@ -49,12 +49,23 @@ export async function GET(
 
     if (downloadError || !file) throw downloadError || new Error("Media unavailable.");
 
+    const safeInlineTypes = new Set([
+      "image/jpeg", "image/png", "image/webp", "image/gif", "image/avif",
+      "video/mp4", "video/webm", "video/quicktime",
+      "audio/mpeg", "audio/mp4", "audio/aac", "audio/wav", "audio/x-wav",
+      "audio/ogg", "audio/webm",
+    ]);
+    const mimeType = (media.mime_type || "application/octet-stream").toLowerCase().split(";")[0].trim();
+    const canDisplayInline = safeInlineTypes.has(mimeType);
+    const filename = encodeURIComponent((media.original_filename || "memory").replace(/[\r\n\\/]/g, "_"));
+
     return new NextResponse(file.stream(), {
       headers: {
-        "Content-Type": media.mime_type || "application/octet-stream",
-        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(media.original_filename || "memory")}`,
+        "Content-Type": canDisplayInline ? mimeType : "application/octet-stream",
+        "Content-Disposition": `${canDisplayInline ? "inline" : "attachment"}; filename*=UTF-8''${filename}`,
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
+        "Cross-Origin-Resource-Policy": "same-origin",
       },
     });
   } catch (error) {
