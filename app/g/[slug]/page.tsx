@@ -82,19 +82,21 @@ export default async function GiftPage({ params }: GiftPageProps) {
       </div>
       <PhotoMoodEnhancer />
       <header className="public-gift-top"><span className="brand-mark">AFTERGLOW</span><span className="made-with-love">A little something, made for you <i>♡</i></span></header>
-      <section className={`public-gift-hero ${visualMedia.length === 0 ? "hero-no-media" : visualMedia.length <= 2 ? "hero-few-media" : "hero-gallery-media"}`}>
-        <span className="gift-overline">A LITTLE WORLD, JUST FOR {(gift.recipient || "YOU").toUpperCase()}</span>
-        <div className="gift-heart" aria-hidden="true">♡</div>
-        <h1>{gift.title || "A little world for you"}</h1>
-        <p>A few favourite moments, gathered in one little place.</p>
-        {visualMedia.length > 0 && <a href="#memories">SEE THE MOMENTS <span aria-hidden="true">↓</span></a>}
-      </section>
+      <div className={`gift-intro-layout ${visualMedia.length === 0 ? "intro-no-media" : "intro-with-media"}`}>
+        <section className={`public-gift-hero ${visualMedia.length === 0 ? "hero-no-media" : visualMedia.length <= 2 ? "hero-few-media" : "hero-gallery-media"}`}>
+          <span className="gift-overline">A LITTLE WORLD, JUST FOR {(gift.recipient || "YOU").toUpperCase()}</span>
+          <div className="gift-heart" aria-hidden="true">♡</div>
+          <h1>{gift.title || "A little world for you"}</h1>
+          <p>A few favourite moments, gathered in one little place.</p>
+          {visualMedia.length > 0 && <a href="#memories">EXPLORE THE MEMORIES <span aria-hidden="true">↓</span></a>}
+        </section>
 
-      <section className={`public-letter ${visualMedia.length === 0 ? "letter-solo" : "letter-with-memories"}`} aria-label="A personal note">
-        <div className="letter-topline"><span>♡</span><small>A NOTE FROM ME TO YOU</small></div>
-        <p>{letter}</p>
-        <div className="letter-signoff"><span /> <small>MADE WITH LOVE, JUST FOR YOU</small> <span /></div>
-      </section>
+        <section className={`public-letter ${visualMedia.length === 0 ? "letter-solo" : "letter-with-memories"}`} aria-label="A personal note">
+          <div className="letter-topline"><span>♡</span><small>A NOTE FROM ME TO YOU</small></div>
+          <p>{letter}</p>
+          <div className="letter-signoff"><span /> <small>MADE WITH LOVE, JUST FOR YOU</small> <span /></div>
+        </section>
+      </div>
 
       {visualMedia.length > 0 && (
         <section className="public-memories-wrap" id="memories">
