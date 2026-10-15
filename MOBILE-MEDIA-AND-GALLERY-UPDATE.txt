@@ -1,0 +1,16 @@
+AFTERGLOW MOBILE MEDIA + GALLERY UPDATE
+
+Changes:
+- Uses Supabase Free's 50 MB maximum as the app-side video limit.
+- For videos above 44 MB, attempts browser-side re-encoding before adding them to the editor. The output is only accepted if it is smaller than the original and below 50 MB.
+- If the browser does not support MediaRecorder + video capture, shows a clear message instead of pretending the file was compressed.
+- Uses a lower bitrate for browser re-encoding to reduce file size. Browser/codec support varies, especially on iOS Safari; test on the actual iPhone browser before relying on it for every video.
+- Stops generating filename-based titles by default.
+- Recipient pages no longer render automatic media titles/filenames under photos or videos. User-authored captions remain available.
+- Tightens gallery spacing and refines the asymmetrical collage for a calmer, more cinematic layout.
+
+Important:
+- Supabase Free hard-limits Storage objects to 50 MB. The code cannot override that server-side limit.
+- Automatic in-browser video compression is best-effort and browser-dependent. Some iPhone Safari versions do not expose a compatible video capture/recording pipeline. In those cases the app gives a clear fallback message asking for a smaller export; it must not claim the video was compressed.
+- Preserve .env.local and .git when applying this ZIP.
+- Run `npm ci` and `npm run build` before pushing. A complete production build was not available in the file-editing environment.

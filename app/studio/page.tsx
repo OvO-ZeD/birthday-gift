@@ -84,6 +84,73 @@ function makeId() {
 
 
 
+const FREE_STORAGE_FILE_LIMIT = 50 * 1024 * 1024;
+const VIDEO_COMPRESSION_TARGET = 44 * 1024 * 1024;
+
+function waitForMediaEvent(element: HTMLMediaElement, eventName: string, timeoutMs = 15000) {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(() => finish(new Error("Timed out while preparing this video.")), timeoutMs);
+    const finish = (error?: Error) => {
+      window.clearTimeout(timeout);
+      element.removeEventListener(eventName, onReady);
+      element.removeEventListener("error", onError);
+      error ? reject(error) : resolve();
+    };
+    const onReady = () => finish();
+    const onError = () => finish(new Error("This video format could not be prepared for compression in this browser."));
+    element.addEventListener(eventName, onReady, { once: true });
+    element.addEventListener("error", onError, { once: true });
+  });
+}
+
+async function compressVideoForFreeStorage(file: File): Promise<File> {
+  if (file.size <= VIDEO_COMPRESSION_TARGET) return file;
+  const Video = document.createElement("video") as HTMLVideoElement & { captureStream?: () => MediaStream; webkitCaptureStream?: () => MediaStream };
+  const sourceUrl = URL.createObjectURL(file);
+  Video.muted = false;
+  Video.playsInline = true;
+  Video.preload = "auto";
+  Video.src = sourceUrl;
+  try {
+    await waitForMediaEvent(Video, "loadedmetadata");
+    const capture = Video.captureStream || Video.webkitCaptureStream;
+    if (!capture || typeof MediaRecorder === "undefined") {
+      throw new Error("This iPhone browser cannot compress this video automatically. Please use the iPhone Photos app to trim or export a smaller copy under 50 MB, then upload it again.");
+    }
+    const stream = capture.call(Video);
+    const mimeType = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/webm;codecs=vp8,opus", "video/mp4", "video/webm"].find((type) => MediaRecorder.isTypeSupported(type));
+    if (!mimeType) throw new Error("Automatic video compression is not supported by this browser. Please upload a copy under 50 MB.");
+    const chunks: BlobPart[] = [];
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 850_000, audioBitsPerSecond: 96_000 });
+    const recorded = new Promise<Blob>((resolve, reject) => {
+      recorder.addEventListener("dataavailable", (event) => { if (event.data.size) chunks.push(event.data); });
+      recorder.addEventListener("error", () => reject(new Error("Video compression failed. Please try a smaller export.")), { once: true });
+      recorder.addEventListener("stop", () => resolve(new Blob(chunks, { type: mimeType })), { once: true });
+    });
+    Video.currentTime = 0;
+    await Video.play();
+    recorder.start(1000);
+    await new Promise<void>((resolve, reject) => {
+      Video.addEventListener("ended", () => resolve(), { once: true });
+      Video.addEventListener("error", () => reject(new Error("Video playback failed during compression.")), { once: true });
+    });
+    if (recorder.state !== "inactive") recorder.stop();
+    const blob = await recorded;
+    stream.getTracks().forEach((track) => track.stop());
+    if (!blob.size || blob.size >= file.size || blob.size > FREE_STORAGE_FILE_LIMIT) {
+      throw new Error("This video could not be reduced below Supabase Free's 50 MB file limit. Try trimming it or exporting at 720p with a lower quality setting.");
+    }
+    const extension = mimeType.includes("mp4") ? "mp4" : "webm";
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}-compressed.${extension}`, { type: mimeType.split(";")[0], lastModified: Date.now() });
+  } finally {
+    Video.pause();
+    Video.removeAttribute("src");
+    Video.load();
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
 export default function StudioPage() {
 
   const router = useRouter();
@@ -428,7 +495,7 @@ export default function StudioPage() {
           if (uploadError) {
             const detail = uploadError.message || "Unknown storage error";
             if (/maximum allowed size|file size limit|payload too large/i.test(detail)) {
-              throw new Error(`"${item.originalFilename}" exceeds the current Supabase Storage file-size limit. The app now accepts videos up to 500 MB, but the gift-media bucket limit must also be raised in Supabase (Storage → gift-media → file size limit). Current storage error: ${detail}`);
+              throw new Error(`"${item.originalFilename}" exceeds the current Supabase Storage file-size limit. Supabase Free allows a maximum of 50 MB per object. This file must be compressed below 50 MB or uploaded on a plan with a higher limit. Current storage error: ${detail}`);
             }
             throw new Error(`Upload failed for "${item.originalFilename}": ${detail}`);
           }
@@ -507,12 +574,12 @@ export default function StudioPage() {
 
 
 
-  const addFiles = (files: FileList | File[]) => {
+  const addFiles = async (files: FileList | File[]) => {
     if (saving || publishing) {
       setNotice("Please wait for the current save or publish to finish before adding more files.");
       return;
     }
-    const limits = { image: 25 * 1024 * 1024, video: 500 * 1024 * 1024, audio: 30 * 1024 * 1024 };
+    const limits = { image: 25 * 1024 * 1024, video: FREE_STORAGE_FILE_LIMIT, audio: 30 * 1024 * 1024 };
     const allowedExtensions: Record<MediaItem["kind"], string[]> = {
       image: ["jpg", "jpeg", "png", "webp", "gif", "avif"],
       video: ["mp4", "webm", "mov", "m4v"],
@@ -521,20 +588,34 @@ export default function StudioPage() {
     const candidates = Array.from(files);
     const accepted: { file: File; kind: MediaItem["kind"] }[] = [];
     const rejected: string[] = [];
+    setNotice("Checking files and preparing any large videos for Supabase Free…");
 
-    for (const file of candidates) {
-      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+    for (const originalFile of candidates) {
+      const fileExtension = originalFile.name.split(".").pop()?.toLowerCase() || "";
       const kind = (Object.keys(allowedExtensions) as MediaItem["kind"][]).find((candidate) => {
-        const mimeMatches = candidate === "image" ? file.type.startsWith("image/") : candidate === "video" ? file.type.startsWith("video/") : file.type.startsWith("audio/");
-        return mimeMatches || allowedExtensions[candidate].includes(extension);
+        const mimeMatches = candidate === "image" ? originalFile.type.startsWith("image/") : candidate === "video" ? originalFile.type.startsWith("video/") : originalFile.type.startsWith("audio/");
+        return mimeMatches || allowedExtensions[candidate].includes(fileExtension);
       });
-      if (!kind || !allowedExtensions[kind].includes(extension)) {
-        rejected.push(`${file.name}: unsupported format`);
+      if (!kind || !allowedExtensions[kind].includes(fileExtension)) {
+        rejected.push(`${originalFile.name}: unsupported format`);
         continue;
       }
-      if (file.size <= 0 || file.size > limits[kind]) {
-        const maxMb = Math.round(limits[kind] / (1024 * 1024));
-        rejected.push(`${file.name}: maximum ${maxMb} MB`);
+      if (originalFile.size <= 0 || (kind !== "video" && originalFile.size > limits[kind])) {
+        rejected.push(`${originalFile.name}: maximum ${Math.round(limits[kind] / (1024 * 1024))} MB`);
+        continue;
+      }
+      let file = originalFile;
+      if (kind === "video" && file.size > VIDEO_COMPRESSION_TARGET) {
+        setNotice(`Compressing ${file.name} for the Free-plan 50 MB limit… Keep this page open.`);
+        try {
+          file = await compressVideoForFreeStorage(file);
+        } catch (error) {
+          rejected.push(`${originalFile.name}: ${error instanceof Error ? error.message : "could not compress video"}`);
+          continue;
+        }
+      }
+      if (file.size > limits[kind]) {
+        rejected.push(`${originalFile.name}: must be under 50 MB for Supabase Free`);
         continue;
       }
       accepted.push({ file, kind });
@@ -548,29 +629,20 @@ export default function StudioPage() {
     }
 
     const next: MediaItem[] = accepted.map(({ file, kind }) => ({
-      id: makeId(),
-      file,
-      url: URL.createObjectURL(file),
-      originalFilename: file.name,
+      id: makeId(), file, url: URL.createObjectURL(file), originalFilename: file.name,
       mimeType: file.type || (kind === "image" ? "image/jpeg" : kind === "video" ? "video/mp4" : "audio/mpeg"),
-      sizeBytes: file.size,
-      kind,
-      title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
-      caption: "",
+      sizeBytes: file.size, kind,
+      title: "", caption: "",
     }));
-
     const audio = next.filter((item) => item.kind === "audio");
     const visual = next.filter((item) => item.kind !== "audio");
     setItems((current) => [...current.filter((item) => item.kind !== "audio"), ...visual, ...audio.slice(-1)]);
     if (visual[0]) setActiveId(visual[0].id);
-
     const summary = rejected.length ? ` ${rejected.length} file${rejected.length === 1 ? " was" : "s were"} skipped: ${rejected.slice(0, 2).join("; ")}${rejected.length > 2 ? "; and more" : ""}.` : "";
     if (audio.length) setNotice(`Soundtrack added for this preview.${summary}`);
     else if (visual.length) setNotice(`${visual.length} item${visual.length === 1 ? "" : "s"} added.${summary}`);
     else setNotice(rejected.length ? `No files were added.${summary}` : "Choose image, video, or audio files to continue.");
   };
-
-
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
 

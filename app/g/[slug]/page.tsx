@@ -121,11 +121,8 @@ export default async function GiftPage({ params }: GiftPageProps) {
                     <video preload="metadata" src={mediaUrl(item.id)} controls playsInline aria-label={item.title || `Memory video ${index + 1}`} />
                   )}
                 </div>
-                {((item.title && !isTechnicalLabel(item.title)) || (item.caption && !isTechnicalLabel(item.caption))) && (
-                  <div className="memory-caption">
-                    {item.title && !isTechnicalLabel(item.title) && <h3>{item.title}</h3>}
-                    {item.caption && !isTechnicalLabel(item.caption) && <p>{item.caption}</p>}
-                  </div>
+                {item.caption && !isTechnicalLabel(item.caption) && (
+                  <div className="memory-caption"><p>{item.caption}</p></div>
                 )}
               </article>
             ))}
