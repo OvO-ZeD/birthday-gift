@@ -389,3 +389,56 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   .public-memories { gap: .55rem; }
   .public-memory img, .public-memory video { max-height: 40vh; }
 }
+
+/* Ultra-compact recipient layout + subtle interactive details. */
+.public-gift-top { padding-block: .65rem; }
+.public-gift-hero,
+.public-gift-hero.hero-no-media,
+.public-gift-hero.hero-few-media,
+.public-gift-hero.hero-gallery-media {
+  min-height: 0;
+  padding: .65rem 1rem .8rem;
+  justify-content: flex-start;
+}
+.public-gift-hero .gift-overline { font-size: .55rem; letter-spacing: .16em; }
+.public-gift-hero .gift-heart { font-size: 1.35rem; margin: .22rem 0 .05rem; }
+.public-gift-hero h1 { margin: 0 auto .25rem; font-size: clamp(2.15rem, 5.1vw, 4.25rem); line-height: .98; }
+.public-gift-hero p { margin-top: .2rem; font-size: clamp(.86rem, 1.4vw, 1rem); line-height: 1.4; }
+.public-gift-hero a { margin-top: .55rem; padding: .48rem .75rem; }
+.public-letter { margin: 0 auto 1.15rem; padding: .8rem clamp(.85rem, 2.4vw, 1.6rem); width: min(650px, calc(100% - 2rem)); border-radius: 15px; }
+.letter-topline { gap: .15rem; }
+.letter-topline > span { font-size: 1.05rem; }
+.public-letter small { font-size: .51rem; }
+.public-letter p { margin: .42rem auto .48rem; font-size: clamp(1rem, 1.65vw, 1.28rem); line-height: 1.38; }
+.letter-signoff { gap: .45rem; }
+.letter-signoff > span { width: 18px; }
+.public-memories-wrap { margin-bottom: 1.25rem; }
+.memories-heading { margin-bottom: .6rem; }
+.memories-heading .section-kicker { font-size: .54rem; }
+.memories-heading h2 { margin: .15rem 0 .2rem; font-size: clamp(1.65rem, 3vw, 2.25rem); }
+.memories-heading > p { font-size: .82rem; line-height: 1.4; }
+.public-memories { gap: .7rem; }
+.memory-media-frame { transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease; }
+.public-memory { cursor: default; }
+.public-memory:hover .memory-media-frame { border-color: color-mix(in srgb, var(--gift-accent) 70%, transparent); box-shadow: 0 14px 38px #08050d35, 0 0 0 2px var(--gift-accent-soft); transform: translateY(-2px); }
+.public-memory img { cursor: zoom-in; }
+.public-gift-footer { padding-block: .65rem .8rem; }
+@media (max-width: 700px) {
+  .public-gift-top { padding: .55rem .85rem; }
+  .public-gift-hero,
+  .public-gift-hero.hero-no-media,
+  .public-gift-hero.hero-few-media,
+  .public-gift-hero.hero-gallery-media { padding: .55rem .75rem .65rem; }
+  .public-gift-hero h1 { font-size: clamp(2rem, 8.5vw, 3.1rem); }
+  .public-gift-hero p { font-size: .86rem; }
+  .public-gift-hero a { margin-top: .45rem; }
+  .public-letter { margin-bottom: .9rem; padding: .75rem .8rem; }
+  .public-letter p { margin: .4rem auto .45rem; font-size: clamp(1rem, 4.2vw, 1.2rem); line-height: 1.38; }
+  .public-memories-wrap { margin-bottom: .9rem; }
+  .memories-heading h2 { font-size: clamp(1.55rem, 7.2vw, 2rem); }
+  .public-memories { gap: .5rem; }
+  .public-memory:hover .memory-media-frame { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .memory-media-frame { transition: none; }
+}
