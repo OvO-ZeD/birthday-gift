@@ -75,8 +75,8 @@ export default async function GiftPage({ params }: GiftPageProps) {
   return (
     <main className={`public-gift theme-${theme} media-count-${Math.min(visualMedia.length, 5)} ${imageMedia.length === 0 ? "no-photo-mood" : imageMedia.length === 1 ? "single-photo-mood" : "multi-photo-mood"}`}>
       <div className="gift-ambient" aria-hidden="true">
-        {imageMedia.slice(0, 6).map((item, index) => (
-          <img key={item.id} src={mediaUrl(item.id)} alt="" className={`ambient-photo ambient-photo-${index + 1}`} />
+        {imageMedia.length > 0 && Array.from({ length: 6 }, (_, index) => imageMedia[index % imageMedia.length]).map((item, index) => (
+          <img key={`${item.id}-ambient-${index}`} src={mediaUrl(item.id)} alt="" className={`ambient-photo ambient-photo-${index + 1}`} />
         ))}
         <div className="gift-ambient-wash" />
       </div>

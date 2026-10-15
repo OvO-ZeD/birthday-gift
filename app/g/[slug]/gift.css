@@ -694,142 +694,8 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   .gift-intro-layout .public-letter, .public-memory, .public-memory .memory-media-frame, .public-memory img { transition: none !important; animation: none !important; }
 }
 
-/* Background consistency polish: distribute the memory collage across the full viewport. */
-.gift-ambient {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100vh;
-  height: 100svh;
-  z-index: -1;
-  overflow: hidden;
-  opacity: .48;
-  isolation: isolate;
-  pointer-events: none;
-}
-.ambient-photo {
-  position: absolute;
-  width: clamp(170px, 19vw, 310px);
-  height: clamp(230px, 27vw, 410px);
-  max-height: none;
-  object-fit: cover;
-  border-radius: 14px;
-  filter: blur(2px) saturate(.65) brightness(.72);
-  opacity: .23;
-  box-shadow: 0 18px 70px #08050d45;
-  transform-origin: center;
-}
-.ambient-photo-1 { top: 5%; left: -5%; transform: rotate(-9deg); }
-.ambient-photo-2 { top: 31%; left: 13%; transform: rotate(6deg); }
-.ambient-photo-3 { top: 4%; left: 39%; transform: rotate(-4deg); }
-.ambient-photo-4 { top: 29%; right: 13%; transform: rotate(7deg); }
-.ambient-photo-5 { top: 7%; right: -5%; transform: rotate(9deg); }
-.ambient-photo-6 { top: 56%; left: 40%; transform: rotate(3deg); }
-.gift-ambient-wash {
-  position: absolute;
-  inset: -2%;
-  background:
-    radial-gradient(ellipse at 50% 18%, color-mix(in srgb, var(--gift-paper) 72%, transparent) 0%, color-mix(in srgb, var(--gift-paper) 84%, transparent) 46%, color-mix(in srgb, var(--gift-paper) 93%, transparent) 100%),
-    linear-gradient(180deg, color-mix(in srgb, var(--gift-paper) 55%, transparent), color-mix(in srgb, var(--gift-paper) 78%, transparent) 55%, var(--gift-paper) 100%);
-  backdrop-filter: blur(20px) saturate(.9);
-  -webkit-backdrop-filter: blur(20px) saturate(.9);
-}
-@media (max-width: 760px) {
-  .gift-ambient { opacity: .34; }
-  .ambient-photo { width: 36vw; height: 48vw; filter: blur(2px) saturate(.62) brightness(.68); opacity: .2; }
-  .ambient-photo-1 { top: 4%; left: -13%; }
-  .ambient-photo-2 { top: 29%; left: -4%; }
-  .ambient-photo-3 { top: 8%; left: 31%; }
-  .ambient-photo-4 { top: 32%; right: -8%; }
-  .ambient-photo-5 { top: 5%; right: -13%; }
-  .ambient-photo-6 { top: 58%; left: 32%; }
-  .gift-ambient-wash { backdrop-filter: blur(15px) saturate(.9); -webkit-backdrop-filter: blur(15px) saturate(.9); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ambient-photo { transform: none; }
-}
 
-/* Background restoration: visible, balanced photo collage on both sides. */
-.public-gift {
-  position: relative;
-  isolation: isolate;
-  background-attachment: scroll;
-}
-.public-gift > .gift-ambient {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  height: 100vh;
-  height: 100svh;
-  opacity: 1;
-  overflow: hidden;
-  pointer-events: none;
-}
-.public-gift > :not(.gift-ambient) {
-  position: relative;
-  z-index: 1;
-}
-.public-gift .ambient-photo {
-  display: block;
-  width: clamp(190px, 23vw, 350px);
-  height: clamp(260px, 32vw, 460px);
-  max-height: none;
-  object-fit: cover;
-  border: 1px solid rgb(255 255 255 / 13%);
-  border-radius: 16px;
-  filter: blur(1.6px) saturate(.78) brightness(.66);
-  opacity: .32;
-  box-shadow: 0 22px 75px rgb(0 0 0 / 24%);
-}
-.public-gift .ambient-photo-1 { top: 2%; left: -5%; transform: rotate(-10deg); }
-.public-gift .ambient-photo-2 { top: 31%; left: 9%; transform: rotate(6deg); }
-.public-gift .ambient-photo-3 { top: 3%; left: 39%; transform: rotate(-4deg); }
-.public-gift .ambient-photo-4 { top: 29%; right: 9%; left: auto; transform: rotate(6deg); }
-.public-gift .ambient-photo-5 { top: 5%; right: -5%; left: auto; transform: rotate(9deg); }
-.public-gift .ambient-photo-6 { top: 56%; left: 39%; transform: rotate(3deg); }
-.public-gift .gift-ambient-wash {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg,
-      color-mix(in srgb, var(--gift-paper) 45%, transparent) 0%,
-      color-mix(in srgb, var(--gift-paper) 32%, transparent) 25%,
-      color-mix(in srgb, var(--gift-paper) 40%, transparent) 50%,
-      color-mix(in srgb, var(--gift-paper) 32%, transparent) 75%,
-      color-mix(in srgb, var(--gift-paper) 45%, transparent) 100%),
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--gift-paper) 38%, transparent) 0%,
-      color-mix(in srgb, var(--gift-paper) 25%, transparent) 48%,
-      color-mix(in srgb, var(--gift-paper) 62%, transparent) 100%);
-  backdrop-filter: blur(10px) saturate(.92);
-  -webkit-backdrop-filter: blur(10px) saturate(.92);
-}
-@media (max-width: 760px) {
-  .public-gift .ambient-photo {
-    width: 38vw;
-    height: 49vw;
-    filter: blur(2px) saturate(.72) brightness(.64);
-    opacity: .25;
-  }
-  .public-gift .ambient-photo-1 { top: 4%; left: -13%; }
-  .public-gift .ambient-photo-2 { top: 30%; left: -5%; }
-  .public-gift .ambient-photo-3 { top: 5%; left: 31%; }
-  .public-gift .ambient-photo-4 { top: 32%; right: -7%; left: auto; }
-  .public-gift .ambient-photo-5 { top: 6%; right: -13%; left: auto; }
-  .public-gift .ambient-photo-6 { top: 58%; left: 31%; }
-  .public-gift .gift-ambient-wash {
-    background: linear-gradient(180deg,
-      color-mix(in srgb, var(--gift-paper) 43%, transparent),
-      color-mix(in srgb, var(--gift-paper) 55%, transparent));
-    backdrop-filter: blur(9px) saturate(.9);
-    -webkit-backdrop-filter: blur(9px) saturate(.9);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .public-gift .ambient-photo { transform: none; }
-}
-
-/* Final collage visibility fix: keep the memory photos recognisable and balanced on both sides. */
+/* Both-side collage fix: render six ambient slots even when a gift has fewer than six photos. */
 .public-gift > .gift-ambient {
   position: fixed !important;
   inset: 0 !important;
@@ -837,128 +703,40 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   width: 100% !important;
   height: 100vh !important;
   height: 100svh !important;
-  opacity: 1 !important;
   overflow: hidden !important;
   pointer-events: none !important;
 }
 .public-gift .ambient-photo {
+  position: absolute !important;
   display: block !important;
-  position: absolute !important;
-  width: clamp(190px, 22vw, 340px) !important;
-  height: clamp(260px, 30vw, 430px) !important;
-  max-height: none !important;
+  width: clamp(210px, 24vw, 360px) !important;
+  height: clamp(280px, 34vw, 470px) !important;
   object-fit: cover !important;
-  border: 1px solid rgb(255 255 255 / 16%) !important;
-  border-radius: 15px !important;
-  filter: blur(.45px) saturate(.86) brightness(.78) !important;
-  opacity: .48 !important;
-  box-shadow: 0 18px 65px rgb(0 0 0 / 22%) !important;
+  border-radius: 14px !important;
+  border: 1px solid rgb(255 255 255 / 20%) !important;
+  filter: blur(.2px) saturate(.9) brightness(.78) contrast(1.04) !important;
+  opacity: .58 !important;
+  box-shadow: 0 16px 54px rgb(0 0 0 / 28%) !important;
 }
-/* Mirrored placement creates an even collage while leaving the central reading area calm. */
-.public-gift .ambient-photo-1 { top: 5% !important; left: -7% !important; right: auto !important; transform: rotate(-9deg) !important; }
-.public-gift .ambient-photo-2 { top: 39% !important; left: 7% !important; right: auto !important; transform: rotate(6deg) !important; }
-.public-gift .ambient-photo-3 { top: 17% !important; left: 25% !important; right: auto !important; transform: rotate(-4deg) !important; }
-.public-gift .ambient-photo-4 { top: 17% !important; right: 25% !important; left: auto !important; transform: rotate(4deg) !important; }
-.public-gift .ambient-photo-5 { top: 39% !important; right: 7% !important; left: auto !important; transform: rotate(-6deg) !important; }
-.public-gift .ambient-photo-6 { top: 5% !important; right: -7% !important; left: auto !important; transform: rotate(9deg) !important; }
+.public-gift .ambient-photo-1 { top: 2% !important; left: -7% !important; right: auto !important; transform: rotate(-8deg) !important; }
+.public-gift .ambient-photo-2 { top: 38% !important; left: 5% !important; right: auto !important; transform: rotate(5deg) !important; }
+.public-gift .ambient-photo-3 { top: 12% !important; left: 22% !important; right: auto !important; transform: rotate(-3deg) !important; }
+.public-gift .ambient-photo-4 { top: 12% !important; right: 22% !important; left: auto !important; transform: rotate(3deg) !important; }
+.public-gift .ambient-photo-5 { top: 38% !important; right: 5% !important; left: auto !important; transform: rotate(-5deg) !important; }
+.public-gift .ambient-photo-6 { top: 2% !important; right: -7% !important; left: auto !important; transform: rotate(8deg) !important; }
 .public-gift .gift-ambient-wash {
-  position: absolute !important;
-  inset: 0 !important;
-  background:
-    linear-gradient(90deg,
-      color-mix(in srgb, var(--gift-paper) 18%, transparent) 0%,
-      color-mix(in srgb, var(--gift-paper) 10%, transparent) 24%,
-      color-mix(in srgb, var(--gift-paper) 17%, transparent) 50%,
-      color-mix(in srgb, var(--gift-paper) 10%, transparent) 76%,
-      color-mix(in srgb, var(--gift-paper) 18%, transparent) 100%),
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--gift-paper) 18%, transparent) 0%,
-      color-mix(in srgb, var(--gift-paper) 12%, transparent) 58%,
-      color-mix(in srgb, var(--gift-paper) 34%, transparent) 100%) !important;
-  backdrop-filter: blur(3px) saturate(.98) !important;
-  -webkit-backdrop-filter: blur(3px) saturate(.98) !important;
-}
-@media (max-width: 760px) {
-  .public-gift .ambient-photo {
-    width: 42vw !important;
-    height: 52vw !important;
-    filter: blur(.8px) saturate(.82) brightness(.72) !important;
-    opacity: .36 !important;
-  }
-  .public-gift .ambient-photo-1 { top: 4% !important; left: -17% !important; }
-  .public-gift .ambient-photo-2 { top: 37% !important; left: -10% !important; }
-  .public-gift .ambient-photo-3 { top: 17% !important; left: 17% !important; }
-  .public-gift .ambient-photo-4 { top: 17% !important; right: 17% !important; left: auto !important; }
-  .public-gift .ambient-photo-5 { top: 37% !important; right: -10% !important; left: auto !important; }
-  .public-gift .ambient-photo-6 { top: 4% !important; right: -17% !important; left: auto !important; }
-  .public-gift .gift-ambient-wash {
-    background: linear-gradient(90deg,
-      color-mix(in srgb, var(--gift-paper) 28%, transparent),
-      color-mix(in srgb, var(--gift-paper) 17%, transparent) 50%,
-      color-mix(in srgb, var(--gift-paper) 28%, transparent)) !important;
-    backdrop-filter: blur(3px) saturate(.96) !important;
-    -webkit-backdrop-filter: blur(3px) saturate(.96) !important;
-  }
-}
-
-
-/* Balanced collage v2: make the actual memory photos visible, not just their colour glow. */
-.public-gift > .gift-ambient {
-  opacity: 1 !important;
-  z-index: 0 !important;
-  isolation: auto !important;
-}
-.public-gift .ambient-photo {
-  width: clamp(230px, 25vw, 390px) !important;
-  height: clamp(300px, 35vw, 500px) !important;
-  object-fit: cover !important;
-  filter: blur(.15px) saturate(.92) brightness(.9) contrast(1.02) !important;
-  opacity: .66 !important;
-  border: 1px solid rgb(255 255 255 / 18%) !important;
-  box-shadow: 0 18px 60px rgb(5 3 12 / 28%) !important;
-}
-/* Use the full width: three photo cards on each side, with the middle kept quieter. */
-.public-gift .ambient-photo-1 { top: 3% !important; left: -8% !important; right: auto !important; transform: rotate(-8deg) !important; }
-.public-gift .ambient-photo-2 { top: 38% !important; left: 4% !important; right: auto !important; transform: rotate(5deg) !important; }
-.public-gift .ambient-photo-3 { top: 14% !important; left: 22% !important; right: auto !important; transform: rotate(-3deg) !important; }
-.public-gift .ambient-photo-4 { top: 14% !important; right: 22% !important; left: auto !important; transform: rotate(3deg) !important; }
-.public-gift .ambient-photo-5 { top: 38% !important; right: 4% !important; left: auto !important; transform: rotate(-5deg) !important; }
-.public-gift .ambient-photo-6 { top: 3% !important; right: -8% !important; left: auto !important; transform: rotate(8deg) !important; }
-.public-gift .gift-ambient-wash {
-  background:
-    linear-gradient(90deg,
-      rgb(25 17 34 / 10%) 0%,
-      rgb(25 17 34 / 18%) 23%,
-      rgb(25 17 34 / 32%) 50%,
-      rgb(25 17 34 / 18%) 77%,
-      rgb(25 17 34 / 10%) 100%),
-    linear-gradient(180deg,
-      rgb(25 17 34 / 8%) 0%,
-      rgb(25 17 34 / 14%) 52%,
-      rgb(17 12 24 / 35%) 100%) !important;
+  position: absolute !important; inset: 0 !important;
+  background: linear-gradient(90deg, rgb(25 17 34 / 12%) 0%, rgb(25 17 34 / 20%) 28%, rgb(25 17 34 / 34%) 50%, rgb(25 17 34 / 20%) 72%, rgb(25 17 34 / 12%) 100%), linear-gradient(180deg, rgb(25 17 34 / 8%), rgb(17 12 24 / 28%)) !important;
   backdrop-filter: blur(1px) saturate(1) !important;
   -webkit-backdrop-filter: blur(1px) saturate(1) !important;
 }
 @media (max-width: 760px) {
-  .public-gift .ambient-photo {
-    width: 44vw !important;
-    height: 55vw !important;
-    filter: blur(.25px) saturate(.88) brightness(.84) contrast(1.01) !important;
-    opacity: .55 !important;
-  }
-  .public-gift .ambient-photo-1 { top: 4% !important; left: -18% !important; }
-  .public-gift .ambient-photo-2 { top: 36% !important; left: -11% !important; }
-  .public-gift .ambient-photo-3 { top: 15% !important; left: 12% !important; }
-  .public-gift .ambient-photo-4 { top: 15% !important; right: 12% !important; left: auto !important; }
-  .public-gift .ambient-photo-5 { top: 36% !important; right: -11% !important; left: auto !important; }
-  .public-gift .ambient-photo-6 { top: 4% !important; right: -18% !important; left: auto !important; }
-  .public-gift .gift-ambient-wash {
-    background: linear-gradient(90deg,
-      rgb(25 17 34 / 12%) 0%,
-      rgb(25 17 34 / 24%) 50%,
-      rgb(25 17 34 / 12%) 100%),
-      linear-gradient(180deg, rgb(25 17 34 / 10%), rgb(17 12 24 / 28%)) !important;
-    backdrop-filter: blur(.8px) saturate(1) !important;
-    -webkit-backdrop-filter: blur(.8px) saturate(1) !important;
-  }
+  .public-gift .ambient-photo { width: 43vw !important; height: 54vw !important; opacity: .42 !important; filter: blur(.25px) saturate(.88) brightness(.78) contrast(1.02) !important; }
+  .public-gift .ambient-photo-1 { top: 4% !important; left: -19% !important; }
+  .public-gift .ambient-photo-2 { top: 38% !important; left: -12% !important; }
+  .public-gift .ambient-photo-3 { top: 14% !important; left: 10% !important; }
+  .public-gift .ambient-photo-4 { top: 14% !important; right: 10% !important; left: auto !important; }
+  .public-gift .ambient-photo-5 { top: 38% !important; right: -12% !important; left: auto !important; }
+  .public-gift .ambient-photo-6 { top: 4% !important; right: -19% !important; left: auto !important; }
+  .public-gift .gift-ambient-wash { background: linear-gradient(90deg, rgb(25 17 34 / 18%), rgb(25 17 34 / 28%) 50%, rgb(25 17 34 / 18%)) !important; }
 }
