@@ -748,3 +748,83 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 @media (prefers-reduced-motion: reduce) {
   .ambient-photo { transform: none; }
 }
+
+/* Background restoration: visible, balanced photo collage on both sides. */
+.public-gift {
+  position: relative;
+  isolation: isolate;
+  background-attachment: scroll;
+}
+.public-gift > .gift-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  height: 100vh;
+  height: 100svh;
+  opacity: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.public-gift > :not(.gift-ambient) {
+  position: relative;
+  z-index: 1;
+}
+.public-gift .ambient-photo {
+  display: block;
+  width: clamp(190px, 23vw, 350px);
+  height: clamp(260px, 32vw, 460px);
+  max-height: none;
+  object-fit: cover;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 16px;
+  filter: blur(1.6px) saturate(.78) brightness(.66);
+  opacity: .32;
+  box-shadow: 0 22px 75px rgb(0 0 0 / 24%);
+}
+.public-gift .ambient-photo-1 { top: 2%; left: -5%; transform: rotate(-10deg); }
+.public-gift .ambient-photo-2 { top: 31%; left: 9%; transform: rotate(6deg); }
+.public-gift .ambient-photo-3 { top: 3%; left: 39%; transform: rotate(-4deg); }
+.public-gift .ambient-photo-4 { top: 29%; right: 9%; left: auto; transform: rotate(6deg); }
+.public-gift .ambient-photo-5 { top: 5%; right: -5%; left: auto; transform: rotate(9deg); }
+.public-gift .ambient-photo-6 { top: 56%; left: 39%; transform: rotate(3deg); }
+.public-gift .gift-ambient-wash {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--gift-paper) 45%, transparent) 0%,
+      color-mix(in srgb, var(--gift-paper) 32%, transparent) 25%,
+      color-mix(in srgb, var(--gift-paper) 40%, transparent) 50%,
+      color-mix(in srgb, var(--gift-paper) 32%, transparent) 75%,
+      color-mix(in srgb, var(--gift-paper) 45%, transparent) 100%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--gift-paper) 38%, transparent) 0%,
+      color-mix(in srgb, var(--gift-paper) 25%, transparent) 48%,
+      color-mix(in srgb, var(--gift-paper) 62%, transparent) 100%);
+  backdrop-filter: blur(10px) saturate(.92);
+  -webkit-backdrop-filter: blur(10px) saturate(.92);
+}
+@media (max-width: 760px) {
+  .public-gift .ambient-photo {
+    width: 38vw;
+    height: 49vw;
+    filter: blur(2px) saturate(.72) brightness(.64);
+    opacity: .25;
+  }
+  .public-gift .ambient-photo-1 { top: 4%; left: -13%; }
+  .public-gift .ambient-photo-2 { top: 30%; left: -5%; }
+  .public-gift .ambient-photo-3 { top: 5%; left: 31%; }
+  .public-gift .ambient-photo-4 { top: 32%; right: -7%; left: auto; }
+  .public-gift .ambient-photo-5 { top: 6%; right: -13%; left: auto; }
+  .public-gift .ambient-photo-6 { top: 58%; left: 31%; }
+  .public-gift .gift-ambient-wash {
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--gift-paper) 43%, transparent),
+      color-mix(in srgb, var(--gift-paper) 55%, transparent));
+    backdrop-filter: blur(9px) saturate(.9);
+    -webkit-backdrop-filter: blur(9px) saturate(.9);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .public-gift .ambient-photo { transform: none; }
+}
