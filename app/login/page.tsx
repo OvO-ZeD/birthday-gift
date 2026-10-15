@@ -5,9 +5,6 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = { title: "Log in | Afterglow", robots: { index: false, follow: false } };
 import { createClient } from "../lib/supabase/client";
 import "./login.css";
 
