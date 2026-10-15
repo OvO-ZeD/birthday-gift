@@ -828,3 +828,75 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 @media (prefers-reduced-motion: reduce) {
   .public-gift .ambient-photo { transform: none; }
 }
+
+/* Final collage visibility fix: keep the memory photos recognisable and balanced on both sides. */
+.public-gift > .gift-ambient {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  width: 100% !important;
+  height: 100vh !important;
+  height: 100svh !important;
+  opacity: 1 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+.public-gift .ambient-photo {
+  display: block !important;
+  position: absolute !important;
+  width: clamp(190px, 22vw, 340px) !important;
+  height: clamp(260px, 30vw, 430px) !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  border: 1px solid rgb(255 255 255 / 16%) !important;
+  border-radius: 15px !important;
+  filter: blur(.45px) saturate(.86) brightness(.78) !important;
+  opacity: .48 !important;
+  box-shadow: 0 18px 65px rgb(0 0 0 / 22%) !important;
+}
+/* Mirrored placement creates an even collage while leaving the central reading area calm. */
+.public-gift .ambient-photo-1 { top: 5% !important; left: -7% !important; right: auto !important; transform: rotate(-9deg) !important; }
+.public-gift .ambient-photo-2 { top: 39% !important; left: 7% !important; right: auto !important; transform: rotate(6deg) !important; }
+.public-gift .ambient-photo-3 { top: 17% !important; left: 25% !important; right: auto !important; transform: rotate(-4deg) !important; }
+.public-gift .ambient-photo-4 { top: 17% !important; right: 25% !important; left: auto !important; transform: rotate(4deg) !important; }
+.public-gift .ambient-photo-5 { top: 39% !important; right: 7% !important; left: auto !important; transform: rotate(-6deg) !important; }
+.public-gift .ambient-photo-6 { top: 5% !important; right: -7% !important; left: auto !important; transform: rotate(9deg) !important; }
+.public-gift .gift-ambient-wash {
+  position: absolute !important;
+  inset: 0 !important;
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--gift-paper) 18%, transparent) 0%,
+      color-mix(in srgb, var(--gift-paper) 10%, transparent) 24%,
+      color-mix(in srgb, var(--gift-paper) 17%, transparent) 50%,
+      color-mix(in srgb, var(--gift-paper) 10%, transparent) 76%,
+      color-mix(in srgb, var(--gift-paper) 18%, transparent) 100%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--gift-paper) 18%, transparent) 0%,
+      color-mix(in srgb, var(--gift-paper) 12%, transparent) 58%,
+      color-mix(in srgb, var(--gift-paper) 34%, transparent) 100%) !important;
+  backdrop-filter: blur(3px) saturate(.98) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(.98) !important;
+}
+@media (max-width: 760px) {
+  .public-gift .ambient-photo {
+    width: 42vw !important;
+    height: 52vw !important;
+    filter: blur(.8px) saturate(.82) brightness(.72) !important;
+    opacity: .36 !important;
+  }
+  .public-gift .ambient-photo-1 { top: 4% !important; left: -17% !important; }
+  .public-gift .ambient-photo-2 { top: 37% !important; left: -10% !important; }
+  .public-gift .ambient-photo-3 { top: 17% !important; left: 17% !important; }
+  .public-gift .ambient-photo-4 { top: 17% !important; right: 17% !important; left: auto !important; }
+  .public-gift .ambient-photo-5 { top: 37% !important; right: -10% !important; left: auto !important; }
+  .public-gift .ambient-photo-6 { top: 4% !important; right: -17% !important; left: auto !important; }
+  .public-gift .gift-ambient-wash {
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--gift-paper) 28%, transparent),
+      color-mix(in srgb, var(--gift-paper) 17%, transparent) 50%,
+      color-mix(in srgb, var(--gift-paper) 28%, transparent)) !important;
+    backdrop-filter: blur(3px) saturate(.96) !important;
+    -webkit-backdrop-filter: blur(3px) saturate(.96) !important;
+  }
+}
