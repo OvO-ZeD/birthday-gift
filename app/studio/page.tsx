@@ -425,7 +425,13 @@ export default function StudioPage() {
             upsert: false,
             cacheControl: "3600",
           });
-          if (uploadError) throw new Error(`Upload failed for "${item.originalFilename}": ${uploadError.message}`);
+          if (uploadError) {
+            const detail = uploadError.message || "Unknown storage error";
+            if (/maximum allowed size|file size limit|payload too large/i.test(detail)) {
+              throw new Error(`"${item.originalFilename}" exceeds the current Supabase Storage file-size limit. The app now accepts videos up to 500 MB, but the gift-media bucket limit must also be raised in Supabase (Storage → gift-media → file size limit). Current storage error: ${detail}`);
+            }
+            throw new Error(`Upload failed for "${item.originalFilename}": ${detail}`);
+          }
 
           const { data: inserted, error: insertError } = await supabase.from("gift_media").insert({
             gift_id: currentGiftId,
@@ -506,7 +512,7 @@ export default function StudioPage() {
       setNotice("Please wait for the current save or publish to finish before adding more files.");
       return;
     }
-    const limits = { image: 25 * 1024 * 1024, video: 150 * 1024 * 1024, audio: 30 * 1024 * 1024 };
+    const limits = { image: 25 * 1024 * 1024, video: 500 * 1024 * 1024, audio: 30 * 1024 * 1024 };
     const allowedExtensions: Record<MediaItem["kind"], string[]> = {
       image: ["jpg", "jpeg", "png", "webp", "gif", "avif"],
       video: ["mp4", "webm", "mov", "m4v"],
