@@ -1,0 +1,17 @@
+AFTERGLOW RECIPIENT PAGE REFRESH
+
+Updated files:
+- app/g/[slug]/page.tsx
+- app/g/[slug]/gift.css
+
+What changed:
+- Moved the personal note ahead of the memory gallery so recipients see the message near the top.
+- Reduced excess vertical spacing in the hero, letter, gallery, and footer.
+- Refined the letter into a soft, translucent card with a subtle theme-accent glow.
+- Made uploaded photos form a quiet, blurred collage behind the page, with a stronger readability wash over the content.
+- Tightened photo/video gallery spacing and capped media height so portrait photos do not dominate the whole page.
+- Improved mobile spacing and kept reduced-motion preferences respected.
+
+No database schema, Supabase credentials, media API, unlock flow, or publishing behavior was changed.
+
+To apply to an existing checkout, replace only the two listed files. Do not replace .env.local. Then run `npm run build`; deploy only if the build succeeds.
