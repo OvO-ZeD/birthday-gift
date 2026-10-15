@@ -900,3 +900,65 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
     -webkit-backdrop-filter: blur(3px) saturate(.96) !important;
   }
 }
+
+
+/* Balanced collage v2: make the actual memory photos visible, not just their colour glow. */
+.public-gift > .gift-ambient {
+  opacity: 1 !important;
+  z-index: 0 !important;
+  isolation: auto !important;
+}
+.public-gift .ambient-photo {
+  width: clamp(230px, 25vw, 390px) !important;
+  height: clamp(300px, 35vw, 500px) !important;
+  object-fit: cover !important;
+  filter: blur(.15px) saturate(.92) brightness(.9) contrast(1.02) !important;
+  opacity: .66 !important;
+  border: 1px solid rgb(255 255 255 / 18%) !important;
+  box-shadow: 0 18px 60px rgb(5 3 12 / 28%) !important;
+}
+/* Use the full width: three photo cards on each side, with the middle kept quieter. */
+.public-gift .ambient-photo-1 { top: 3% !important; left: -8% !important; right: auto !important; transform: rotate(-8deg) !important; }
+.public-gift .ambient-photo-2 { top: 38% !important; left: 4% !important; right: auto !important; transform: rotate(5deg) !important; }
+.public-gift .ambient-photo-3 { top: 14% !important; left: 22% !important; right: auto !important; transform: rotate(-3deg) !important; }
+.public-gift .ambient-photo-4 { top: 14% !important; right: 22% !important; left: auto !important; transform: rotate(3deg) !important; }
+.public-gift .ambient-photo-5 { top: 38% !important; right: 4% !important; left: auto !important; transform: rotate(-5deg) !important; }
+.public-gift .ambient-photo-6 { top: 3% !important; right: -8% !important; left: auto !important; transform: rotate(8deg) !important; }
+.public-gift .gift-ambient-wash {
+  background:
+    linear-gradient(90deg,
+      rgb(25 17 34 / 10%) 0%,
+      rgb(25 17 34 / 18%) 23%,
+      rgb(25 17 34 / 32%) 50%,
+      rgb(25 17 34 / 18%) 77%,
+      rgb(25 17 34 / 10%) 100%),
+    linear-gradient(180deg,
+      rgb(25 17 34 / 8%) 0%,
+      rgb(25 17 34 / 14%) 52%,
+      rgb(17 12 24 / 35%) 100%) !important;
+  backdrop-filter: blur(1px) saturate(1) !important;
+  -webkit-backdrop-filter: blur(1px) saturate(1) !important;
+}
+@media (max-width: 760px) {
+  .public-gift .ambient-photo {
+    width: 44vw !important;
+    height: 55vw !important;
+    filter: blur(.25px) saturate(.88) brightness(.84) contrast(1.01) !important;
+    opacity: .55 !important;
+  }
+  .public-gift .ambient-photo-1 { top: 4% !important; left: -18% !important; }
+  .public-gift .ambient-photo-2 { top: 36% !important; left: -11% !important; }
+  .public-gift .ambient-photo-3 { top: 15% !important; left: 12% !important; }
+  .public-gift .ambient-photo-4 { top: 15% !important; right: 12% !important; left: auto !important; }
+  .public-gift .ambient-photo-5 { top: 36% !important; right: -11% !important; left: auto !important; }
+  .public-gift .ambient-photo-6 { top: 4% !important; right: -18% !important; left: auto !important; }
+  .public-gift .gift-ambient-wash {
+    background: linear-gradient(90deg,
+      rgb(25 17 34 / 12%) 0%,
+      rgb(25 17 34 / 24%) 50%,
+      rgb(25 17 34 / 12%) 100%),
+      linear-gradient(180deg, rgb(25 17 34 / 10%), rgb(17 12 24 / 28%)) !important;
+    backdrop-filter: blur(.8px) saturate(1) !important;
+    -webkit-backdrop-filter: blur(.8px) saturate(1) !important;
+  }
+}
