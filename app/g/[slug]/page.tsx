@@ -6,6 +6,7 @@ import {
   verifyGiftAccessToken,
 } from "@/app/lib/gifts/security";
 import UnlockForm from "./UnlockForm";
+import PhotoMoodEnhancer from "./PhotoMoodEnhancer";
 import "./gift.css";
 
 export const dynamic = "force-dynamic";
@@ -56,43 +57,78 @@ export default async function GiftPage({ params }: GiftPageProps) {
   if (mediaError) throw new Error("Could not load gift media.");
 
 
+  const visualMedia = (media || []).filter((item) => item.kind !== "audio");
+  const imageMedia = visualMedia.filter((item) => item.kind === "image");
+  const mediaUrl = (id: string) => `/api/gifts/${encodeURIComponent(slug)}/media/${id}`;
+  const theme = ["rose", "midnight", "ivory"].includes(gift.theme || "") ? gift.theme : "rose";
+  const letter = gift.letter?.trim() || "Every little moment with you deserves to be remembered.";
+
   return (
-    <main className={`public-gift theme-${gift.theme || "rose"}`}>
-      <header className="public-gift-top"><span>AFTERGLOW</span><span>MADE WITH LOVE</span></header>
-      <section className="public-gift-hero">
-        <span className="gift-overline">MADE FOR {(gift.recipient || "YOU").toUpperCase()}</span>
-        <div className="gift-heart">♡</div>
-        <h1>{gift.title || "A little world for you"}</h1>
-        <p>Some people make ordinary days feel extraordinary.</p>
-        <a href="#memories">EXPLORE YOUR MEMORIES ↓</a>
-      </section>
-      <section className="public-memories" id="memories">
-        {(media || []).filter((item) => item.kind !== "audio").map((item, index) => (
-          <article className="public-memory" key={item.id}>
-            {item.kind === "image" ? (
-              // The route checks the gift access cookie before streaming private media.
-              <img src={`/api/gifts/${encodeURIComponent(slug)}/media/${item.id}`} alt={item.title || "A saved memory"} />
-            ) : (
-              <video src={`/api/gifts/${encodeURIComponent(slug)}/media/${item.id}`} controls playsInline />
-            )}
-            
-          </article>
+    <main className={`public-gift theme-${theme} media-count-${Math.min(visualMedia.length, 5)} ${imageMedia.length === 0 ? "no-photo-mood" : imageMedia.length === 1 ? "single-photo-mood" : "multi-photo-mood"}`}>
+      <div className="gift-ambient" aria-hidden="true">
+        {imageMedia.slice(0, 6).map((item, index) => (
+          <img key={item.id} src={mediaUrl(item.id)} alt="" className={`ambient-photo ambient-photo-${index + 1}`} />
         ))}
+        <div className="gift-ambient-wash" />
+      </div>
+      <PhotoMoodEnhancer />
+      <header className="public-gift-top"><span className="brand-mark">AFTERGLOW</span><span className="made-with-love">A little something, made for you <i>♡</i></span></header>
+      <section className={`public-gift-hero ${visualMedia.length === 0 ? "hero-no-media" : visualMedia.length <= 2 ? "hero-few-media" : "hero-gallery-media"}`}>
+        <span className="gift-overline">A LITTLE WORLD, JUST FOR {(gift.recipient || "YOU").toUpperCase()}</span>
+        <div className="gift-heart" aria-hidden="true">♡</div>
+        <h1>{gift.title || "A little world for you"}</h1>
+        <p>A few favourite moments, gathered in one little place.</p>
+        {visualMedia.length > 0 && <a href="#memories">SEE THE MOMENTS <span aria-hidden="true">↓</span></a>}
       </section>
+
+      <section className={`public-letter ${visualMedia.length === 0 ? "letter-solo" : "letter-with-memories"}`} aria-label="A personal note">
+        <div className="letter-topline"><span>♡</span><small>A NOTE FROM ME TO YOU</small></div>
+        <p>{letter}</p>
+        <div className="letter-signoff"><span /> <small>MADE WITH LOVE, JUST FOR YOU</small> <span /></div>
+      </section>
+
+      {visualMedia.length > 0 && (
+        <section className="public-memories-wrap" id="memories">
+          <div className="memories-heading">
+            <span className="section-kicker">A LITTLE COLLECTION</span>
+            <h2>Our moments, <em>kept close.</em></h2>
+            <p>{visualMedia.length === 1 ? "One little moment, kept close." : `${visualMedia.length} little ${visualMedia.length === 2 ? "moments" : "memories"}, all part of your story.`}</p>
+          </div>
+          <div className={`public-memories layout-${visualMedia.length <= 2 ? "few" : visualMedia.length <= 4 ? "some" : "many"} ${imageMedia.length === 0 ? "video-led-gallery" : imageMedia.length === 1 ? "single-image-gallery" : "photo-led-gallery"}`}>
+            {visualMedia.map((item, index) => (
+              <article className={`public-memory memory-${index + 1}`} key={item.id}>
+                <div className="memory-media-frame">
+                  {item.kind === "image" ? (
+                    <img loading={index < 2 ? "eager" : "lazy"} decoding="async" src={mediaUrl(item.id)} alt={item.title || item.caption || `Memory ${index + 1}`} />
+                  ) : (
+                    <video preload="metadata" src={mediaUrl(item.id)} controls playsInline aria-label={item.title || `Memory video ${index + 1}`} />
+                  )}
+                </div>
+                {(item.title || item.caption) && (
+                  <div className="memory-caption">
+                    {item.title && <h3>{item.title}</h3>}
+                    {item.caption && <p>{item.caption}</p>}
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       {media?.some((item) => item.kind === "audio") && (
         <section className="public-soundtrack">
-          <span>THE SOUNDTRACK</span>
+          <span className="section-kicker">A SOUND TO REMEMBER</span>
           {media.filter((item) => item.kind === "audio").map((item) => (
-            <audio key={item.id} controls src={`/api/gifts/${encodeURIComponent(slug)}/media/${item.id}`} />
+            <div className="soundtrack-track" key={item.id}>
+              <span className="soundtrack-note" aria-hidden="true">♫</span>
+              <div className="soundtrack-info"><strong>{item.title || "Our soundtrack"}</strong>{item.caption && <small>{item.caption}</small>}</div>
+              <audio controls preload="none" src={mediaUrl(item.id)} />
+            </div>
           ))}
         </section>
       )}
-      <section className="public-letter">
-        <span>♡</span><small>A NOTE FROM ME TO YOU</small>
-        <p>{gift.letter || ""}</p>
-        <small>MADE WITH LOVE, JUST FOR YOU</small>
-      </section>
-      <footer className="public-gift-footer">A little world, made to be remembered. · AFTERGLOW</footer>
+      <footer className="public-gift-footer"><span>A little world, made to be remembered.</span><span>AFTERGLOW <i>♡</i></span></footer>
     </main>
   );
 }
