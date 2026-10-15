@@ -14,6 +14,15 @@ export const runtime = "nodejs";
 
 type GiftPageProps = { params: Promise<{ slug: string }> };
 
+// Storage IDs and UUID-like values are implementation details, not gift captions.
+function isTechnicalLabel(value?: string | null) {
+  const text = value?.trim() || "";
+  if (!text) return false;
+  return /^(?:[0-9a-f]{8}[- ]?){1}[0-9a-f]{4}[- ]?[0-9a-f]{4}[- ]?[0-9a-f]{4}[- ]?[0-9a-f]{12}$/i.test(text)
+    || /^[0-9a-f]{8,}(?:[ -]+[0-9a-f]{4,}){1,}$/i.test(text)
+    || /^[0-9a-f]{24,}$/i.test(text);
+}
+
 export default async function GiftPage({ params }: GiftPageProps) {
   const { slug } = await params;
   if (!/^[a-zA-Z0-9-]{6,80}$/.test(slug)) notFound();
@@ -104,10 +113,10 @@ export default async function GiftPage({ params }: GiftPageProps) {
                     <video preload="metadata" src={mediaUrl(item.id)} controls playsInline aria-label={item.title || `Memory video ${index + 1}`} />
                   )}
                 </div>
-                {(item.title || item.caption) && (
+                {((item.title && !isTechnicalLabel(item.title)) || (item.caption && !isTechnicalLabel(item.caption))) && (
                   <div className="memory-caption">
-                    {item.title && <h3>{item.title}</h3>}
-                    {item.caption && <p>{item.caption}</p>}
+                    {item.title && !isTechnicalLabel(item.title) && <h3>{item.title}</h3>}
+                    {item.caption && !isTechnicalLabel(item.caption) && <p>{item.caption}</p>}
                   </div>
                 )}
               </article>

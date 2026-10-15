@@ -359,3 +359,33 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 @media (prefers-reduced-motion: reduce) {
   .public-gift, .public-memories-wrap { transition: none; animation: none; }
 }
+
+
+/* Final compact pass: preserve the photo atmosphere, remove excess vertical weight. */
+.public-gift-hero { min-height: clamp(175px, 23vh, 245px); padding: 1.15rem 1.1rem .9rem; }
+.public-gift-hero .gift-heart { margin: .35rem 0 .1rem; font-size: 1.55rem; }
+.public-gift-hero h1 { margin-bottom: .35rem; font-size: clamp(2.35rem, 5.8vw, 4.8rem); }
+.public-gift-hero p { line-height: 1.45; }
+.public-gift-hero a { margin-top: .7rem; padding: .55rem .8rem; }
+.public-letter { width: min(700px, calc(100% - 2rem)); margin: .1rem auto 1.65rem; padding: 1.15rem clamp(1rem, 3vw, 2.2rem); border-radius: 18px; }
+.public-letter p { max-width: 570px; margin: .55rem auto .65rem; font-size: clamp(1.08rem, 1.8vw, 1.42rem); line-height: 1.43; }
+.letter-topline > span { font-size: 1.25rem; }
+.public-memories-wrap { width: min(1000px, calc(100% - 2rem)); margin-bottom: 1.7rem; }
+.memories-heading { margin-bottom: .85rem; }
+.memories-heading h2 { margin: .25rem 0 .25rem; font-size: clamp(1.75rem, 3.3vw, 2.45rem); }
+.public-memories { row-gap: 1rem; }
+.public-memory img, .public-memory video { max-height: 48vh; }
+.memory-caption { padding-top: .35rem; }
+.memory-caption h3 { font-size: .98rem; }
+.memory-caption p { margin-top: .15rem; font-size: .82rem; line-height: 1.45; }
+.public-gift-footer { margin-top: .2rem; padding-top: .8rem; padding-bottom: 1rem; }
+@media (max-width: 700px) {
+  .public-gift-hero { min-height: 175px; padding: 1rem .9rem .8rem; }
+  .public-gift-hero h1 { font-size: clamp(2.15rem, 9vw, 3.25rem); }
+  .public-letter { width: calc(100% - 1.2rem); margin-bottom: 1.2rem; padding: 1rem .9rem; }
+  .public-letter p { margin: .5rem auto .6rem; font-size: clamp(1.05rem, 4.5vw, 1.28rem); line-height: 1.42; }
+  .public-memories-wrap { width: calc(100% - 1.2rem); margin-bottom: 1.1rem; }
+  .memories-heading { margin-bottom: .65rem; }
+  .public-memories { gap: .55rem; }
+  .public-memory img, .public-memory video { max-height: 40vh; }
+}
