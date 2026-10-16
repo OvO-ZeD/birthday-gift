@@ -8,6 +8,7 @@ import {
 } from "@/app/lib/gifts/security";
 import UnlockForm from "./UnlockForm";
 import PhotoMoodEnhancer from "./PhotoMoodEnhancer";
+import Lightbox from "./Lightbox";
 import "./gift.css";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +88,9 @@ export default async function GiftPage({ params }: GiftPageProps) {
         <div className="gift-ambient-wash" />
       </div>
       <PhotoMoodEnhancer />
+      {imageMedia.length > 0 && (
+        <Lightbox items={imageMedia.map((item) => ({ src: mediaUrl(item.id), alt: item.title || item.caption || "Photo" }))} />
+      )}
       <header className="public-gift-top"><span className="brand-mark">AFTERGLOW</span><span className="made-with-love">A little something, made for you <i>♡</i></span></header>
       <div className={`gift-intro-layout ${visualMedia.length === 0 ? "intro-no-media" : "intro-with-media"}`}>
         <section className={`public-gift-hero ${visualMedia.length === 0 ? "hero-no-media" : visualMedia.length <= 2 ? "hero-few-media" : "hero-gallery-media"}`}>
@@ -116,7 +120,9 @@ export default async function GiftPage({ params }: GiftPageProps) {
               <article className={`public-memory memory-${index + 1}`} key={item.id}>
                 <div className="memory-media-frame">
                   {item.kind === "image" ? (
-                    <img loading={index < 2 ? "eager" : "lazy"} decoding="async" src={mediaUrl(item.id)} alt={item.title || item.caption || `Memory ${index + 1}`} />
+                    <button type="button" className="memory-photo-trigger" data-lightbox-index={imageMedia.indexOf(item)}>
+                      <img loading={index < 2 ? "eager" : "lazy"} decoding="async" src={mediaUrl(item.id)} alt={item.title || item.caption || `Memory ${index + 1}`} />
+                    </button>
                   ) : (
                     <video preload="metadata" src={mediaUrl(item.id)} controls playsInline aria-label={item.title || `Memory video ${index + 1}`} />
                   )}
