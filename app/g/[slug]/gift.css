@@ -1754,7 +1754,7 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
    the box into a landscape one and the photograph inside would be cropped harder to fill it,
    whereas a narrower tile shrinks while every picture keeps its framing. */
 .public-memories-wrap {
-  width: min(1080px, calc(100% - 2.5rem)) !important;
+  width: min(1180px, calc(100% - 2.5rem)) !important;
   margin-inline: auto;
 }
 
@@ -1773,7 +1773,7 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 .layout-many .public-memory:nth-child(5n + 2) {
   flex: 0 1 calc((100% - 1.9rem) / 3) !important;
   width: calc((100% - 1.9rem) / 3) !important;
-  max-width: 330px;
+  max-width: 375px;
 }
 
 .memory-media-frame {
@@ -1789,7 +1789,7 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 }
 
 .public-memory:hover .memory-media-frame {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.012);
   border-color: color-mix(in srgb, var(--gift-accent) 55%, transparent) !important;
   box-shadow:
     0 2px 4px rgb(28 20 16 / 10%),
@@ -1815,7 +1815,7 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   .layout-many .public-memory:nth-child(5n + 2) {
     flex-basis: calc((100% - .9rem) / 2) !important;
     width: calc((100% - .9rem) / 2) !important;
-    max-width: 300px;
+    max-width: 340px;
   }
 }
 
@@ -2114,3 +2114,44 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   .public-memory:hover .memory-media-frame { transform: none; }
   .lightbox-reveal:hover { transform: none; }
 }
+
+/* --- 6. The whole photograph, inside the tile ---------------------------------------------- */
+
+/* The tiles were cropping. The frame is a fixed 4:5 box with `overflow: hidden`, and the
+   photograph inside it was sized `width: 100%; height: auto` — so the picture was laid out at
+   its own aspect ratio, not the frame's, and anything taller than 4:5 simply ran past the
+   bottom edge and was clipped away. `object-fit: contain` was already declared on that rule and
+   was doing nothing, because with `height: auto` the box already matches the image and there is
+   no leftover space for it to fit into.
+
+   Sizing the image to the frame instead — `height: 100%` against the frame's definite height —
+   gives `object-fit: contain` something to act on: the picture is scaled down until both
+   dimensions fit, keeps its own aspect ratio, and is centred. Whatever is left over is filled by
+   the element's own background, which is the same theme-derived tone the frame already uses, so
+   the letterbox reads as part of the tile rather than as a gap.
+
+   The tile keeps its size and shape either way. The frame's height comes from its aspect ratio
+   and its width, never from its contents, so nothing here changes the layout or adds scrolling —
+   only how the picture sits in the space that was already there.
+
+   `max-height`/`aspect-ratio` from the earlier passes are neutralised because they were the
+   other half of the crop: a `max-height: 48vh` cap on an image that is now meant to fill its
+   frame would pin it short and leave a band at the bottom of the tile. */
+.memory-media-frame img,
+.memory-media-frame video {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+/* The hover zoom moved from the photograph to the frame, which now scales as well as lifting
+   (see the hover rule in section 2). Scaling the image inside a clipped box was cropping it a
+   further 1–2% for as long as the pointer rested on the tile — small, but it works directly
+   against the point of this pass. Growing the frame instead takes its contents with it, so the
+   zoom is kept and the photograph stays whole.
+
+   `!important` because two earlier passes both set a scale on this element on hover. */
+.public-memory:hover img { transform: none !important; }
