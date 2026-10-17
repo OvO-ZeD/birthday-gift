@@ -969,3 +969,96 @@
   .theme-ivory .mobile-action-dock { background: rgba(244,236,231,.96); }
   .mobile-action-dock .studio-button { min-width: 0; width: 100%; min-height: 46px; justify-content: center; }
 }
+
+/* ============================================================================
+   Theme & atmosphere + compact pass
+   ============================================================================ */
+
+/* Theme swatches are coloured inline from each theme's own tokens, so the old
+   per-theme .theme-swatch-* chain is no longer needed. These rules only shape
+   the swatch; the colours come from the registry. */
+.theme-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--studio-border);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .02);
+  color: var(--studio-text);
+  font-size: 11px;
+  text-align: left;
+  transition: border-color .22s ease, background .22s ease, transform .22s ease;
+}
+.theme-option:hover { transform: translateY(-1px); background: rgba(255, 255, 255, .05); }
+.theme-option.chosen {
+  border-color: var(--studio-accent);
+  background: color-mix(in srgb, var(--studio-accent) 12%, transparent);
+}
+.theme-option .swatch-preview {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 30px;
+  height: 22px;
+  padding: 3px;
+  border: 1px solid;
+  border-radius: 6px;
+}
+.theme-option .swatch-preview i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.custom-colors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--studio-border);
+}
+.custom-color-field { display: grid; gap: 5px; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--studio-muted); }
+.custom-color-field input[type="color"] {
+  width: 100%;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, .12);
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+   Compact layout
+   Pulls in the dead space that pushed the editor past a viewport. Targets the
+   rhythm, not the type scale, and leaves every control at a comfortable size.
+   --------------------------------------------------------------------------- */
+.studio-heading { margin-bottom: 24px; }
+.editor-section { padding: 20px 0 23px; }
+.section-title-row { margin-bottom: 15px; gap: 12px; }
+.form-card, .theme-card, .privacy-card { padding: 14px; }
+.form-card { gap: 12px; }
+.personal-grid { gap: 11px; }
+.media-grid { gap: 10px; margin-top: 12px; }
+.item-editor { padding: 13px; gap: 14px; }
+.upload-zone { padding: 21px 16px 18px; }
+.publish-bar { padding: 14px 16px; }
+.inspector-preview { padding: 12px; }
+.studio-nav { gap: 4px; }
+.mini-stats { gap: 6px; }
+.sidebar-tip { padding: 11px 12px; }
+
+@media (max-width: 760px) {
+  .editor-section { padding: 17px 0; }
+  .studio-heading { margin-bottom: 18px; }
+  .theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .theme-options { grid-template-columns: minmax(0, 1fr); }
+}

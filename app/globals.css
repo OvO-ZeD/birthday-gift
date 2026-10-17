@@ -1374,3 +1374,48 @@ select:focus-visible {
 .afterglow-error-actions a, .afterglow-error-actions button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 18px; border: 1px solid rgba(255,199,220,.48); border-radius: 999px; background: rgba(255,255,255,.035); color: #fff0e9; font: inherit; font-size: 12px; cursor: pointer; }
 .afterglow-error-actions a:first-child, .afterglow-error-actions button { background: linear-gradient(110deg,#a63f77,#74417f); }
 .afterglow-error-actions a:focus-visible, .afterglow-error-actions button:focus-visible { outline: 2px solid #f4a0b8; outline-offset: 4px; }
+
+/* ============================================================================
+   Background photography, present behind the whole page
+
+   The hero photo was previously confined to its frame, so "the background" was
+   pure gradient. This continues the same photograph behind the interface at low
+   opacity. It sits at the very bottom of the stack, so every existing panel keeps
+   its current contrast, and the aurora/particle layers still read on top of it.
+   ============================================================================ */
+.afterglow-landing .landing-backdrop {
+  position: fixed;
+  inset: 0;
+  /* .afterglow-landing is already `isolation: isolate`, so a negative z-index paints this
+     above the page background but behind all content — the same layering the gift page uses
+     for its ambient photos. It must not be positioned at 0 or 1: doing that would force
+     every child, including the absolutely-positioned aurora layers, into a new stacking
+     context and displace them. */
+  z-index: -1;
+  background-image: url("/images/afterglow-landing.webp");
+  background-size: cover;
+  background-position: center 42%;
+  background-repeat: no-repeat;
+  opacity: .2;
+  filter: saturate(.92) contrast(1.02);
+  pointer-events: none;
+}
+/* Keeps the middle of the page readable while the edges stay photographic, and
+   fades into the base tone rather than cutting off. */
+.afterglow-landing .landing-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 34%, rgba(8, 9, 16, .58) 0%, rgba(8, 9, 16, .78) 46%, rgba(8, 9, 16, .92) 100%),
+    linear-gradient(180deg, rgba(8, 9, 16, .74), rgba(8, 9, 16, .88));
+}
+
+/* On small screens a full-bleed photograph behind dense text costs more readability
+   than it gives back, so it recedes further. */
+@media (max-width: 760px) {
+  .afterglow-landing .landing-backdrop { opacity: .13; background-position: center 34%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .afterglow-landing .landing-backdrop { opacity: .18; }
+}

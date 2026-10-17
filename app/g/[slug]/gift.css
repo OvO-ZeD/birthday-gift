@@ -1127,3 +1127,277 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   .gift-balloon, .gift-light::before, .gift-light::after, .gift-heart-pulse { animation: none !important; }
   .public-gift[data-reveal="ready"] [data-reveal] { opacity: 1; transform: none; transition: none; }
 }
+
+/* ============================================================================
+   Themed journey pass
+   Adds the theme tokens (page backdrop, ambient decoration, opening sequence,
+   select interaction) and tightens the layout. Appended rather than folded into
+   the passes above so nothing already tuned is undone.
+   ============================================================================ */
+
+/* The page backdrop now comes from a token, so all ten themes — including a custom
+   one — share this one rule instead of needing a literal override each. The
+   .theme-midnight/.theme-ivory rules earlier in this file are kept for safety but
+   are no longer reachable: the page no longer emits those classes. */
+.public-gift {
+  background-image:
+    radial-gradient(ellipse at 18% 8%, var(--photo-mood), transparent 48%),
+    radial-gradient(ellipse at 82% 26%, color-mix(in srgb, var(--gift-accent) 10%, transparent), transparent 42%),
+    var(--gift-backdrop, radial-gradient(ellipse at 50% -8%, #59334e 0%, #261629 43%, #140e19 100%));
+}
+/* On the pale themes the photo tint reads as a bruise, so it is softened. */
+.public-gift[data-tone="light"] {
+  background-image:
+    radial-gradient(ellipse at 18% 8%, color-mix(in srgb, var(--photo-mood) 70%, transparent), transparent 48%),
+    radial-gradient(ellipse at 82% 26%, color-mix(in srgb, var(--gift-accent) 12%, transparent), transparent 42%),
+    var(--gift-backdrop);
+}
+
+/* ---------------------------------------------------------------------------
+   Readability over the photography
+
+   The ambient photos sit at z-index -1 so they can never cover a card. That works
+   for the cards, which are positioned, but the hero copy is unpositioned block
+   content and therefore paints *below* them — which is why the headline fought
+   the collage. Raising the copy above the photos and giving it a soft scrim keeps
+   the photography visible while the words stay legible.
+   --------------------------------------------------------------------------- */
+.public-gift-top,
+.public-gift-footer,
+.gift-intro-layout,
+.public-memories-wrap,
+.public-soundtrack { position: relative; z-index: 1; }
+
+.gift-intro-layout::before,
+.public-memories-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -4% -8%;
+  z-index: -1;
+  border-radius: 32px;
+  background: radial-gradient(ellipse at 50% 45%,
+    color-mix(in srgb, var(--gift-paper) 62%, transparent) 0%,
+    color-mix(in srgb, var(--gift-paper) 34%, transparent) 48%,
+    transparent 76%);
+  pointer-events: none;
+}
+/* The front-facing panels keep their glass but lose enough transparency that body
+   copy is no longer at the mercy of whatever photo passes behind it. */
+.gift-intro-layout .public-letter,
+.memory-media-frame,
+.public-soundtrack { backdrop-filter: blur(20px) saturate(1.06); }
+
+/* ---------------------------------------------------------------------------
+   Ambient decoration, chosen by the theme's decor kind
+   --------------------------------------------------------------------------- */
+.gift-decor {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.gift-decor-item {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--gift-accent);
+  opacity: .16;
+  animation: decor-drift 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.gift-decor-item-1 { top: 14%; left: 6%; animation-duration: 26s; animation-delay: -2s; }
+.gift-decor-item-2 { top: 32%; left: 22%; animation-duration: 31s; animation-delay: -7s; }
+.gift-decor-item-3 { top: 9%; left: 47%; animation-duration: 24s; animation-delay: -12s; }
+.gift-decor-item-4 { top: 26%; left: 68%; animation-duration: 29s; animation-delay: -4s; }
+.gift-decor-item-5 { top: 48%; left: 86%; animation-duration: 34s; animation-delay: -16s; }
+.gift-decor-item-6 { top: 64%; left: 12%; animation-duration: 27s; animation-delay: -9s; }
+.gift-decor-item-7 { top: 76%; left: 58%; animation-duration: 33s; animation-delay: -20s; }
+.gift-decor-item-4, .gift-decor-item-5 { width: 8px; height: 8px; }
+.gift-decor-item-6, .gift-decor-item-7 { width: 14px; height: 14px; opacity: .1; }
+
+@keyframes decor-drift {
+  from { transform: translate3d(0, 0, 0) rotate(0deg); }
+  to { transform: translate3d(26px, -44px, 0) rotate(120deg); }
+}
+
+/* Petals: a soft asymmetric shape rather than a dot. */
+.public-gift[data-decor="petals"] .gift-decor-item {
+  border-radius: 62% 6% 62% 6% / 62% 6% 62% 6%;
+  background: color-mix(in srgb, var(--gift-accent) 78%, #ffffff);
+  opacity: .22;
+}
+/* Botanical: a slimmer leaf, slower and more restrained. */
+.public-gift[data-decor="botanical"] .gift-decor-item {
+  width: 7px;
+  height: 16px;
+  border-radius: 60% 4% 60% 4%;
+  background: color-mix(in srgb, var(--gift-accent) 70%, #ffffff);
+  opacity: .14;
+  animation-duration: 40s;
+}
+/* Stars: a five-point clip, twinkling rather than travelling. */
+.public-gift[data-decor="stars"] .gift-decor-item {
+  width: 9px;
+  height: 9px;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--gift-accent) 55%, #ffffff);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  animation: decor-twinkle 7s ease-in-out infinite alternate;
+}
+@keyframes decor-twinkle {
+  from { opacity: .1; transform: translate3d(0, 0, 0) scale(.8); }
+  to { opacity: .42; transform: translate3d(4px, -12px, 0) scale(1.15); }
+}
+/* Bubbles: hollow rings, so they read as air rather than confetti. */
+.public-gift[data-decor="bubbles"] .gift-decor-item {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--gift-accent) 55%, transparent);
+  opacity: .2;
+}
+/* Light trails: elongated streaks instead of points. */
+.public-gift[data-decor="light-trails"] .gift-decor-item {
+  width: 2px;
+  height: 42px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, var(--gift-accent), transparent);
+  opacity: .18;
+}
+
+/* ---------------------------------------------------------------------------
+   Parallax
+   Scroll-driven, so there is no JavaScript scroll listener competing with the
+   confetti loop. Browsers without animation-timeline keep the photos static.
+   --------------------------------------------------------------------------- */
+@supports (animation-timeline: scroll(root)) {
+  @media (prefers-reduced-motion: no-preference) {
+    .ambient-photo-1, .ambient-photo-3, .ambient-photo-6 {
+      animation: ambient-drift-far linear both;
+      animation-timeline: scroll(root);
+    }
+    .ambient-photo-2, .ambient-photo-4, .ambient-photo-5 {
+      animation: ambient-drift-near linear both;
+      animation-timeline: scroll(root);
+    }
+  }
+}
+@keyframes ambient-drift-far {
+  from { translate: 0 0; }
+  to { translate: 0 -46px; }
+}
+@keyframes ambient-drift-near {
+  from { translate: 0 0; }
+  to { translate: 0 -104px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Opening sequence
+   A short veil-lift over the introduction. The content is in the DOM and only
+   fades in, so a reader with scripting or animation disabled loses nothing.
+   --------------------------------------------------------------------------- */
+.public-gift[data-opening] .gift-intro-layout {
+  animation: gift-open 1s cubic-bezier(.2,.7,.2,1) both;
+}
+@keyframes gift-open {
+  from { opacity: 0; translate: 0 16px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   Memories: selecting a photograph brings its words forward
+   --------------------------------------------------------------------------- */
+.memory-media-frame.memory-toggle { position: relative; }
+.memory-toggle {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--gift-line);
+  border-radius: 13px;
+  background: var(--gift-surface);
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1), border-color .3s ease, box-shadow .3s ease;
+}
+.memory-toggle-hint {
+  position: absolute;
+  right: .6rem;
+  bottom: .6rem;
+  padding: .3rem .55rem;
+  border: 1px solid var(--gift-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gift-paper) 72%, transparent);
+  color: var(--gift-ink);
+  font: 700 .48rem/1.35 Arial, sans-serif;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity .3s ease;
+  backdrop-filter: blur(8px);
+}
+.memory-toggle:hover .memory-toggle-hint,
+.memory-toggle:focus-visible .memory-toggle-hint { opacity: 1; }
+.memory-toggle:focus-visible { outline: 2px solid var(--gift-accent); outline-offset: 4px; }
+/* The hint is a mouse affordance; on touch there is nothing to hover, so it goes. */
+@media (hover: none) {
+  .memory-toggle-hint { display: none; }
+}
+
+.memory-title {
+  display: block;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 400;
+  letter-spacing: -.02em;
+  color: var(--gift-muted);
+  transition: color .35s ease;
+}
+.public-memory .memory-caption p { transition: color .35s ease; }
+
+/* Selected: the photograph lifts and its words come forward to full contrast. */
+.public-memory.is-expanded .memory-toggle {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--gift-accent) 65%, transparent);
+  box-shadow: 0 20px 48px #08050d3d, 0 0 0 1px var(--gift-accent-soft);
+}
+.public-memory.is-expanded .memory-toggle img { filter: saturate(1.06) brightness(1.04); }
+.public-memory.is-expanded .memory-title,
+.public-memory.is-expanded .memory-caption p { color: var(--gift-ink); }
+
+/* ---------------------------------------------------------------------------
+   Compact layout
+   Proportion and hierarchy, not uniform shrinking: the display type keeps its
+   scale and the dead space around it comes in.
+   --------------------------------------------------------------------------- */
+.public-memories-wrap { margin: 0 auto clamp(1.1rem, 2.2vw, 2rem); }
+.public-soundtrack { margin: 1.1rem auto 1.8rem; padding: 1rem; }
+.gift-intro-layout { gap: clamp(1.4rem, 3.2vw, 4rem); }
+.gift-intro-layout .public-letter { padding: clamp(1.1rem, 1.8vw, 1.7rem) clamp(1.1rem, 3.6vw, 2.8rem); }
+.memories-heading { margin-bottom: clamp(.9rem, 1.6vw, 1.4rem); }
+.public-gift-footer { margin-top: 1rem; padding-top: 1rem; padding-bottom: 1.2rem; }
+.public-gift-hero { padding: .55rem 1.1rem .7rem; }
+.public-gift-hero h1 { margin-bottom: .25rem; }
+.letter-topline { margin-bottom: .3rem; }
+.gift-intro-layout .public-letter p { margin: .6rem 0 .8rem; }
+/* The very wide breakpoint was pushing the headline past what the viewport needed. */
+@media (min-width: 1500px) {
+  .public-gift-hero h1 { font-size: clamp(4rem, 5vw, 5rem); }
+}
+
+@media (max-width: 700px) {
+  .gift-decor-item-5, .gift-decor-item-7 { display: none; }
+  .memory-toggle-hint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-decor-item,
+  .public-gift[data-opening] .gift-intro-layout { animation: none !important; }
+  .ambient-photo-1, .ambient-photo-2, .ambient-photo-3,
+  .ambient-photo-4, .ambient-photo-5, .ambient-photo-6 { animation: none !important; translate: none !important; }
+  .memory-toggle,
+  .memory-toggle-hint,
+  .memory-title,
+  .public-memory .memory-caption p { transition: none !important; }
+}

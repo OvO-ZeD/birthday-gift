@@ -12,6 +12,26 @@ import { createClient } from "../lib/supabase/client";
 
 import {
 
+  DEFAULT_CUSTOM_COLORS,
+
+  THEMES,
+
+  encodeThemeValue,
+
+  parseThemeValue,
+
+  resolveThemeParts,
+
+  themeStyle,
+
+  type CustomColors,
+
+  type ThemeId,
+
+} from "../lib/gifts/themes";
+
+import {
+
   ArrowDown, ArrowLeft, ArrowRight, Check, ChevronDown,
 
   Eye, FileImage, FileVideo, Heart, ImagePlus, LockKeyhole, Music2,
@@ -54,20 +74,8 @@ type MediaItem = {
 
 
 
-type Theme = "rose" | "midnight" | "ivory";
-
-
-
-const themeNames: Record<Theme, string> = {
-
-  rose: "Rose cinema",
-
-  midnight: "Midnight",
-
-  ivory: "Soft ivory",
-
-};
-
+/* Theme definitions live in one registry, shared with the recipient page, so a theme
+   can never look one way here and another way to the person receiving it. */
 
 
 const starterLetter =
@@ -171,7 +179,9 @@ export default function StudioPage() {
 
   const [letter, setLetter] = useState(starterLetter);
 
-  const [theme, setTheme] = useState<Theme>("rose");
+  const [theme, setTheme] = useState<ThemeId>("rosewater");
+
+  const [customColors, setCustomColors] = useState<CustomColors>(DEFAULT_CUSTOM_COLORS);
 
   const [passwordEnabled, setPasswordEnabled] = useState(true);
 
@@ -260,7 +270,13 @@ export default function StudioPage() {
 
           setLetter(gift.letter || "");
 
-          setTheme((["rose", "midnight", "ivory"].includes(gift.theme) ? gift.theme : "rose") as Theme);
+          // Reads legacy ids and custom palettes alike, so reopening an older draft does
+          // not silently reset its theme.
+          const storedTheme = parseThemeValue(gift.theme);
+
+          setTheme(storedTheme.id);
+
+          if (storedTheme.custom) setCustomColors(storedTheme.custom);
 
           setPublished(Boolean(gift.published));
 
@@ -443,7 +459,7 @@ export default function StudioPage() {
 
             letter,
 
-            theme,
+            theme: encodeThemeValue(theme, customColors),
 
             published: false,
 
@@ -477,7 +493,7 @@ export default function StudioPage() {
 
             letter,
 
-            theme,
+            theme: encodeThemeValue(theme, customColors),
 
             updated_at: new Date().toISOString(),
 
@@ -819,11 +835,15 @@ export default function StudioPage() {
 
   const progress = Math.min(100, (mediaItems.length ? 25 : 0) + (letter.trim() ? 25 : 0) + (title.trim() ? 25 : 0) + (theme ? 25 : 0));
 
+  // The live preview must show the theme the recipient will actually see, so it resolves the
+  // same registry the recipient page does — including unsaved custom colours.
+  const previewTheme = resolveThemeParts(theme, customColors);
+
 
 
   return (
 
-    <main className={`studio-shell theme-${theme}`}>
+    <main className="studio-shell" data-tone={previewTheme.tone} style={themeStyle(previewTheme)}>
 
       <header className="studio-topbar">
 
@@ -965,11 +985,61 @@ export default function StudioPage() {
 
               <div className="form-card"><label>Gift title<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={70} placeholder="A little world for you" /></label><label>For someone special<input value={recipient} onChange={(event) => setRecipient(event.target.value)} maxLength={60} placeholder="Their name or nickname" /></label><label>Your letter<textarea value={letter} onChange={(event) => setLetter(event.target.value)} rows={6} maxLength={3000} /><small className="char-count">{letter.length}/3000 characters</small></label></div>
 
-              <div className="theme-card"><div className="theme-card-head"><Palette size={17} /><div><strong>Choose a mood</strong><small>The colours set the atmosphere.</small></div></div><div className="theme-options">
+              <div className="theme-card"><div className="theme-card-head"><Palette size={17} /><div><strong>Theme &amp; atmosphere</strong><small>The colours follow them from the postcard to the letter.</small></div></div><div className="theme-options">
 
-                {(["rose", "midnight", "ivory"] as Theme[]).map((value) => <button key={value} onClick={() => setTheme(value)} className={`theme-option theme-swatch-${value} ${theme === value ? "chosen" : ""}`}><span className="swatch-preview"><i /><i /><i /></span><span>{themeNames[value]}</span>{theme === value && <Check size={15} />}</button>)}
+                {/* Swatches are built from each theme's own tokens, so what you see here is
+                    what the recipient gets rather than a hand-painted approximation. */}
+                {THEMES.map((entry) => {
+                  const swatch = resolveThemeParts(entry.id, customColors);
 
-              </div><div className="theme-note"><WandSparkles size={15} /><span>Theme applies to the creator preview. More scene layouts and type treatments can be added as templates.</span></div></div>
+                  return (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      onClick={() => setTheme(entry.id)}
+                      aria-pressed={theme === entry.id}
+                      title={entry.mood}
+                      className={`theme-option ${theme === entry.id ? "chosen" : ""}`}
+                    >
+                      <span
+                        className="swatch-preview"
+                        style={{ background: swatch.tokens.paper, borderColor: swatch.tokens.line }}
+                        aria-hidden="true"
+                      >
+                        <i style={{ background: swatch.tokens.accent }} />
+                        <i style={{ background: swatch.tokens.ink }} />
+                        <i style={{ background: swatch.tokens.muted }} />
+                      </span>
+                      <span>{entry.name}</span>
+                    </button>
+                  );
+                })}
+
+              </div>
+
+              {theme === "custom" && (
+                <div className="custom-colors">
+                  {([
+                    ["primary", "Primary"],
+                    ["secondary", "Secondary"],
+                    ["background", "Background"],
+                    ["text", "Text"],
+                    ["highlight", "Highlight"],
+                  ] as [keyof CustomColors, string][]).map(([field, label]) => (
+                    <label key={field} className="custom-color-field">
+                      <span>{label}</span>
+                      <input
+                        type="color"
+                        value={customColors[field]}
+                        onChange={(event) => setCustomColors((current) => ({ ...current, [field]: event.target.value }))}
+                        aria-label={label}
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              <div className="theme-note"><WandSparkles size={15} /><span>Saved with this gift only. Open <b>Preview</b> to see the letter, the timed reveal and the password screen in this theme.</span></div></div>
 
             </div>
 
@@ -1032,7 +1102,7 @@ export default function StudioPage() {
 
       {preview && <div className="gift-preview-backdrop" role="dialog" aria-modal="true" aria-label="Gift preview">
 
-        <div className={`gift-preview theme-${theme}`}>
+        <div className="gift-preview" data-tone={previewTheme.tone} style={themeStyle(previewTheme)}>
 
           <button className="preview-close" onClick={() => setPreview(false)} aria-label="Close preview"><X size={20} /></button>
 

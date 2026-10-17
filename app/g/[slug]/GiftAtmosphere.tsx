@@ -12,11 +12,28 @@ type ConfettiPiece = {
   spin: number;
   color: string;
   round: boolean;
+  /**
+   * Ambient pieces form the permanent drift and wrap around the viewport forever. Burst pieces
+   * are transient and are dropped once they fall out of view.
+   */
+  ambient: boolean;
+  /**
+   * This piece's own terminal velocity. Drift pieces all having the same fall speed is not
+   * enough to keep the screen evenly covered: they would stay locked in the formation they were
+   * spawned in, cross the viewport as a group, and leave a gap until the group drifted back.
+   * Varying the speed lets pieces pass through one another, so the drift stays spread out.
+   */
+  fall: number;
 };
 
 const MAX_PIECES = 160;
-const CONFETTI_RUN_MS = 4600;
 const ARRIVAL_DELAY_MS = 420;
+/**
+ * The gentle drift that is always present. Deliberately small — this is atmosphere, not a
+ * shower, so a handful of faint pieces reads as light rather than as debris.
+ */
+const AMBIENT_PIECES = 20;
+const AMBIENT_PIECES_NARROW = 12;
 
 /** Draws the translucent confetti that greets the recipient and answers their taps. */
 export default function GiftAtmosphere() {
@@ -74,7 +91,9 @@ export default function GiftAtmosphere() {
 
     let frame = 0;
     let running = false;
-    let stopAt = 0;
+    // The drift is seeded mid-viewport exactly once. Later fills fall in from above, which is
+    // fine because by then the pool is already established.
+    let seeded = false;
     let width = 0;
     let height = 0;
     let dpr = 1;
@@ -92,6 +111,17 @@ export default function GiftAtmosphere() {
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
+    // Pieces land within this band below the fold before wrapping, so the recycling — and the
+    // velocity reset that comes with it — always happens off screen.
+    const RETIRE_MARGIN = 120;
+    // Terminal velocity for the drift. Without a cap, gravity accumulates frame after frame and
+    // every piece eventually exits at high speed at roughly the same moment — which empties the
+    // canvas in waves and is what "the confetti visibly stops" actually looked like.
+    const AMBIENT_MAX_FALL = 1.9;
+    // Spread of drift speeds, as a fraction of the terminal velocity: slow enough to read as
+    // light, fast enough to actually cross the viewport.
+    const AMBIENT_FALL_MIN = 0.45;
+
     const render = () => {
       if (!context) return;
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -101,18 +131,40 @@ export default function GiftAtmosphere() {
       for (let index = pieces.length - 1; index >= 0; index -= 1) {
         const piece = pieces[index];
         piece.vy += gravity;
+        // Every piece is capped, not just the drift. An uncapped burst accelerates until it is
+        // crossing the screen in a few frames, so the arrival pour was gone by three seconds —
+        // before the steady drift had fallen into view, leaving a visible blank beat. Capped,
+        // the pour lingers and the two overlap.
+        if (piece.vy > piece.fall) piece.vy = piece.fall;
         piece.vx *= 0.994;
         piece.x += piece.vx;
         piece.y += piece.vy;
         piece.rotation += piece.spin;
 
-        if (piece.y > height + 80) {
-          pieces.splice(index, 1);
+        if (piece.y > height + RETIRE_MARGIN) {
+          if (!piece.ambient) {
+            // Bursts are one-shot: they arc up, fall out of view and are gone for good.
+            pieces.splice(index, 1);
+            continue;
+          }
+          // The drift never retires. Wrapping keeps the population — and therefore the on-screen
+          // density — exactly constant, which is what stops the canvas from ever reading as
+          // empty. Newly spawned pieces would need to fall the whole screen height before
+          // showing up, and that refill latency was itself a visible gap.
+          // Reposition only. The fall speed is deliberately left alone: slowing a piece down on
+          // wrap would park it above the viewport for the better part of a minute, thinning the
+          // drift right when it should be steady. Keeping the terminal velocity means every
+          // piece is on screen for roughly ninety per cent of its cycle.
+          piece.y = -RETIRE_MARGIN;
+          piece.x = Math.random() * width;
+          piece.rotation = Math.random() * Math.PI * 2;
           continue;
         }
 
         context.save();
-        context.globalAlpha = 0.6;
+        // Kept low on purpose: the confetti should read as a suggestion of light over the
+        // photography, never as an opaque layer of paper in front of it.
+        context.globalAlpha = 0.28;
         context.translate(piece.x, piece.y);
         context.rotate(piece.rotation);
         context.fillStyle = piece.color;
@@ -127,57 +179,79 @@ export default function GiftAtmosphere() {
       }
     };
 
+    // Read once rather than per frame: getComputedStyle inside the loop would force a style
+    // recalculation sixty times a second for a value that cannot change while the page is open.
+    const accent = getComputedStyle(root).getPropertyValue("--gift-accent").trim() || "#f0a9c8";
+    const palette = [accent, "#ffffff", "#ffe1b0", accent];
+    const narrow = () => window.innerWidth < 700;
+
+    // `spread` scatters a piece mid-viewport instead of above the sky. Only the opening fill
+    // uses it: pieces spawned above the sky take over a second to drift into sight, so without
+    // this the arrival pour leaves the screen before the drift arrives and the canvas reads as
+    // empty for a beat.
+    const spawn = (fromSky: boolean, spread = false, ambient = false) => {
+      if (pieces.length >= MAX_PIECES) return;
+      pieces.push({
+        ambient,
+        fall: AMBIENT_MAX_FALL * (AMBIENT_FALL_MIN + Math.random() * (1 - AMBIENT_FALL_MIN)),
+        // A pour falls in from across the top; a tap bursts outward from the middle.
+        x: fromSky ? Math.random() * width : width / 2 + (Math.random() - 0.5) * width * 0.5,
+        // Spawning across a full screen height above the viewport, rather than in a shallow band,
+        // desynchronises the drift: pieces arrive as a steady trickle instead of crossing as one
+        // wave and leaving the canvas briefly empty between waves.
+        // The seeding fill spans two screen heights, above and below, so the column is already
+        // continuous on the very first frame — no wait for the drift to arrive, and no window
+        // where the arrival pour has left but the steady drift has not yet filled in.
+        y: spread
+          ? Math.random() * height * 2 - height
+          : fromSky
+            ? -20 - Math.random() * height
+            : height * 0.44,
+        vx: (Math.random() - 0.5) * 2.4,
+        vy: fromSky ? 1.1 + Math.random() * 1.4 : -3.2 - Math.random() * 2.4,
+        size: 3 + Math.random() * 4,
+        rotation: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 0.2,
+        color: palette[Math.floor(Math.random() * palette.length)],
+        round: Math.random() > 0.62,
+      });
+    };
+
+    // Restores the constant level of drift. Pieces that fall out of view are replaced one for
+    // one, so the flow never empties and never needs restarting — which is exactly what made
+    // the previous version visibly stop a few seconds in.
+    const topUp = (spread = false) => {
+      const target = narrow() ? AMBIENT_PIECES_NARROW : AMBIENT_PIECES;
+      for (let index = pieces.length; index < target; index += 1) spawn(true, spread, true);
+    };
+
     const tick = () => {
       render();
-      // Keep drawing until every piece has fallen out of view, so the last ones fade off
-      // the bottom edge rather than disappearing mid-air. The hard deadline is a backstop.
-      if (pieces.length && performance.now() < stopAt + 5000) {
-        frame = requestAnimationFrame(tick);
-        return;
-      }
-      running = false;
-      pieces.length = 0;
-      if (context) {
-        context.setTransform(dpr, 0, 0, dpr, 0, 0);
-        context.clearRect(0, 0, width, height);
-      }
+      topUp();
+      frame = requestAnimationFrame(tick);
+    };
+
+    const start = () => {
+      if (running || !context) return;
+      running = true;
+      resize();
+      // Only the first fill scatters mid-viewport; later top-ups fall in from the sky.
+      topUp(!seeded);
+      seeded = true;
+      frame = requestAnimationFrame(tick);
     };
 
     const burst = (count: number, pouring: boolean) => {
       if (!context) return;
       resize();
-
-      const accent = getComputedStyle(root).getPropertyValue("--gift-accent").trim() || "#f0a9c8";
-      const palette = [accent, "#ffffff", "#ffe1b0", accent];
-      const room = Math.max(0, MAX_PIECES - pieces.length);
-      const total = Math.min(count, room);
-
-      for (let index = 0; index < total; index += 1) {
-        // A pour falls in from across the top; a tap bursts outward from the middle.
-        const fromSky = pouring || index % 3 !== 0;
-        pieces.push({
-          x: fromSky ? Math.random() * width : width / 2 + (Math.random() - 0.5) * width * 0.5,
-          y: fromSky ? -20 - Math.random() * height * 0.3 : height * 0.44,
-          vx: (Math.random() - 0.5) * 2.4,
-          vy: fromSky ? 1.2 + Math.random() * 1.6 : -3.2 - Math.random() * 2.4,
-          size: 5 + Math.random() * 7,
-          rotation: Math.random() * Math.PI * 2,
-          spin: (Math.random() - 0.5) * 0.2,
-          color: palette[index % palette.length],
-          round: Math.random() > 0.62,
-        });
+      for (let index = 0; index < count; index += 1) {
+        spawn(pouring || index % 3 !== 0);
       }
-
-      stopAt = performance.now() + CONFETTI_RUN_MS;
-      if (!running) {
-        running = true;
-        frame = requestAnimationFrame(tick);
-      }
+      start();
     };
 
-    const narrow = () => window.innerWidth < 700;
     const arrival = context
-      ? window.setTimeout(() => burst(narrow() ? 52 : 92, true), ARRIVAL_DELAY_MS)
+      ? window.setTimeout(() => burst(narrow() ? 44 : 78, true), ARRIVAL_DELAY_MS)
       : 0;
 
     const onCelebrate = (event: Event) => {
@@ -188,10 +262,25 @@ export default function GiftAtmosphere() {
     celebrateTargets.forEach((target) => target.addEventListener("click", onCelebrate));
     window.addEventListener("resize", resize);
 
+    // The canvas is fixed and full-viewport, so its loop is continuous by design — that is what
+    // "no obvious stopping" costs. The price is kept down by stopping the frame entirely while
+    // the tab is hidden, by capping the piece count, and by allocating nothing per frame.
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (frame) cancelAnimationFrame(frame);
+        frame = 0;
+        running = false;
+      } else {
+        start();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       window.clearTimeout(arrival);
       revealTimers.forEach((timer) => window.clearTimeout(timer));
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisibility);
       celebrateTargets.forEach((target) => target.removeEventListener("click", onCelebrate));
       if (frame) cancelAnimationFrame(frame);
       observer?.disconnect();

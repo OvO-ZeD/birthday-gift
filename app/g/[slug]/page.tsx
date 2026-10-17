@@ -6,9 +6,11 @@ import {
   giftAccessCookieName,
   verifyGiftAccessToken,
 } from "@/app/lib/gifts/security";
+import { resolveTheme, themeStyle } from "@/app/lib/gifts/themes";
 import UnlockForm from "./UnlockForm";
 import PhotoMoodEnhancer from "./PhotoMoodEnhancer";
 import GiftAtmosphere from "./GiftAtmosphere";
+import MemoryCard from "./MemoryCard";
 import "./gift.css";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,26 @@ function isTechnicalLabel(value?: string | null) {
     || /^[0-9a-f]{24,}$/i.test(text);
 }
 
+/**
+ * Themed ambient motion — petals, particles, stars and so on.
+ *
+ * Intentionally a Server Component rendering plain spans: the whole effect is CSS keyframes,
+ * so there is no client bundle and no animation loop competing with the confetti canvas.
+ * Painted at the same negative z-index as the balloons, so it can never sit on a photograph.
+ */
+function GiftDecor() {
+  return (
+    <div className="gift-decor" aria-hidden="true">
+      {Array.from({ length: 14 }, (_, index) => (
+        <span
+          key={`decor-${index + 1}`}
+          className={`gift-decor-item gift-decor-item-${(index % 7) + 1}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default async function GiftPage({ params }: GiftPageProps) {
   const { slug } = await params;
   if (!/^[a-zA-Z0-9-]{6,80}$/.test(slug)) notFound();
@@ -44,14 +66,24 @@ export default async function GiftPage({ params }: GiftPageProps) {
 
   if (error || !gift) notFound();
 
+  // Resolved once for the whole journey, so the gate and the letter can never disagree, and
+  // an unknown or retired stored value degrades to the default instead of throwing.
+  const theme = resolveTheme(gift.theme);
+
   const cookieJar = await cookies();
   const token = cookieJar.get(giftAccessCookieName(slug))?.value;
   const unlocked = !gift.password_enabled || verifyGiftAccessToken(slug, token);
 
   if (!unlocked) {
     return (
-      <main className={`public-gift theme-${gift.theme || "rose"}`}>
+      <main
+        className="public-gift"
+        data-tone={theme.tone}
+        data-decor={theme.decor}
+        style={themeStyle(theme)}
+      >
         {/* The gate gets the ambient layers but no confetti: nothing is being celebrated yet. */}
+        <GiftDecor />
         <div className="gift-light" aria-hidden="true" />
         <div className="gift-balloons" aria-hidden="true">
           {Array.from({ length: 5 }, (_, index) => (
@@ -83,11 +115,16 @@ export default async function GiftPage({ params }: GiftPageProps) {
   const visualMedia = (media || []).filter((item) => item.kind !== "audio");
   const imageMedia = visualMedia.filter((item) => item.kind === "image");
   const mediaUrl = (id: string) => `/api/gifts/${encodeURIComponent(slug)}/media/${id}`;
-  const theme = ["rose", "midnight", "ivory"].includes(gift.theme || "") ? gift.theme : "rose";
   const letter = gift.letter?.trim() || "Every little moment with you deserves to be remembered.";
 
   return (
-    <main className={`public-gift theme-${theme} media-count-${Math.min(visualMedia.length, 5)} ${imageMedia.length === 0 ? "no-photo-mood" : imageMedia.length === 1 ? "single-photo-mood" : "multi-photo-mood"}`}>
+    <main
+      className={`public-gift media-count-${Math.min(visualMedia.length, 5)} ${imageMedia.length === 0 ? "no-photo-mood" : imageMedia.length === 1 ? "single-photo-mood" : "multi-photo-mood"}`}
+      data-tone={theme.tone}
+      data-decor={theme.decor}
+      data-opening
+      style={themeStyle(theme)}
+    >
       <div className="gift-ambient" aria-hidden="true">
         {imageMedia.length > 0 && Array.from({ length: 6 }, (_, index) => imageMedia[index % imageMedia.length]).map((item, index) => (
           <img key={`${item.id}-ambient-${index}`} src={mediaUrl(item.id)} alt="" className={`ambient-photo ambient-photo-${index + 1}`} />
@@ -95,6 +132,7 @@ export default async function GiftPage({ params }: GiftPageProps) {
         <div className="gift-ambient-wash" />
       </div>
       <PhotoMoodEnhancer />
+      <GiftDecor />
       <div className="gift-light" aria-hidden="true" />
       <div className="gift-balloons" aria-hidden="true">
         {Array.from({ length: 5 }, (_, index) => (
@@ -135,23 +173,21 @@ export default async function GiftPage({ params }: GiftPageProps) {
           </div>
           <div className={`public-memories layout-${visualMedia.length <= 2 ? "few" : visualMedia.length <= 4 ? "some" : "many"} ${imageMedia.length === 0 ? "video-led-gallery" : imageMedia.length === 1 ? "single-image-gallery" : "photo-led-gallery"}`}>
             {visualMedia.map((item, index) => (
-              <article className={`public-memory memory-${index + 1}`} key={item.id}>
-                <div className="memory-media-frame">
-                  {item.kind === "image" ? (
-                    <img loading={index < 2 ? "eager" : "lazy"} decoding="async" src={mediaUrl(item.id)} alt={item.title || item.caption || `Memory ${index + 1}`} />
-                  ) : (
-                    <video preload="metadata" src={mediaUrl(item.id)} controls playsInline aria-label={item.title || `Memory video ${index + 1}`} />
-                  )}
-                </div>
-                {(() => {
-                  // Captions sit beneath photos only: a video's caption belongs to its
-                  // soundtrack row, and blank captions should leave no empty space.
+              // Captions sit beneath photos only: a video's caption belongs to its soundtrack
+              // row, and a blank or technical caption should leave no empty space. Filtered
+              // here on the server so the client component stays presentational.
+              <MemoryCard
+                key={item.id}
+                index={index}
+                kind={item.kind}
+                src={mediaUrl(item.id)}
+                title={item.kind === "image" ? (item.title?.trim() || "") : ""}
+                caption={(() => {
                   const caption = item.caption?.trim() || "";
-                  return item.kind === "image" && caption && !isTechnicalLabel(caption)
-                    ? <div className="memory-caption"><p>{caption}</p></div>
-                    : null;
+                  return caption && !isTechnicalLabel(caption) ? caption : "";
                 })()}
-              </article>
+                loading={index < 2 ? "eager" : "lazy"}
+              />
             ))}
           </div>
         </section>
