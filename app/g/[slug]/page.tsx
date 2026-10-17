@@ -8,6 +8,7 @@ import {
 } from "@/app/lib/gifts/security";
 import UnlockForm from "./UnlockForm";
 import PhotoMoodEnhancer from "./PhotoMoodEnhancer";
+import GiftAtmosphere from "./GiftAtmosphere";
 import "./gift.css";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +51,13 @@ export default async function GiftPage({ params }: GiftPageProps) {
   if (!unlocked) {
     return (
       <main className={`public-gift theme-${gift.theme || "rose"}`}>
+        {/* The gate gets the ambient layers but no confetti: nothing is being celebrated yet. */}
+        <div className="gift-light" aria-hidden="true" />
+        <div className="gift-balloons" aria-hidden="true">
+          {Array.from({ length: 5 }, (_, index) => (
+            <span key={`gate-balloon-${index + 1}`} className={`gift-balloon gift-balloon-${index + 1}`} />
+          ))}
+        </div>
         <section className="gift-gate">
           <span className="gift-overline">A LITTLE WORLD, JUST FOR YOU</span>
           <div className="gift-heart">♡</div>
@@ -87,17 +95,31 @@ export default async function GiftPage({ params }: GiftPageProps) {
         <div className="gift-ambient-wash" />
       </div>
       <PhotoMoodEnhancer />
+      <div className="gift-light" aria-hidden="true" />
+      <div className="gift-balloons" aria-hidden="true">
+        {Array.from({ length: 5 }, (_, index) => (
+          <span key={`balloon-${index + 1}`} className={`gift-balloon gift-balloon-${index + 1}`} />
+        ))}
+      </div>
+      <GiftAtmosphere />
       <header className="public-gift-top"><span className="brand-mark">AFTERGLOW</span><span className="made-with-love">A little something, made for you <i>♡</i></span></header>
       <div className={`gift-intro-layout ${visualMedia.length === 0 ? "intro-no-media" : "intro-with-media"}`}>
         <section className={`public-gift-hero ${visualMedia.length === 0 ? "hero-no-media" : visualMedia.length <= 2 ? "hero-few-media" : "hero-gallery-media"}`}>
           <span className="gift-overline">A LITTLE WORLD, JUST FOR {(gift.recipient || "YOU").toUpperCase()}</span>
-          <div className="gift-heart" aria-hidden="true">♡</div>
+          <button
+            type="button"
+            className="gift-heart gift-heart-pulse gift-heart-button"
+            data-celebrate
+            title="Tap for a little celebration"
+            aria-label="Tap for a little celebration"
+          >♡</button>
+          <span className="celebrate-hint" aria-hidden="true">TAP THE HEART</span>
           <h1>{gift.title || "A little world for you"}</h1>
           <p>A few favourite moments, gathered in one little place.</p>
           {visualMedia.length > 0 && <a href="#memories">EXPLORE THE MEMORIES <span aria-hidden="true">↓</span></a>}
         </section>
 
-        <section className={`public-letter ${visualMedia.length === 0 ? "letter-solo" : "letter-with-memories"}`} aria-label="A personal note">
+        <section data-reveal className={`public-letter ${visualMedia.length === 0 ? "letter-solo" : "letter-with-memories"}`} aria-label="A personal note">
           <div className="letter-topline"><span>♡</span><small>A NOTE FROM ME TO YOU</small></div>
           <p>{letter}</p>
           <div className="letter-signoff"><span /> <small>MADE WITH LOVE, JUST FOR YOU</small> <span /></div>
@@ -106,7 +128,7 @@ export default async function GiftPage({ params }: GiftPageProps) {
 
       {visualMedia.length > 0 && (
         <section className="public-memories-wrap" id="memories">
-          <div className="memories-heading">
+          <div className="memories-heading" data-reveal>
             <span className="section-kicker">A LITTLE COLLECTION</span>
             <h2>Our moments, <em>kept close.</em></h2>
             <p>{visualMedia.length === 1 ? "One little moment, kept close." : `${visualMedia.length} little ${visualMedia.length === 2 ? "moments" : "memories"}, all part of your story.`}</p>
@@ -121,9 +143,14 @@ export default async function GiftPage({ params }: GiftPageProps) {
                     <video preload="metadata" src={mediaUrl(item.id)} controls playsInline aria-label={item.title || `Memory video ${index + 1}`} />
                   )}
                 </div>
-                {item.caption && !isTechnicalLabel(item.caption) && (
-                  <div className="memory-caption"><p>{item.caption}</p></div>
-                )}
+                {(() => {
+                  // Captions sit beneath photos only: a video's caption belongs to its
+                  // soundtrack row, and blank captions should leave no empty space.
+                  const caption = item.caption?.trim() || "";
+                  return item.kind === "image" && caption && !isTechnicalLabel(caption)
+                    ? <div className="memory-caption"><p>{caption}</p></div>
+                    : null;
+                })()}
               </article>
             ))}
           </div>
@@ -131,7 +158,7 @@ export default async function GiftPage({ params }: GiftPageProps) {
       )}
 
       {media?.some((item) => item.kind === "audio") && (
-        <section className="public-soundtrack">
+        <section className="public-soundtrack" data-reveal>
           <span className="section-kicker">A SOUND TO REMEMBER</span>
           {media.filter((item) => item.kind === "audio").map((item) => (
             <div className="soundtrack-track" key={item.id}>

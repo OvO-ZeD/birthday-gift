@@ -280,7 +280,11 @@ export default function StudioPage() {
 
 
 
-          const loadedItems: MediaItem[] = await Promise.all((rows || []).map(async (row: {
+          // allSettled, not all: one unreadable object should cost the creator that single
+          // item, never the whole draft.
+          let unreachable = 0;
+
+          const settled = await Promise.allSettled((rows || []).map(async (row: {
             id: string;
             kind: string;
             storage_path: string;
@@ -327,7 +331,27 @@ export default function StudioPage() {
 
           }));
 
-          if (!cancelled) setItems(loadedItems);
+          const loadedItems: MediaItem[] = [];
+
+          for (const result of settled) {
+
+            if (result.status === "fulfilled") loadedItems.push(result.value);
+
+            else unreachable += 1;
+
+          }
+
+          if (!cancelled) {
+
+            setItems(loadedItems);
+
+            if (unreachable) {
+
+              setNotice(`${unreachable} saved ${unreachable === 1 ? "memory" : "memories"} could not be previewed. Everything else loaded — re-upload ${unreachable === 1 ? "it" : "them"} if ${unreachable === 1 ? "it is" : "they are"} missing.`);
+
+            }
+
+          }
 
         }
 
@@ -777,6 +801,8 @@ export default function StudioPage() {
         }),
       });
       const data = await response.json();
+      // The draft is never pruned on a rejected publish: the creator's healthy memories
+      // must stay in place so they can remove only the flagged ones and try again.
       if (!response.ok) throw new Error(data.error || "Could not publish your gift.");
 
       setGiftSlug(data.slug);
@@ -1014,7 +1040,7 @@ export default function StudioPage() {
 
           <div className="preview-hero"><span className="preview-eyebrow">MADE FOR {recipient.toUpperCase() || "YOU"}</span><h2>{title || "A little world for you"}</h2><p>Some people make ordinary days feel extraordinary.</p><a href="#preview-memories" onClick={(event) => { event.preventDefault(); document.getElementById("preview-memories")?.scrollIntoView({ behavior: "smooth" }); }}>EXPLORE YOUR MEMORIES <ArrowDown size={14} /></a></div>
 
-          <div className="preview-memories" id="preview-memories">{mediaItems.map((item, index) => <article key={item.id} className="preview-memory">{item.kind === "image" ? <img src={item.url} alt={item.title} loading="lazy" decoding="async" /> : <video src={item.url} controls preload="metadata" playsInline /> }<span>{String(index + 1).padStart(2, "0")}</span><h3>{item.title}</h3>{item.caption && <p>{item.caption}</p>}</article>)}</div>
+          <div className="preview-memories" id="preview-memories">{mediaItems.map((item, index) => <article key={item.id} className="preview-memory">{item.kind === "image" ? <img src={item.url} alt={item.title} loading="lazy" decoding="async" /> : <video src={item.url} controls preload="metadata" playsInline /> }<span>{String(index + 1).padStart(2, "0")}</span><h3>{item.title}</h3>{item.kind === "image" && item.caption.trim() && <p>{item.caption.trim()}</p>}</article>)}</div>
 
           <div className="preview-letter"><Heart size={22} /><span>A NOTE FROM ME TO YOU</span><p>{letter}</p><small>MADE WITH LOVE, JUST FOR YOU</small></div>
 

@@ -8,11 +8,19 @@ import {
 
 export const runtime = "nodejs";
 
+// Media rows are looked up by primary key. Only reject shapes no key could ever take,
+// so a legacy identifier still resolves while traversal attempts never reach the query.
+const IDENTIFIER = /^[A-Za-z0-9_-]{4,80}$/;
+
 export async function GET(
   _request: Request,
   context: { params: Promise<{ slug: string; mediaId: string }> },
 ) {
   const { slug, mediaId } = await context.params;
+
+  if (!IDENTIFIER.test(mediaId)) {
+    return new NextResponse("Not found", { status: 404 });
+  }
 
   try {
     const admin = createAdminClient();

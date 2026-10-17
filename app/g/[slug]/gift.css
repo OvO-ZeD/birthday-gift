@@ -984,3 +984,146 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   }
   .memory-media-frame { border-radius: 10px; }
 }
+
+
+/* Recipient celebration layer: confetti on arrival, hovering balloons, and soft light. */
+.gift-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* A negative z-index paints these above the page background but behind every content
+   block, so no balloon or glow can ever sit on top of the couple's photographs. The
+   gallery and soundtrack are unpositioned, so a z-index of 0 would have covered them. */
+.gift-balloons,
+.gift-light {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.gift-balloon {
+  position: absolute;
+  width: clamp(64px, 8.5vw, 132px);
+  aspect-ratio: 5 / 6;
+  border-radius: 50% 50% 47% 47% / 58% 58% 42% 42%;
+  border: 1px solid color-mix(in srgb, var(--gift-accent) 30%, transparent);
+  background:
+    radial-gradient(circle at 33% 26%, #ffffff4d, transparent 58%),
+    color-mix(in srgb, var(--gift-accent) 46%, transparent);
+  opacity: .19;
+  filter: blur(.5px);
+  animation: balloon-hover 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.gift-balloon::after {
+  content: "";
+  position: absolute;
+  top: 99%;
+  left: 50%;
+  width: 1px;
+  height: clamp(28px, 4vw, 62px);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gift-accent) 34%, transparent), transparent);
+}
+.gift-balloon-1 { top: 12%; left: 4%; animation-duration: 28s; }
+.gift-balloon-2 { top: 58%; left: 12%; animation-duration: 34s; animation-delay: -6s; opacity: .15; }
+.gift-balloon-3 { top: 22%; right: 7%; animation-duration: 31s; animation-delay: -12s; }
+.gift-balloon-4 { top: 66%; right: 4%; animation-duration: 37s; animation-delay: -3s; opacity: .16; }
+.gift-balloon-5 { top: 40%; left: 46%; animation-duration: 41s; animation-delay: -20s; opacity: .1; }
+/* No blend mode: `screen` reads beautifully over the dark themes but washes the light
+   ivory theme out to white. The accent-tinted gradient is already theme-aware. */
+.gift-light { opacity: .62; }
+.gift-light::before,
+.gift-light::after {
+  content: "";
+  position: absolute;
+  width: clamp(320px, 46vw, 760px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--gift-accent) 22%, transparent), transparent 68%);
+  animation: light-drift 46s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.gift-light::before { top: -18%; left: -14%; }
+.gift-light::after { bottom: -22%; right: -12%; animation-duration: 58s; animation-delay: -14s; }
+.gift-heart-pulse { animation: heart-pulse 3.4s ease-in-out infinite; }
+/* Reset only what a <button> imposes from the UA stylesheet: font-family is the one
+   `.gift-heart` never declares, so without it the heart would render in the system UI
+   font. Colour, size and line-height are intentionally left alone — this block is
+   appended last, so redeclaring them here would override `.gift-heart` itself. */
+.gift-heart-button {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1), text-shadow .3s ease;
+}
+/* Widens the tap target to a comfortable size without adding layout weight to the hero. */
+.gift-heart-button::before {
+  content: "";
+  position: absolute;
+  inset: -16px -20px;
+}
+.gift-heart-button:hover { transform: scale(1.09); }
+.gift-heart-button:active { transform: scale(.95); }
+.gift-heart-button:focus-visible { outline: 2px solid var(--gift-accent); outline-offset: 6px; border-radius: 50%; }
+.celebrate-hint {
+  display: block;
+  margin: .5rem auto 0;
+  color: var(--gift-muted);
+  font: 600 .54rem/1.4 Arial, sans-serif;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  opacity: .78;
+}
+
+/* Reveals stay invisible to crawlers and no-JS readers: the hiding rule only applies
+   once the atmosphere script has confirmed it can observe the page. The offset uses the
+   independent `translate` property so it composes with each block's own hover transform. */
+/* `transform` is included in the transition so the letter's existing hover lift keeps
+   easing — this rule replaces that element's own transition declaration. */
+.public-gift[data-reveal="ready"] [data-reveal] {
+  opacity: 0;
+  translate: 0 18px;
+  transition:
+    opacity .72s cubic-bezier(.2,.7,.2,1),
+    translate .72s cubic-bezier(.2,.7,.2,1),
+    transform .3s ease,
+    border-color .3s ease,
+    box-shadow .3s ease;
+}
+.public-gift[data-reveal="ready"] [data-reveal].is-revealed {
+  opacity: 1;
+  translate: 0 0;
+}
+@keyframes balloon-hover {
+  from { transform: translate3d(0, 0, 0) rotate(-3deg) scale(1); }
+  50% { transform: translate3d(18px, -26px, 0) rotate(2deg) scale(1.04); }
+  to { transform: translate3d(-14px, -46px, 0) rotate(-2deg) scale(1.02); }
+}
+@keyframes light-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); opacity: .75; }
+  to { transform: translate3d(6%, 5%, 0) scale(1.14); opacity: 1; }
+}
+/* The pulse animates the independent `scale` property so the button's own :hover
+   transform still applies — an animation on `transform` would win over the hover rule. */
+@keyframes heart-pulse {
+  0%, 100% { scale: 1; }
+  42% { scale: 1.1; }
+  58% { scale: 1.04; }
+}
+@media (max-width: 700px) {
+  .gift-balloon { opacity: .14; }
+  .gift-balloon-2, .gift-balloon-5 { display: none; }
+  .gift-light { opacity: .38; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gift-balloon, .gift-light::before, .gift-light::after, .gift-heart-pulse { animation: none !important; }
+  .public-gift[data-reveal="ready"] [data-reveal] { opacity: 1; transform: none; transition: none; }
+}

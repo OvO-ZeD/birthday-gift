@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/app/lib/supabase/server";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { hashGiftPassword } from "@/app/lib/gifts/security";
+import { validateMediaRows } from "@/app/lib/gifts/media-policy";
 
 export const runtime = "nodejs";
 
@@ -34,14 +35,31 @@ export async function POST(request: Request) {
     if (giftError) throw giftError;
     if (!gift) return NextResponse.json({ error: "Gift not found for this account." }, { status: 404 });
 
-    const { count, error: mediaError } = await admin
+    // A count alone would publish a gift whose memories the recipient page cannot render,
+    // so every row is checked against the same rules the gallery relies on.
+    const { data: rows, error: mediaError } = await admin
       .from("gift_media")
-      .select("id", { count: "exact", head: true })
-      .eq("gift_id", giftId)
-      .in("kind", ["image", "video"]);
+      .select("id, kind, mime_type, storage_path, size_bytes")
+      .eq("gift_id", giftId);
 
     if (mediaError) throw mediaError;
-    if (!count) return NextResponse.json({ error: "Add at least one photo or video before publishing." }, { status: 400 });
+
+    const { issues, visualCount, valid } = validateMediaRows(rows || [], giftId);
+    if (!visualCount) {
+      return NextResponse.json({ error: "Add at least one photo or video before publishing." }, { status: 400 });
+    }
+    if (!valid) {
+      // Logged in full for the operator; the creator gets the count, not internals.
+      console.error(`Gift publish blocked by media validation (gift ${giftId}):`, issues);
+      return NextResponse.json(
+        {
+          error: issues.length === 1
+            ? `One memory cannot be shared yet: it ${issues[0].reason}. Remove it and upload it again, then publish.`
+            : `${issues.length} memories cannot be shared yet. Remove and re-upload them, then publish again.`,
+        },
+        { status: 400, headers: { "Cache-Control": "no-store" } },
+      );
+    }
 
     const passwordHash = passwordEnabled ? await hashGiftPassword(password) : null;
     const { error: updateError } = await admin
