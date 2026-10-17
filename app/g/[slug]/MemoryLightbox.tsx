@@ -85,6 +85,9 @@ export default function MemoryLightbox({
     // Body scroll is locked for the duration. The scrollbar width is replaced as padding so
     // the page behind does not shift sideways as the bar disappears.
     const { body } = document;
+    // Read once, here: the frame that opened the dialog does not change while it is open, and
+    // reading the ref inside the cleanup would capture whatever React had assigned by then.
+    const returnTo = returnFocusTo.current;
     const previousOverflow = body.style.overflow;
     const previousPadding = body.style.paddingRight;
     const gap = window.innerWidth - document.documentElement.clientWidth;
@@ -100,7 +103,7 @@ export default function MemoryLightbox({
       body.style.paddingRight = previousPadding;
       document.removeEventListener("keydown", handleKey);
       // Hand focus back to the card that was opened, so tabbing continues from where it was.
-      returnFocusTo.current?.focus({ preventScroll: true });
+      returnTo?.focus({ preventScroll: true });
     };
   }, [handleKey, returnFocusTo]);
 
