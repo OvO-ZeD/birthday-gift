@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
@@ -38,13 +36,28 @@ import {
 
   Palette, Plus, Save, Settings2, Sparkles, Trash2, Upload, WandSparkles,
 
-  X, GripVertical, Send
+  X, GripVertical, Send, Undo2
 
 } from "lucide-react";
 
 import "./studio.css";
 
+/**
+ * The four stops in the editor, in reading order.
+ *
+ * One list feeds the sidebar stepper, the mobile rail and the inspector checklist, so a section
+ * can never be missing from the navigation — Postcard & reveal used to be reachable only by
+ * scrolling past everything, because the nav was three hand-written links that stopped at step
+ * three — and a step can never be ticked in one place while another calls it unfinished.
+ */
+const STUDIO_STEPS = [
+  { id: "content", label: "Story & media", Icon: ImagePlus },
+  { id: "personalize", label: "Personalization", Icon: Palette },
+  { id: "privacy", label: "Privacy & sharing", Icon: LockKeyhole },
+  { id: "experience", label: "Postcard & reveal", Icon: Send },
+] as const;
 
+type StudioStepId = (typeof STUDIO_STEPS)[number]["id"];
 
 type MediaItem = {
 
@@ -72,11 +85,8 @@ type MediaItem = {
 
 };
 
-
-
 /* Theme definitions live in one registry, shared with the recipient page, so a theme
    can never look one way here and another way to the person receiving it. */
-
 
 /* Columns added by the postcard/reveal migration (supabase/gift-experience.sql).
    The studio must work whether or not that SQL has been run: naming a column the database does
@@ -128,15 +138,11 @@ const starterLetter =
 
   "I wanted to make you something that feels a little like us: made of small moments, favourite memories, and all the things I sometimes forget to say out loud. Happy birthday, my favourite person.";
 
-
-
 function makeId() {
 
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 }
-
-
 
 const FREE_STORAGE_FILE_LIMIT = 50 * 1024 * 1024;
 const VIDEO_COMPRESSION_TARGET = 44 * 1024 * 1024;
@@ -251,6 +257,10 @@ export default function StudioPage() {
 
   const [dragging, setDragging] = useState(false);
 
+  /* The tile currently under the hearer's finger. Only it needs to know, so the rest of the
+     grid is left alone rather than re-rendered on every pointer move. */
+  const [reorderId, setReorderId] = useState<string | null>(null);
+
   const [notice, setNotice] = useState("");
 
   const [preview, setPreview] = useState(false);
@@ -264,6 +274,19 @@ export default function StudioPage() {
   const [experienceReady, setExperienceReady] = useState(true);
 
   const [published, setPublished] = useState(false);
+
+  /* Which step the reader is actually looking at, so the stepper can follow the page instead of
+     sitting on step one for the whole session. */
+  const [activeSection, setActiveSection] = useState<StudioStepId>("content");
+
+  /* When the last write landed, for the topbar. Null until something has been saved, so the
+     status line can say "Cloud draft" rather than claiming a save that never happened. */
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+  /* Memories inside their undo window. They stay in `items` — only the rendering hides them —
+     so taking the removal back restores them exactly where they were, with no index to rebuild. */
+  const [removingIds, setRemovingIds] = useState<string[]>([]);
+
   /* The share link is derived from the slug, never stored.
      It used to be held in state and filled in only by a publish that had just run in this
      session. Reopening the studio therefore restored "published" and the slug but not the
@@ -279,21 +302,59 @@ export default function StudioPage() {
 
   const audioInput = useRef<HTMLInputElement>(null);
 
+  const itemEditorRef = useRef<HTMLDivElement>(null);
 
+  const previewCloseRef = useRef<HTMLButtonElement>(null);
+
+  /* The draft the autosave compares against. Null means "nothing loaded yet", so the state that
+     arrives from the database is never mistaken for an unsaved edit. */
+  const savedSignature = useRef<string | null>(null);
+
+  /* The latest items, readable from inside a pointer handler that was bound before the last
+     reorder. Reading `items` directly there would compare against a stale array and make the
+     dragged tile jump back and forth under the finger. */
+  const itemsRef = useRef<MediaItem[]>([]);
+
+  /* Removals waiting out their undo window, keyed by item id, each with the timer that will
+     settle it. Held in a ref because the handlers read it without re-rendering. */
+  const pendingRemoval = useRef<Map<string, { item: MediaItem; timer: number }>>(new Map());
 
   const activeItem = items.find((item) => item.id === activeId) ?? null;
 
   const mediaItems = items.filter((item) => item.kind !== "audio");
 
+  const visibleMediaItems = mediaItems.filter((item) => !removingIds.includes(item.id));
+
   const audioItem = items.find((item) => item.kind === "audio") ?? null;
 
+  /* Which steps are finished. One definition, used by the stepper, the mobile rail and the
+     inspector checklist, so the three can never disagree about the same gift. A step that is
+     switched off counts as done: "you have not chosen a reveal date" is not a task when the
+     reveal is off.
 
+     Plain arithmetic rather than a `useMemo`. It is a handful of comparisons, and a memo whose
+     dependency is a derived array costs more to keep honest than it saves. */
+  const stepDone: Record<string, boolean> = {
+    content: mediaItems.length > 0,
+    personalize: Boolean(title.trim() && recipient.trim() && letter.trim()),
+    privacy: !passwordEnabled || password.trim().length >= 6,
+    experience:
+      !experienceEnabled ||
+      Boolean(postcardSubject.trim() && postcardNote.trim() && (!countdownEnabled || revealDate)),
+  };
+
+  const completedSteps = STUDIO_STEPS.filter((step) => stepDone[step.id]).length;
+
+  const progress = Math.round((completedSteps / STUDIO_STEPS.length) * 100);
+
+  const gotoStep = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveSection(id as StudioStepId);
+  };
 
   useEffect(() => {
 
     let cancelled = false;
-
-
 
     async function loadStudio() {
 
@@ -310,8 +371,6 @@ export default function StudioPage() {
         return;
 
       }
-
-
 
       try {
 
@@ -353,8 +412,6 @@ export default function StudioPage() {
 
         if (giftsError) throw giftsError;
 
-
-
         const gift = gifts?.[0];
 
         if (gift) {
@@ -393,8 +450,6 @@ export default function StudioPage() {
             setRevealTime(`${pad(reveal.getHours())}:${pad(reveal.getMinutes())}`);
           }
 
-
-
           const { data: rows, error: mediaError } = await supabase
 
             .from("gift_media")
@@ -406,8 +461,6 @@ export default function StudioPage() {
             .order("position", { ascending: true });
 
           if (mediaError) throw mediaError;
-
-
 
           // allSettled, not all: one unreadable object should cost the creator that single
           // item, never the whole draft.
@@ -490,13 +543,19 @@ export default function StudioPage() {
 
       } finally {
 
-        if (!cancelled) setAuthReady(true);
+        if (!cancelled) {
+
+          /* Marked before the state lands, so the first autosave pass sees the draft exactly as
+             it was loaded and treats it as the baseline rather than as an unsaved edit. */
+          savedSignature.current = null;
+
+          setAuthReady(true);
+
+        }
 
       }
 
     }
-
-
 
     void loadStudio();
 
@@ -518,7 +577,108 @@ export default function StudioPage() {
 
   }, [router]);
 
+  useEffect(() => {
 
+    itemsRef.current = items;
+
+  }, [items]);
+
+  /* Follows the reading position so the stepper shows where the reader actually is.
+     The sidebar used to sit on "Story & media" from the first paint to the last, whichever
+     section was on screen, which made the whole left rail decorative. */
+  useEffect(() => {
+
+    const nodes = STUDIO_STEPS
+
+      .map((step) => document.getElementById(step.id))
+
+      .filter((node): node is HTMLElement => Boolean(node));
+
+    if (!nodes.length) return;
+
+    const observer = new IntersectionObserver(
+
+      (entries) => {
+
+        const leading = entries
+
+          .filter((entry) => entry.isIntersecting)
+
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (leading?.target.id) setActiveSection(leading.target.id as StudioStepId);
+
+      },
+
+      // The top band of the viewport is what counts as "where I am", which is far steadier than
+      // the whole page: with a full-height root, two sections are always intersecting at once
+      // and the highlight flickers between them.
+      { rootMargin: "-96px 0px -60% 0px", threshold: [0.02, 0.15, 0.4, 0.75] },
+
+    );
+
+    nodes.forEach((node) => observer.observe(node));
+
+    return () => observer.disconnect();
+
+  }, []);
+
+  /* Pressing a tile opens the editor beneath the grid. Without this it could open a screen
+     below the fold, so the click looked like it had done nothing at all. */
+  useEffect(() => {
+
+    if (!activeId) return;
+
+    itemEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+  }, [activeId]);
+
+  /* Timers do not survive the page. Abandoning a removal in flight leaves the row and the file
+     in place, which is the safe direction to fail in. */
+  useEffect(() => {
+
+    const pending = pendingRemoval.current;
+
+    return () => {
+
+      for (const entry of pending.values()) window.clearTimeout(entry.timer);
+
+      pending.clear();
+
+    };
+
+  }, []);
+
+  /* The preview is a real dialog: Escape closes it and the page behind does not scroll. */
+  useEffect(() => {
+
+    if (!preview) return;
+
+    const onKey = (event: KeyboardEvent) => {
+
+      if (event.key === "Escape") setPreview(false);
+
+    };
+
+    document.addEventListener("keydown", onKey);
+
+    const { body } = document;
+
+    const previousOverflow = body.style.overflow;
+
+    body.style.overflow = "hidden";
+
+    previewCloseRef.current?.focus({ preventScroll: true });
+
+    return () => {
+
+      document.removeEventListener("keydown", onKey);
+
+      body.style.overflow = previousOverflow;
+
+    };
+
+  }, [preview]);
 
   /* Opening the preview clears anything the last visit reported, so a stale error is never
      left sitting above a button the creator is about to press again. */
@@ -579,8 +739,13 @@ export default function StudioPage() {
   /* Guard and state live here; the work lives in saveDraftBody.
      The split exists so the body can be run a second time when a write turns out to name
      columns the database does not have — a retry issued from inside the body would otherwise
-     be refused by the "saving" check, which has not re-rendered yet. */
-  const saveDraft = async () => {
+     be refused by the "saving" check, which has not re-rendered yet.
+
+     `auto` is the background pass that runs a moment after the typing stops. It does the same
+     work and reports the same failures; it only stays quiet on the way through, because a
+     running commentary of "saving… / saved" for every pause in a sentence is noise, and the
+     topbar already says where the draft stands. */
+  const saveDraft = async (auto = false) => {
 
     if (saving) return null;
 
@@ -588,17 +753,32 @@ export default function StudioPage() {
 
     try {
 
-      const first = await saveDraftBody();
+      /* Anything still inside its undo window is settled before the write, so the page that is
+         saved is the page the creator is looking at. Left alone, each one would also settle on
+         its own timer — this only makes sure a save never races one. */
+      for (const id of [...pendingRemoval.current.keys()]) await commitRemoval(id);
+
+      const first = await saveDraftBody(auto);
 
       // "retry" is internal to this pair of functions and never escapes: the caller only ever
       // sees a saved draft or null.
-      if (first !== "retry") return first;
+      if (first !== "retry") {
+
+        if (first?.ok) setLastSavedAt(new Date());
+
+        return first;
+
+      }
 
       // One retry only: it drops the experience columns, so a second refusal is a real failure
       // and not something a further attempt could resolve.
-      const second = await saveDraftBody();
+      const second = await saveDraftBody(auto);
 
-      return second === "retry" ? null : second;
+      if (second === "retry") return null;
+
+      if (second?.ok) setLastSavedAt(new Date());
+
+      return second;
 
     } finally {
 
@@ -608,16 +788,20 @@ export default function StudioPage() {
 
   };
 
-  const saveDraftBody = async (): Promise<{ ok: true; giftId: string | null; slug: string | null } | null | "retry"> => {
+  const saveDraftBody = async (auto = false): Promise<{ ok: true; giftId: string | null; slug: string | null } | null | "retry"> => {
 
-    setNotice("Saving your draft and uploading new media…");
+    if (!auto) setNotice("Saving your draft and uploading new media…");
 
     // Cleared up front, so a later failure can never be attributed to an earlier one.
     saveErrorRef.current = "";
 
     const supabase = createClient();
 
-
+    /* Read through the ref, not the render's `items`. Pending removals are applied to the ref
+       the moment they are made final, which happens inside this same call — the state variable
+       would still be showing the grid from before that, and a save would write the deleted rows
+       one last time and then put the deleted tiles back on screen. */
+    const currentItems = itemsRef.current;
 
     try {
 
@@ -631,13 +815,9 @@ export default function StudioPage() {
 
       }
 
-
-
       let currentGiftId = giftId;
 
       let currentSlug = giftSlug;
-
-
 
       if (!currentGiftId) {
 
@@ -714,15 +894,13 @@ export default function StudioPage() {
 
       }
 
-
-
       const savedItems: MediaItem[] = [];
-      const pendingUploads = items.filter((item) => !item.storagePath && Boolean(item.file));
+      const pendingUploads = currentItems.filter((item) => !item.storagePath && Boolean(item.file));
       let completedUploads = 0;
       setUploadProgress({ current: 0, total: pendingUploads.length, filename: "" });
 
-      for (let position = 0; position < items.length; position += 1) {
-        const item = items[position];
+      for (let position = 0; position < currentItems.length; position += 1) {
+        const item = currentItems[position];
         let storagePath = item.storagePath;
         let dbId = item.dbId;
         let previewUrl = item.url;
@@ -794,7 +972,7 @@ export default function StudioPage() {
 
       setItems(savedItems);
 
-      setNotice(`Draft saved to Supabase${currentSlug ? ` · gift ${currentSlug}` : ""}. Media is stored in your private bucket.`);
+      if (!auto) setNotice(`Draft saved to Supabase${currentSlug ? ` · gift ${currentSlug}` : ""}. Media is stored in your private bucket.`);
 
     return {
 
@@ -830,7 +1008,79 @@ export default function StudioPage() {
 
   };
 
+  /* Ctrl/Cmd+S saves, because that is the reflex for "keep what I have written", and without
+     it the browser offers to save the page instead. Re-attached every render on purpose: the
+     handler closes over the current draft, and saving a stale one would lose the last word. */
+  useEffect(() => {
 
+    const onKey = (event: KeyboardEvent) => {
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+
+        event.preventDefault();
+
+        void saveDraft();
+
+      }
+
+    };
+
+    window.addEventListener("keydown", onKey);
+
+    return () => window.removeEventListener("keydown", onKey);
+
+  });
+
+  /* Autosave, for everything that can be written without touching storage.
+     Typing and then having to remember to press Save is the slowest part of building a gift,
+     and the one place where closing a tab loses work. Media is deliberately excluded: an
+     upload can take minutes, and starting one on its own in the middle of a sentence is not a
+     favour. Which is also why the effect stands down entirely while a file is still waiting. */
+  useEffect(() => {
+
+    const ready = authReady && !saving && !publishing && !sendingPostcard
+
+      && items.every((item) => !item.file || Boolean(item.storagePath));
+
+    if (!ready) return;
+
+    const signature = JSON.stringify([
+
+      title, recipient, letter, theme, customColors,
+
+      experienceEnabled, countdownEnabled, revealDate, revealTime, postcardSubject, postcardNote,
+
+    ]);
+
+    // The first pass after a draft loads is the draft itself, not an edit to it.
+    if (savedSignature.current === null) { savedSignature.current = signature; return; }
+
+    if (savedSignature.current === signature) return;
+
+    const timer = window.setTimeout(async () => {
+
+      const saved = await saveDraft(true);
+
+      // Recorded only on success, so a refused write is not mistaken for a saved one and the
+      // next keystroke tries again.
+      if (saved?.ok) savedSignature.current = signature;
+
+    }, 1400);
+
+    return () => window.clearTimeout(timer);
+
+    // Every draft field is already folded into `signature` above, so the effect only needs to
+    // re-run when the readiness of the editor changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+
+    authReady, saving, publishing, sendingPostcard, items,
+
+    title, recipient, letter, theme, customColors,
+
+    experienceEnabled, countdownEnabled, revealDate, revealTime, postcardSubject, postcardNote,
+
+  ]);
 
   const addFiles = async (files: FileList | File[]) => {
     if (saving || publishing) {
@@ -910,9 +1160,8 @@ export default function StudioPage() {
 
   };
 
-
-
-  const onDrop = (event: DragEvent<HTMLDivElement>) => {
+  /* Typed against the section that now carries it, not the panel it used to sit on. */
+  const onDrop = (event: DragEvent<HTMLElement>) => {
 
     event.preventDefault();
 
@@ -922,23 +1171,85 @@ export default function StudioPage() {
 
   };
 
-
-
   const updateItem = (id: string, patch: Partial<Pick<MediaItem, "title" | "caption">>) => {
 
     setItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item));
 
   };
 
+  /* Removal waits a few seconds before it is real.
+     It used to delete the row and the stored object the instant the X was pressed, which made
+     the grid a minefield: one slipped tap on a phone and a photograph was gone with nothing
+     left to press. The tile still leaves the grid at once, so the intent is instant — it is
+     only the deletion that is deferred, and the bar above the grid offers it back. Left alone,
+     or followed by a save, it always completes, so nothing is quietly kept behind the creator's
+     back either. */
+  const REMOVAL_GRACE_MS = 7000;
 
-
-  const removeItem = async (id: string) => {
+  const removeItem = (id: string) => {
 
     const item = items.find((entry) => entry.id === id);
 
+    if (!item || pendingRemoval.current.has(id)) return;
+
+    if (activeId === id) setActiveId(null);
+
+    setRemovingIds((current) => [...current, id]);
+
+    const timer = window.setTimeout(() => { void commitRemoval(id); }, REMOVAL_GRACE_MS);
+
+    pendingRemoval.current.set(id, { item, timer });
+
+  };
+
+  /** Takes back every removal still inside its window. */
+  const undoRemoval = () => {
+
+    const ids = [...pendingRemoval.current.keys()];
+
+    if (!ids.length) return;
+
+    for (const id of ids) {
+
+      window.clearTimeout(pendingRemoval.current.get(id)!.timer);
+
+      pendingRemoval.current.delete(id);
+
+    }
+
+    setRemovingIds((current) => current.filter((entry) => !ids.includes(entry)));
+
+    setNotice(ids.length === 1 ? "Memory kept." : `${ids.length} memories kept.`);
+
+  };
+
+  /**
+   * The actual deletion, run when the undo window closes or when a save overtakes it.
+   *
+   * A failure puts the tile back rather than pretending it went: the row and the stored object
+   * are both still there, so showing an empty grid would be a lie the next reload would expose.
+   */
+  const commitRemoval = async (id: string) => {
+
+    const pending = pendingRemoval.current.get(id);
+
+    if (pending) window.clearTimeout(pending.timer);
+
+    pendingRemoval.current.delete(id);
+
+    setRemovingIds((current) => current.filter((entry) => entry !== id));
+
+    const item = pending?.item ?? itemsRef.current.find((entry) => entry.id === id);
+
     if (!item) return;
 
+    const drop = () => {
 
+      setItems((current) => current.filter((entry) => entry.id !== item.id));
+
+      itemsRef.current = itemsRef.current.filter((entry) => entry.id !== item.id);
+
+    };
 
     if (item.dbId && item.storagePath) {
 
@@ -956,6 +1267,8 @@ export default function StudioPage() {
 
       } catch (error) {
 
+        setItems((current) => current.some((entry) => entry.id === item.id) ? current : [...current, item]);
+
         setNotice(error instanceof Error ? `Could not remove saved media: ${error.message}` : "Could not remove saved media.");
 
         return;
@@ -964,19 +1277,94 @@ export default function StudioPage() {
 
     }
 
-
-
     if (item.file && item.url.startsWith("blob:")) URL.revokeObjectURL(item.url);
 
-    setItems((current) => current.filter((entry) => entry.id !== id));
-
-    if (activeId === id) setActiveId(null);
-
-    setNotice("Item removed from this draft.");
+    drop();
 
   };
 
+  /**
+   * Reordering by drag, for the whole grid at once.
+   *
+   * The arrows beside a tile still move it one place, which is right for a nudge and hopeless
+   * for carrying the twelfth photograph to the front; that took eleven clicks. Pointer events
+   * rather than the HTML5 drag-and-drop API, which does not fire on touch at all — and the
+   * phone is where most of these gifts are put together.
+   */
+  const startReorder = (event: React.PointerEvent<HTMLButtonElement>, id: string) => {
 
+    if (event.button !== 0) return;
+
+    event.preventDefault();
+
+    event.stopPropagation();
+
+    const handle = event.currentTarget;
+
+    handle.setPointerCapture(event.pointerId);
+
+    setReorderId(id);
+
+    // Whether anything actually moved. A tap on the handle should not report a reorder.
+    let moved = false;
+
+    const move = (moveEvent: PointerEvent) => {
+
+      // The dragged tile is untouchable while it travels, so the point lands on whatever it is
+      // passing over rather than on itself.
+      const under = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+
+      const overId = under?.closest<HTMLElement>("[data-media-id]")?.dataset.mediaId;
+
+      if (!overId || overId === id) return;
+
+      setItems((current) => {
+
+        const visual = current.filter((item) => item.kind !== "audio");
+
+        const audio = current.filter((item) => item.kind === "audio");
+
+        const from = visual.findIndex((item) => item.id === id);
+
+        const to = visual.findIndex((item) => item.id === overId);
+
+        if (from < 0 || to < 0 || from === to) return current;
+
+        const [carried] = visual.splice(from, 1);
+
+        visual.splice(to, 0, carried);
+
+        moved = true;
+
+        return [...visual, ...audio];
+
+      });
+
+    };
+
+    const finish = () => {
+
+      handle.removeEventListener("pointermove", move);
+
+      handle.removeEventListener("pointerup", finish);
+
+      handle.removeEventListener("pointercancel", finish);
+
+      if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+
+      setReorderId(null);
+
+      if (moved) setNotice("Memory order updated. Save the draft to keep it.");
+
+    };
+
+    handle.addEventListener("pointermove", move);
+
+    handle.addEventListener("pointerup", finish);
+
+    handle.addEventListener("pointercancel", finish);
+
+  };
 
   const moveItem = (id: string, direction: -1 | 1) => {
 
@@ -999,10 +1387,6 @@ export default function StudioPage() {
     });
 
   };
-
-
-
-
 
   /** Combines the date and time inputs into the instant the reveal happens, in local time. */
   const revealInstant = () => {
@@ -1131,13 +1515,9 @@ export default function StudioPage() {
     }
   };
 
-  const progress = Math.min(100, (mediaItems.length ? 25 : 0) + (letter.trim() ? 25 : 0) + (title.trim() ? 25 : 0) + (theme ? 25 : 0));
-
   // The live preview must show the theme the recipient will actually see, so it resolves the
   // same registry the recipient page does — including unsaved custom colours.
   const previewTheme = resolveThemeParts(theme, customColors);
-
-
 
   return (
 
@@ -1155,17 +1535,23 @@ export default function StudioPage() {
 
         <div className="studio-top-actions">
 
-          <span className="draft-status"><span /> {saving ? "Saving to cloud…" : authReady ? (giftId ? "Cloud draft" : "New draft") : "Checking sign-in…"}</span>
+          {/* The dot turns amber while a write is in flight, so autosave is visible rather than
+              mysterious, and the line carries the time of the last one. */}
+          <span className={`draft-status ${saving ? "is-saving" : ""}`} role="status" aria-live="polite">
+            <span /> {saving
+              ? "Saving to cloud…"
+              : lastSavedAt
+                ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                : authReady ? (giftId ? "Cloud draft" : "New draft") : "Checking sign-in…"}
+          </span>
 
-          <button className="studio-button quiet" onClick={() => void saveDraft()} disabled={!authReady || saving || publishing}><Save size={15} /> {saving ? "Saving…" : "Save draft"}</button>
+          <button className="studio-button quiet" onClick={() => void saveDraft()} disabled={!authReady || saving || publishing} title="Save draft (Ctrl+S)"><Save size={15} /> {saving ? "Saving…" : "Save draft"}</button>
 
           <button className="studio-button primary" onClick={openPreview} disabled={saving || publishing}><Eye size={15} /> Preview gift</button>
 
         </div>
 
       </header>
-
-
 
       <div className="studio-layout">
 
@@ -1177,13 +1563,39 @@ export default function StudioPage() {
 
           <div className="side-progress"><div><span>CREATION PROGRESS</span><strong>{progress}%</strong></div><span className="progress-track"><i style={{ width: `${progress}%` }} /></span></div>
 
-          <nav className="studio-nav">
+          <nav className="studio-nav" aria-label="Editor sections">
 
-            <a className="selected" href="#content"><ImagePlus size={16} /> Story & media <span>01</span></a>
+            {STUDIO_STEPS.map((step, index) => {
 
-            <a href="#personalize"><Palette size={16} /> Personalization <span>02</span></a>
+              const done = stepDone[step.id];
 
-            <a href="#privacy"><LockKeyhole size={16} /> Privacy & sharing <span>03</span></a>
+              const current = activeSection === step.id;
+
+              return (
+
+                <a
+
+                  key={step.id}
+
+                  href={`#${step.id}`}
+
+                  className={`${current ? "selected" : ""} ${done ? "is-done" : ""}`}
+
+                  aria-current={current ? "step" : undefined}
+
+                  onClick={(event) => { event.preventDefault(); gotoStep(step.id); }}
+
+                >
+
+                  <step.Icon size={16} /> {step.label}
+
+                  <span className={done ? "step-tick" : ""}>{done ? <Check size={11} /> : String(index + 1).padStart(2, "0")}</span>
+
+                </a>
+
+              );
+
+            })}
 
           </nav>
 
@@ -1197,8 +1609,6 @@ export default function StudioPage() {
 
         </aside>
 
-
-
         <section className="studio-main">
 
           <div className="studio-heading">
@@ -1209,21 +1619,40 @@ export default function StudioPage() {
 
           </div>
 
-
-
-          <section className="editor-section" id="content">
+          {/* The drop target is the whole section rather than the panel inside it: once there
+              are memories that panel collapses to a single row, and a strip that size is a poor
+              thing to have to aim at from across the page. */}
+          <section
+            className="editor-section"
+            id="content"
+            onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
+            onDragLeave={(event) => {
+              // dragleave also fires when the pointer crosses between children of this section,
+              // which would blink the highlight off and on all the way across it.
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
+            }}
+            onDrop={onDrop}
+          >
 
             <div className="section-title-row"><div><span className="step-label">01 / STORY & MEDIA</span><h2>Gather the moments</h2><p>Bring in photos, little films, and the soundtrack.</p></div><span className="count-pill">{mediaItems.length} memories</span></div>
 
+            <div
+              className={`upload-zone ${mediaItems.length ? "compact" : ""} ${dragging ? "is-dragging" : ""}`}
+            >
 
+              <div className="upload-icon"><Upload size={mediaItems.length ? 17 : 21} /></div>
 
-            <div className={`upload-zone ${dragging ? "is-dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
+              <div className="upload-copy">
 
-              <div className="upload-icon"><Upload size={21} /></div><strong>Drop your memories here</strong><p>or browse your device. Images, video clips, and audio.</p>
+                <strong>{mediaItems.length ? "Add more memories" : "Drop your memories here"}</strong>
+
+                <p>{mediaItems.length ? "Drop files anywhere in this section, or browse." : "or browse your device. Images, video clips, and audio."}</p>
+
+              </div>
 
               <div className="upload-actions"><button onClick={() => fileInput.current?.click()} className="studio-button primary"><Plus size={15} /> Add photos & videos</button><button onClick={() => audioInput.current?.click()} className="studio-button quiet"><Music2 size={15} /> Add soundtrack</button></div>
 
-              <small>Save your draft to upload selected media to your private Supabase storage bucket.</small>
+              {!mediaItems.length && <small>Save your draft to upload selected media to your private Supabase storage bucket.</small>}
 
               <input ref={fileInput} hidden type="file" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.webm,.mov,.m4v,image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime" onChange={onFileChange} />
 
@@ -1231,13 +1660,37 @@ export default function StudioPage() {
 
             </div>
 
+            {removingIds.length > 0 && (
+
+              <div className="media-undo" role="status" aria-live="polite">
+
+                <span>{removingIds.length === 1 ? "That memory will be removed." : `${removingIds.length} memories will be removed.`}</span>
+
+                <button className="studio-button quiet" onClick={undoRemoval}><Undo2 size={14} /> Undo</button>
+
+              </div>
+
+            )}
+
             {saving && uploadProgress.total > 0 && <div className="upload-progress" role="status" aria-live="polite">
               <div className="upload-progress-copy"><strong>Saving your memories</strong><span>{uploadProgress.current} of {uploadProgress.total}{uploadProgress.filename ? ` · ${uploadProgress.filename}` : ""}</span></div>
               <div className="upload-progress-track"><i style={{ width: `${Math.min(100, uploadProgress.total ? (uploadProgress.current / uploadProgress.total) * 100 : 0)}%` }} /></div>
               <small>Keep this page open until the save finishes. Large videos can take a little longer on mobile.</small>
             </div>}
 
-            {mediaItems.length > 0 ? <div className="media-grid">{mediaItems.map((item, index) => <article key={item.id} className={`media-tile ${activeId === item.id ? "active" : ""}`} onClick={() => setActiveId(item.id)}>
+            {visibleMediaItems.length > 0 ? <div className="media-grid">{visibleMediaItems.map((item, index) => <article
+
+              key={item.id}
+
+              data-media-id={item.id}
+
+              className={`media-tile ${activeId === item.id ? "active" : ""} ${reorderId === item.id ? "is-reordering" : ""}`}
+
+              style={{ animationDelay: `${Math.min(index, 14) * 28}ms` }}
+
+              onClick={() => setActiveId(item.id)}
+
+            >
 
               <div className="media-thumb">
 
@@ -1245,17 +1698,39 @@ export default function StudioPage() {
 
                 <span className="media-index">{String(index + 1).padStart(2, "0")}</span><span className="media-kind">{item.kind === "image" ? <FileImage size={13} /> : <FileVideo size={13} />}{item.kind}</span>
 
-                <button className="tile-remove" aria-label={`Remove ${item.title}`} onClick={(event) => { event.stopPropagation(); removeItem(item.id); }}><X size={14} /></button>
+                <button className="tile-remove" aria-label={`Remove ${item.title || item.originalFilename}`} onClick={(event) => { event.stopPropagation(); removeItem(item.id); }}><X size={14} /></button>
 
               </div>
 
-              <div className="tile-meta"><span>{item.title}</span><div><button title="Move earlier" onClick={(event) => { event.stopPropagation(); moveItem(item.id, -1); }}><ArrowLeft size={13} /></button><GripVertical size={14} /><button title="Move later" onClick={(event) => { event.stopPropagation(); moveItem(item.id, 1); }}><ArrowRight size={13} /></button></div></div>
+              <div className="tile-meta"><span>{item.title || item.originalFilename}</span><div>
+
+                <button title="Move earlier" aria-label={`Move ${item.title || item.originalFilename} earlier`} onClick={(event) => { event.stopPropagation(); moveItem(item.id, -1); }}><ArrowLeft size={13} /></button>
+
+                {/* A real handle, not the decorative glyph that used to sit here: the arrows
+                    move one place, and this carries the tile anywhere in the grid. */}
+                <button
+
+                  type="button"
+
+                  className="tile-grip"
+
+                  title="Drag to reorder"
+
+                  aria-label={`Drag ${item.title || item.originalFilename} to reorder. The arrow buttons move it one place at a time.`}
+
+                  onClick={(event) => event.stopPropagation()}
+
+                  onPointerDown={(event) => startReorder(event, item.id)}
+
+                ><GripVertical size={14} /></button>
+
+                <button title="Move later" aria-label={`Move ${item.title || item.originalFilename} later`} onClick={(event) => { event.stopPropagation(); moveItem(item.id, 1); }}><ArrowRight size={13} /></button>
+
+              </div></div>
 
             </article>)}</div> : <div className="empty-media"><div className="empty-stack"><FileImage size={25} /><FileVideo size={25} /><Music2 size={25} /></div><strong>Your memories will live here</strong><span>Start with a photo that means something.</span></div>}
 
-
-
-            {activeItem && <div className="item-editor">
+            {activeItem && <div className="item-editor" ref={itemEditorRef}>
 
               <div className="item-editor-preview">{activeItem.kind === "image" ? <img src={activeItem.url} alt="" decoding="async" /> : <video src={activeItem.url} controls preload="metadata" playsInline />}</div>
 
@@ -1272,8 +1747,6 @@ export default function StudioPage() {
             {audioItem && <div className="audio-strip"><span className="audio-icon"><Music2 size={17} /></span><div><strong>{audioItem.originalFilename}</strong><small>Soundtrack selected</small></div><audio src={audioItem.url} controls /><button className="icon-button" onClick={() => removeItem(audioItem.id)} aria-label="Remove soundtrack"><Trash2 size={15} /></button></div>}
 
           </section>
-
-
 
           <section className="editor-section" id="personalize">
 
@@ -1343,8 +1816,6 @@ export default function StudioPage() {
 
           </section>
 
-
-
           <section className="editor-section privacy-section" id="privacy">
 
             <div className="section-title-row"><div><span className="step-label">03 / PRIVACY & SHARING</span><h2>Keep it just for them</h2><p>Choose how the finished gift should be shared.</p></div><LockKeyhole size={22} /></div>
@@ -1358,8 +1829,6 @@ export default function StudioPage() {
             </div>
 
           </section>
-
-
 
           <section className="editor-section experience-section" id="experience">
 
@@ -1438,8 +1907,6 @@ export default function StudioPage() {
 
         </section>
 
-
-
         <aside className="studio-inspector">
 
           <div className="inspector-head"><Settings2 size={16} /><span>LIVE DETAILS</span></div>
@@ -1448,13 +1915,33 @@ export default function StudioPage() {
 
             <div className="mini-browser"><span /><span /><span /><small>YOUR GIFT</small></div>
 
-            <div className={`mini-cover mini-${theme}` }><Sparkles size={16} /><span>{title || "A little world for you"}</span><em>made with love</em></div>
+            {/* Coloured from the resolved theme rather than a `mini-<id>` class. The class was
+                written when there were three themes, so nine of the ten picks left this card
+                wearing the default pink — the one place on screen that is supposed to answer
+                "what will they see?" was answering with the wrong answer. */}
+            <div
+              className="mini-cover"
+              style={{ background: `radial-gradient(ellipse at 50% 22%, ${previewTheme.tokens.accentSoft}, transparent 64%), ${previewTheme.backdrop}` }}
+            >
+              <Sparkles size={16} style={{ color: previewTheme.tokens.accent }} />
+              <span style={{ color: previewTheme.tokens.ink }}>{title || "A little world for you"}</span>
+              <em style={{ color: previewTheme.tokens.accent }}>made with love</em>
+            </div>
 
             <div className="mini-inspector-content"><span>MADE FOR</span><strong>{recipient || "Someone special"}</strong><div className="mini-stats"><span><FileImage size={13} /> {mediaItems.length} memories</span><span><LockKeyhole size={13} /> {passwordEnabled ? "Password on" : "No password"}</span></div></div>
 
           </div>
 
-          <div className="inspector-checklist"><strong>Before you publish</strong>{[["Add your memories", mediaItems.length > 0], ["Write a personal note", letter.trim().length > 0], ["Choose a theme", Boolean(theme)], ["Set sharing preferences", !passwordEnabled || password.length >= 6]].map(([label, done]) => <div key={String(label)}><span className={done ? "check-done" : ""}>{done ? <Check size={12} /> : <span />}</span>{label}</div>)}</div>
+          {/* The same four steps the rail shows, from the same list and the same predicate — and
+              each one is a way to get there, which is what turns a checklist into a shortcut. */}
+          <div className="inspector-checklist"><strong>Before you publish</strong>{STUDIO_STEPS.map((step) => {
+            const done = stepDone[step.id];
+            return (
+              <button key={step.id} type="button" onClick={() => gotoStep(step.id)}>
+                <span className={done ? "check-done" : ""}>{done ? <Check size={12} /> : <span />}</span>{step.label}
+              </button>
+            );
+          })}</div>
 
           <div className="inspector-note"><LockKeyhole size={15} /><p><strong>Privacy matters.</strong> Published gifts use server-side password checks and protected media URLs.</p></div>
 
@@ -1462,13 +1949,11 @@ export default function StudioPage() {
 
       </div>
 
-
-
       {preview && <div className="gift-preview-backdrop" role="dialog" aria-modal="true" aria-label="Gift preview">
 
         <div className="gift-preview" data-tone={previewTheme.tone} style={themeStyle(previewTheme)}>
 
-          <button className="preview-close" onClick={() => setPreview(false)} aria-label="Close preview"><X size={20} /></button>
+          <button ref={previewCloseRef} className="preview-close" onClick={() => setPreview(false)} aria-label="Close preview"><X size={20} /></button>
 
           <div className="preview-topline"><Heart size={14} /> A PRIVATE LITTLE WORLD</div>
 
@@ -1524,5 +2009,4 @@ export default function StudioPage() {
   );
 
 }
-
 

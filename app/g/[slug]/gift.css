@@ -67,7 +67,13 @@
 .memories-heading h2 em { color: var(--gift-accent); font-weight: 400; }
 .memories-heading > p { margin: 0; color: var(--gift-muted); font-size: .92rem; line-height: 1.6; }
 .public-memories { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: clamp(.8rem, 1.7vw, 1.35rem); align-items: start; }
-.public-memory { min-width: 0; grid-column: span 6; margin: 0; animation: memory-arrive .7s cubic-bezier(.2,.7,.2,1) both; }
+/* Fill mode is `backwards`, not `both`. The keyframes move the tile with `transform`, and
+   `forwards` would keep `transform: translateY(0)` on it after the animation ends — not `none`,
+   and therefore enough to make the tile the containing block for any `position: fixed`
+   descendant. That is what confined the photo dialog to the tile it was opened from. `backwards`
+   still applies the opening state during the stagger delay, which is the only thing `both` was
+   being used for here. */
+.public-memory { min-width: 0; grid-column: span 6; margin: 0; animation: memory-arrive .7s cubic-bezier(.2,.7,.2,1) backwards; }
 .public-memory:nth-child(2) { animation-delay: 70ms; }
 .public-memory:nth-child(3) { animation-delay: 120ms; }
 .public-memory:nth-child(4) { animation-delay: 170ms; }
@@ -320,7 +326,9 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   pointer-events: none;
 }
 .public-letter.letter-solo { margin-bottom: 2rem; }
-.public-memories-wrap { animation: gift-section-in .65s cubic-bezier(.2,.7,.2,1) both; }
+/* `backwards` for the same reason as `.public-memory` above: this one animates `transform` too,
+   and `forwards` would leave the whole gallery section as a containing block. */
+.public-memories-wrap { animation: gift-section-in .65s cubic-bezier(.2,.7,.2,1) backwards; }
 .public-memory:nth-child(3n) .memory-media-frame { border-radius: 18px 18px 10px 18px; }
 .public-memory:nth-child(3n + 2) .memory-media-frame { border-radius: 10px 18px 18px 18px; }
 .public-memory img, .public-memory video { background: color-mix(in srgb, var(--gift-paper) 88%, #000); }

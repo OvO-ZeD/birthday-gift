@@ -107,6 +107,14 @@ export default function MemoryLightbox({
     };
   }, [handleKey, returnFocusTo]);
 
+  // Deliberately rendered in place, NOT portalled to <body>. The theme's custom properties
+  // (--gift-paper, --gift-ink and the rest) are set as an inline style on <main class="public-gift">
+  // and have no :root fallback, so a dialog moved outside that subtree would lose every one of
+  // them — the scrim, the Close control and the note text would all resolve to nothing.
+  //
+  // Nothing between here and <main> creates a containing block for `position: fixed` any more:
+  // the two entrance animations that used to are run with fill mode `backwards` (gift.css), so
+  // no `transform` survives them. That is what previously pinned this overlay to the tile.
   return (
     <div
       className="memory-lightbox"

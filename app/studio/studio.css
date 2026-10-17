@@ -794,7 +794,6 @@
 
 }
 
-
 /* FINAL STUDIO TYPOGRAPHY POLISH */
 .studio-heading p,
 .section-title-row p {
@@ -1289,4 +1288,337 @@
 
 @media (prefers-reduced-motion: reduce) {
   .preview-notice { animation: none; }
+}
+
+/* ============================================================================================
+   Studio: wayfinding, motion and the smaller interactions
+   --------------------------------------------------------------------------------------------
+   Appended, matching the passes above. Nothing here restates a colour that was already decided;
+   it is the layer that makes the editor answer "where am I", "what did that just do" and "can I
+   take it back" without the creator having to work it out from a screenshot.
+   ============================================================================================ */
+
+/* --- The stepper ---------------------------------------------------------------------------
+   The rail was three hand-written links with `selected` painted on the first one permanently,
+   and no entry at all for the postcard panel — the fourth section could only be found by
+   scrolling past everything else. It is now built from STUDIO_STEPS, follows the reading
+   position, and carries each step's own completion. */
+
+.studio-nav a {
+  border: 1px solid transparent;
+  transition: background .24s ease, color .24s ease, border-color .24s ease, transform .24s ease;
+}
+
+.studio-nav a:hover { transform: translateX(2px); background: rgba(255, 255, 255, .04); }
+
+.studio-nav a.selected {
+  transform: none;
+  box-shadow: inset 2px 0 0 var(--studio-accent);
+}
+
+.studio-nav a > svg { transition: color .24s ease; }
+
+.studio-nav a.is-done > svg { color: #8fcfa6; }
+
+.studio-nav a > span.step-tick {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  opacity: 1;
+  color: #a9d9b9;
+  background: rgba(169, 217, 185, .14);
+}
+
+/* --- Save status ---------------------------------------------------------------------------
+   Autosave is only reassuring if it is visible. The dot turns amber while a write is in
+   flight, so the browser is never quietly doing something the creator cannot see. */
+
+.draft-status { transition: color .24s ease; }
+
+.draft-status span { transition: background .24s ease, box-shadow .24s ease; }
+
+.draft-status.is-saving { color: var(--studio-accent); }
+
+.draft-status.is-saving span {
+  background: var(--studio-accent);
+  box-shadow: 0 0 12px var(--studio-accent);
+}
+
+/* --- Adding more memories ------------------------------------------------------------------
+   The dashed panel is the right invitation when the grid is empty and the wrong thing to keep
+   paying 200px of page for once there are forty photographs above it. Past the first memory it
+   collapses to a single row; the whole section stays a drop target either way. */
+
+.upload-zone.compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  text-align: left;
+  border-style: solid;
+  border-color: var(--gift-line);
+}
+
+.upload-zone.compact .upload-icon { margin-bottom: 0; flex: none; }
+
+.upload-zone.compact .upload-actions { margin-left: auto; flex-wrap: nowrap; }
+
+.upload-copy { min-width: 0; }
+
+.upload-copy strong { display: block; font-size: 13px; font-weight: 600; }
+
+.upload-copy p {
+  margin: 4px 0 0;
+  font: 13px/1.7 'Playfair Display', Georgia, serif;
+  color: var(--studio-muted);
+}
+
+/* Only the collapsed row is allowed to be smaller; the full invitation keeps the type scale the
+   typography pass above settled on. */
+.upload-zone.compact .upload-copy p { font-size: 12px; line-height: 1.6; }
+
+.upload-zone:not(.compact) > .upload-copy { display: contents; }
+
+.upload-zone.is-dragging { box-shadow: inset 0 0 0 1px var(--studio-accent); }
+
+@media (max-width: 760px) {
+  .upload-zone.compact { flex-wrap: wrap; }
+  .upload-zone.compact .upload-actions { margin-left: 0; width: 100%; }
+}
+
+/* --- Taking a removal back ------------------------------------------------------------------
+   Deletion used to be instant and final, which is what made the X on every tile feel dangerous.
+   The bar appears directly above the grid, where the removed tile just was. */
+
+.media-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 9px 10px 9px 14px;
+  border: 1px solid var(--gift-line);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--gift-accent) 9%, transparent);
+  color: var(--studio-muted);
+  font-size: 11px;
+}
+
+.media-undo .studio-button { min-height: 34px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .media-undo { animation: studio-undo-in .24s cubic-bezier(.2, .7, .2, 1) backwards; }
+}
+
+@keyframes studio-undo-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- The grid -------------------------------------------------------------------------------
+   Entrance, the drag handle, and the state a tile wears while it is being carried. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .media-tile { animation: studio-tile-in .42s cubic-bezier(.2, .7, .2, 1) backwards; }
+}
+
+@keyframes studio-tile-in {
+  from { opacity: 0; transform: translateY(10px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-tile { animation: none !important; }
+}
+
+/* Scoped through .studio-shell to outrank the blanket `.studio-shell button { cursor: pointer }`
+   set at the top of this file. */
+.studio-shell .tile-grip {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border-radius: 5px;
+  cursor: grab;
+  /* The browser must not read a drag down the handle as a scroll, or the gesture would scroll
+     the page instead of moving the tile. Scoped to the handle, so the rest of the grid still
+     scrolls normally under a finger. */
+  touch-action: none;
+}
+
+.studio-shell .tile-grip:active { cursor: grabbing; }
+
+.tile-meta button:hover { color: var(--studio-accent); }
+
+.media-tile.is-reordering {
+  /* Untouchable, so the point under the finger lands on the tile being passed over rather than
+     on the one being carried. */
+  pointer-events: none;
+  opacity: .55;
+  border-color: var(--studio-accent);
+  border-style: dashed;
+  transform: scale(.96);
+  z-index: 2;
+}
+
+/* --- The checklist is a set of shortcuts ----------------------------------------------------- */
+
+.inspector-checklist > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 3px 0;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--studio-muted);
+  font-size: 10px;
+  text-align: left;
+  transition: background .2s ease, color .2s ease, transform .2s ease;
+}
+
+.inspector-checklist > button:hover {
+  background: rgba(255, 255, 255, .05);
+  color: var(--studio-text);
+  transform: translateX(2px);
+}
+
+.inspector-checklist > button > span {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.inspector-checklist > button > span.check-done {
+  background: rgba(169, 217, 185, .13);
+  border-color: rgba(169, 217, 185, .4);
+  color: #a9d9b9;
+}
+
+/* --- The gift as the recipient will actually see it ------------------------------------------
+   The preview painted itself from hard-coded plum and near-black, so a creator who chose
+   Rosewater — or any of the eight light themes — opened the preview and was shown a dark
+   purple letter. The promise printed under the theme picker is that the preview shows the
+   letter in this theme; these rules hold it to that by driving the dialog from the same seven
+   tokens the recipient page reads. */
+
+.gift-preview {
+  background: var(--gift-paper);
+  color: var(--gift-ink);
+  border-color: var(--gift-line);
+  border-radius: 4px;
+  animation: preview-open .3s cubic-bezier(.2, .7, .2, 1) backwards;
+}
+
+.gift-preview-backdrop { animation: preview-scrim .26s ease backwards; }
+
+@keyframes preview-scrim {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes preview-open {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+.preview-topline { border-bottom-color: var(--gift-line); color: var(--gift-accent); }
+
+.preview-hero {
+  background: var(--gift-backdrop);
+  min-height: min(340px, 52svh);
+}
+
+.preview-eyebrow,
+.preview-hero a,
+.preview-memory > span,
+.preview-letter > span { color: var(--gift-accent); }
+
+.preview-hero p,
+.preview-hero a,
+.preview-memory p,
+.preview-letter small { color: var(--gift-muted); }
+
+.preview-memory img,
+.preview-memory video { background: color-mix(in srgb, var(--gift-ink) 12%, transparent); }
+
+.preview-letter {
+  border-color: var(--gift-line);
+  background: var(--gift-surface);
+  backdrop-filter: blur(8px);
+}
+
+.preview-letter > svg { color: var(--gift-accent); }
+
+.preview-bottom {
+  background: color-mix(in srgb, var(--gift-paper) 94%, transparent);
+  border-top-color: var(--gift-line);
+}
+
+.preview-publish-result { background: var(--gift-accent-soft); }
+
+.preview-publish-result p { color: var(--gift-accent); }
+
+.preview-publish-result small { color: var(--gift-muted); }
+
+/* Controls inside the dialog follow the gift's own tones rather than the studio's dark chrome,
+   which is what left the Close button and "Back to editor" nearly invisible on a light theme. */
+.gift-preview .studio-button {
+  color: var(--gift-ink);
+  border-color: var(--gift-line);
+  background: color-mix(in srgb, var(--gift-ink) 6%, transparent);
+}
+
+.gift-preview .studio-button.primary {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(110deg, var(--gift-accent), color-mix(in srgb, var(--gift-accent) 55%, var(--gift-ink)));
+}
+
+.preview-close {
+  color: var(--gift-ink);
+  border-color: var(--gift-line);
+  background: color-mix(in srgb, var(--gift-paper) 72%, transparent);
+  transition: transform .2s ease, border-color .2s ease;
+}
+
+.preview-close:hover { transform: rotate(90deg); border-color: var(--gift-accent); }
+
+.gift-preview input {
+  color: var(--gift-ink);
+  border-color: var(--gift-line);
+  background: color-mix(in srgb, var(--gift-ink) 5%, transparent);
+}
+
+/* --- Section entrance ------------------------------------------------------------------------
+   A one-time entrance, never a scroll-linked reveal: a reveal driven by a view timeline can
+   leave a section part-way transparent when its range never completes, and this is the
+   creator's own work rather than decoration. Fill mode is `backwards`, so no `transform`
+   survives the animation — a lingering `translateY(0)` is not `none`, and would make every
+   section the containing block for anything `position: fixed` inside it. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .editor-section { animation: studio-section-in .5s cubic-bezier(.2, .7, .2, 1) backwards; }
+  .editor-section:nth-of-type(2) { animation-delay: .06s; }
+  .editor-section:nth-of-type(3) { animation-delay: .12s; }
+  .editor-section:nth-of-type(4) { animation-delay: .18s; }
+}
+
+@keyframes studio-section-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-section { animation: none !important; }
 }
