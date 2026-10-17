@@ -1674,3 +1674,287 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
     transition: none;
   }
 }
+
+/* ============================================================================================
+   Warm refinement pass
+   --------------------------------------------------------------------------------------------
+   Appended, like every pass above it: no existing rule is rewritten, so everything already
+   tuned still applies unless a rule below deliberately supersedes it.
+
+   Three jobs, in the order they matter:
+
+   1. The background photographs. Six tiles sit behind the letter and the gallery, and the wash
+      over them had grown to a near-opaque blur with a purple cast, so the collage the page is
+      built on was invisible. The wash now tints without hiding, the tiles are brighter and
+      barely blurred, and the tint is warm charcoal rather than violet — a tinted scrim still
+      keeps every word legible without erasing the pictures behind it.
+   2. The gallery. Photographs only, smaller tiles, tighter rhythm.
+   3. The lightbox. A downward swipe closes it, and the drag itself is animated here.
+
+   House rules for this block: transform / opacity / filter only; no JavaScript animation loops;
+   everything switched off under prefers-reduced-motion at the very end.
+   ============================================================================================ */
+
+/* --- 1. Background photography ------------------------------------------------------------ */
+
+/* Was blur(.2px) brightness(.78) opacity .58 over a heavy purple wash. The brightness cut and
+   the wash were doing the obscuring, not the blur, so the blur stays near zero and the tile is
+   allowed to be a photograph. */
+.public-gift .ambient-photo {
+  opacity: .74 !important;
+  filter: blur(0) saturate(.98) brightness(.94) contrast(1.03) !important;
+  border-radius: 18px !important;
+  border-color: rgb(255 255 255 / 26%) !important;
+  box-shadow:
+    0 22px 54px rgb(28 20 16 / 26%),
+    0 2px 8px rgb(28 20 16 / 14%) !important;
+  transition: opacity .6s ease;
+}
+
+/* The tint. A scrim, not a curtain: enough to sit the letter on, far from enough to hide the
+   collage. The blur is gone because the panels carry their own backdrop blur already. */
+.public-gift .gift-ambient-wash {
+  background:
+    linear-gradient(
+      90deg,
+      rgb(30 22 18 / 6%) 0%,
+      rgb(30 22 18 / 12%) 30%,
+      rgb(30 22 18 / 20%) 50%,
+      rgb(30 22 18 / 12%) 70%,
+      rgb(30 22 18 / 6%) 100%
+    ) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (max-width: 760px) {
+  /* One column of photographs, so there is less room for a collage — the tiles stay visible
+     but stop competing with the letter. */
+  .public-gift .ambient-photo {
+    opacity: .5 !important;
+    filter: blur(.3px) saturate(.94) brightness(.9) !important;
+  }
+  .public-gift .gift-ambient-wash {
+    background: linear-gradient(
+      180deg,
+      rgb(30 22 18 / 8%) 0%,
+      rgb(30 22 18 / 16%) 55%,
+      rgb(30 22 18 / 22%) 100%
+    ) !important;
+  }
+}
+
+/* --- 2. A compact gallery ----------------------------------------------------------------- */
+
+/* Photographs only, and smaller ones. Every tile is the same shape, so a row reads as a row
+   rather than as a set of unrelated pictures, and the width cap keeps a three-across row from
+   growing to the height of the viewport on a wide screen.
+
+   The cap is on width, never on height: a max-height against a fixed aspect ratio would squeeze
+   the box into a landscape one and the photograph inside would be cropped harder to fill it,
+   whereas a narrower tile shrinks while every picture keeps its framing. */
+.public-memories-wrap {
+  width: min(1080px, calc(100% - 2.5rem)) !important;
+  margin-inline: auto;
+}
+
+.public-memories {
+  gap: clamp(.55rem, 1.05vw, .95rem) !important;
+}
+
+.public-memory,
+.layout-few .public-memory:only-child,
+.layout-few .public-memory:nth-child(2),
+.layout-some .public-memory:nth-child(n),
+.layout-many .public-memory:nth-child(n),
+.layout-some .public-memory:first-child,
+.layout-many .public-memory:nth-child(5n + 1),
+.layout-some .public-memory:nth-child(2),
+.layout-many .public-memory:nth-child(5n + 2) {
+  flex: 0 1 calc((100% - 1.9rem) / 3) !important;
+  width: calc((100% - 1.9rem) / 3) !important;
+  max-width: 330px;
+}
+
+.memory-media-frame {
+  aspect-ratio: 4 / 5;
+  border: 1px solid var(--gift-line) !important;
+  border-radius: 18px !important;
+  box-shadow:
+    0 1px 2px rgb(28 20 16 / 8%),
+    0 10px 28px rgb(28 20 16 / 14%) !important;
+  transition: transform .34s cubic-bezier(.2, .7, .2, 1),
+    box-shadow .34s cubic-bezier(.2, .7, .2, 1),
+    border-color .3s ease !important;
+}
+
+.public-memory:hover .memory-media-frame {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--gift-accent) 55%, transparent) !important;
+  box-shadow:
+    0 2px 4px rgb(28 20 16 / 10%),
+    0 16px 38px rgb(28 20 16 / 20%) !important;
+}
+
+/* The frame no longer needs a fixed dark ground now that tiles are uniform. */
+.memory-media-frame,
+.public-memory img,
+.public-memory video {
+  background: color-mix(in srgb, var(--gift-paper) 92%, #000);
+}
+
+@media (max-width: 980px) {
+  .public-memory,
+  .layout-few .public-memory:only-child,
+  .layout-few .public-memory:nth-child(2),
+  .layout-some .public-memory:nth-child(n),
+  .layout-many .public-memory:nth-child(n),
+  .layout-some .public-memory:first-child,
+  .layout-many .public-memory:nth-child(5n + 1),
+  .layout-some .public-memory:nth-child(2),
+  .layout-many .public-memory:nth-child(5n + 2) {
+    flex-basis: calc((100% - .9rem) / 2) !important;
+    width: calc((100% - .9rem) / 2) !important;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .public-memories-wrap { width: calc(100% - 1.25rem) !important; }
+  .public-memory,
+  .layout-few .public-memory:only-child,
+  .layout-few .public-memory:nth-child(2),
+  .layout-some .public-memory:nth-child(n),
+  .layout-many .public-memory:nth-child(n),
+  .layout-some .public-memory:first-child,
+  .layout-many .public-memory:nth-child(5n + 1),
+  .layout-some .public-memory:nth-child(2),
+  .layout-many .public-memory:nth-child(5n + 2) {
+    flex-basis: calc((100% - .6rem) / 2) !important;
+    width: calc((100% - .6rem) / 2) !important;
+    max-width: none;
+  }
+  .memory-media-frame { border-radius: 14px !important; }
+}
+
+/* Nothing is captioned under a tile any more — the words live in the lightbox. These rules are
+   kept only so a stray container from an older cached page still renders as nothing rather
+   than as an empty gap. */
+.public-memory .memory-caption { display: none; }
+
+/* --- 3. The photograph is the control ------------------------------------------------------ */
+
+/* The View/Close label that used to sit on the photograph is gone from the markup; this keeps
+   it gone if a stale bundle is still in someone's cache. */
+.memory-toggle-hint { display: none !important; }
+
+.memory-toggle {
+  border-radius: 18px;
+}
+
+/* --- 4. Lightbox: swipe down to close ------------------------------------------------------ */
+
+.memory-lightbox {
+  overscroll-behavior: contain;
+}
+
+/* The entrance animation lived on the figure and filled forwards, which would have overridden
+   the inline transform the drag applies for as long as the dialog was open. It moves to the
+   image, and the figure gets a transition instead — used to spring back when a drag does not
+   travel far enough to dismiss. */
+.memory-lightbox-figure {
+  animation: none;
+  transition: transform .34s cubic-bezier(.2, .7, .2, 1);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.memory-lightbox-figure.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.memory-lightbox-figure img {
+  animation: lightbox-figure-in .42s cubic-bezier(.2, .7, .2, 1);
+  /* Claims the vertical gesture for the swipe without hijacking anything else: the image is
+     the only surface that starts a dismissal. */
+  touch-action: none;
+  -webkit-user-drag: none;
+}
+
+/* The scrim lifts as the photograph is pulled away, so the gesture reads as leaving. */
+.memory-lightbox:has(.memory-lightbox-figure.is-dragging) {
+  background: color-mix(in srgb, var(--gift-paper) 62%, #000);
+}
+
+.memory-lightbox-caption {
+  font-size: .95rem;
+}
+
+.memory-lightbox-caption strong {
+  font-weight: 500;
+  letter-spacing: -.01em;
+}
+
+.memory-lightbox-close {
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgb(28 20 16 / 10%), 0 6px 18px rgb(28 20 16 / 16%);
+}
+
+/* --- 5. Softer surfaces everywhere else ---------------------------------------------------- */
+
+/* Layered, low-opacity shadows rather than one large dark one: a single heavy shadow is what
+   makes a panel look pressed into the page instead of resting on it. */
+.public-letter {
+  border-radius: 20px;
+  box-shadow:
+    0 1px 2px rgb(28 20 16 / 8%),
+    0 14px 36px rgb(28 20 16 / 14%),
+    inset 0 1px rgb(255 255 255 / 10%);
+  backdrop-filter: blur(16px) saturate(1.04);
+}
+
+.gift-intro-layout .public-letter:hover {
+  box-shadow:
+    0 2px 5px rgb(28 20 16 / 10%),
+    0 22px 52px rgb(28 20 16 / 18%),
+    inset 0 1px rgb(255 255 255 / 12%);
+}
+
+/* One focus ring for every control on the page, so keyboard navigation is consistent. */
+.public-gift a:focus-visible,
+.public-gift button:focus-visible,
+.memory-toggle:focus-visible,
+.memory-lightbox-close:focus-visible {
+  outline: 2px solid var(--gift-accent);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+.memory-lightbox-close:focus-visible { border-radius: 999px; }
+
+/* The accent reads as decoration almost everywhere — hairlines, glows, the heart — and a bright
+   accent is the right choice there. Where it is set as *text* it needs to be legible, and on the
+   pale themes a light accent over ivory does not clear 4.5:1 on its own. Half accent, half ink
+   fixes that in one rule, for every theme including a custom one: on a light theme the ink pulls
+   the accent darker, on a dark theme it pulls it lighter, and the result is always derived from
+   the colours the creator actually chose rather than from a hardcoded palette. */
+.gift-overline,
+.section-kicker,
+.letter-topline > span,
+.memories-heading h2 em,
+.gift-gate h1 em {
+  color: color-mix(in srgb, var(--gift-accent) 50%, var(--gift-ink));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-gift .ambient-photo,
+  .memory-media-frame,
+  .memory-lightbox-figure,
+  .memory-lightbox-figure img,
+  .public-letter {
+    transition: none !important;
+    animation: none !important;
+  }
+  .public-memory:hover .memory-media-frame { transform: none; }
+}

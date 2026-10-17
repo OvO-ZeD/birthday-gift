@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import MemoryLightbox from "./MemoryLightbox";
 
 type MemoryCardProps = {
@@ -16,13 +16,15 @@ type MemoryCardProps = {
 };
 
 /**
- * A single memory. Selecting a photograph brings up its title and caption, and offers a larger
- * view of it.
+ * A single memory.
  *
- * The caption is always rendered and always readable — selecting a card changes emphasis, it
- * never gates the words behind a click. That keeps the page fully readable with JavaScript
- * off or a screen reader attached, and means no text is missing from the HTML. The larger view
- * is a progressive enhancement on top of words that are already on the page.
+ * The grid is photographs and nothing else: no words sit underneath a tile, so the gallery stays
+ * compact and the pictures carry it. The title and caption live inside the lightbox, which is
+ * where a reader has actually stopped to look at one photograph.
+ *
+ * Nothing is lost by that move. The words travel in the image's `alt`, so a screen reader and a
+ * browser with JavaScript off both still receive them even though the lightbox cannot open for
+ * them — the caption is relocated, not removed.
  */
 export default function MemoryCard({
   index,
@@ -32,11 +34,8 @@ export default function MemoryCard({
   title,
   loading,
 }: MemoryCardProps) {
-  const [expanded, setExpanded] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const frameRef = useRef<HTMLButtonElement>(null);
-  const captionId = useId();
-  const label = title || caption || `Memory ${index + 1}`;
 
   if (kind !== "image") {
     return (
@@ -47,47 +46,38 @@ export default function MemoryCard({
             src={src}
             controls
             playsInline
-            aria-label={title || `Memory video ${index + 1}`}
+            aria-label={title || caption || `Memory video ${index + 1}`}
           />
         </div>
       </article>
     );
   }
 
+  const words = [title, caption].filter(Boolean).join(" — ");
+  const label = words || `Memory ${index + 1}`;
+
   return (
-    <article className={`public-memory memory-${index + 1}${expanded ? " is-expanded" : ""}`}>
+    <article className={`public-memory memory-${index + 1}`}>
       <button
         ref={frameRef}
         type="button"
         className="memory-media-frame memory-toggle"
-        aria-expanded={expanded}
-        aria-controls={captionId}
-        onClick={() => {
-          setExpanded((value) => !value);
-          // Only cards that actually say something more are worth opening full size; a bare
-          // photograph with no words would just be a bigger version of the same picture.
-          if (title || caption) setLightboxOpen(true);
-        }}
+        // The photograph is the whole control. A "View"/"Close" label used to sit on top of it
+        // and toggle between the two, which described a state rather than an action and ended
+        // up covering part of the picture it was labelling.
+        aria-label={words ? `Enlarge: ${words}` : `Enlarge memory ${index + 1}`}
+        aria-haspopup="dialog"
+        onClick={() => setLightboxOpen(true)}
       >
         <img loading={loading} decoding="async" src={src} alt={label} />
-        <span className="memory-toggle-hint" aria-hidden="true">
-          {expanded ? "Close" : "View"}
-        </span>
       </button>
-      <div className="memory-caption" id={captionId}>
-        {title && <strong className="memory-title">{title}</strong>}
-        {caption && <p>{caption}</p>}
-      </div>
       {lightboxOpen && (
         <MemoryLightbox
           src={src}
           title={title}
           caption={caption}
           returnFocusTo={frameRef}
-          onClose={() => {
-            setLightboxOpen(false);
-            setExpanded(false);
-          }}
+          onClose={() => setLightboxOpen(false)}
         />
       )}
     </article>

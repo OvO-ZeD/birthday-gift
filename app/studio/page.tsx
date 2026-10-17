@@ -91,11 +91,37 @@ const EXPERIENCE_COLUMN_PATTERN = /experience_enabled|countdown_enabled|reveal_a
 
 function isMissingExperienceColumn(error: unknown) {
   if (!error || typeof error !== "object") return false;
-  const { code, message } = error as { code?: string; message?: string };
+  const { message } = error as { message?: string };
   // PGRST204 is PostgREST's "column not found in schema cache"; 42703 is Postgres' undefined_column.
-  // The code alone is not enough: some unrelated column being missing would look identical, and
-  // retrying without the experience fields would not fix it. The message has to name one of them.
+  // Neither is checked on its own: any unrelated column being missing looks identical, and
+  // retrying without the experience fields would not fix that. The message has to name one of
+  // them, which is what the pattern does.
   return EXPERIENCE_COLUMN_PATTERN.test(message ?? "");
+}
+
+/**
+ * Everything a refused write actually said.
+ *
+ * A Supabase write failure carries a Postgres message, a code, often a constraint name in
+ * `details`, and sometimes a `hint`. The message on its own routinely omits the one detail that
+ * identifies the problem, so a failed save would report "try again" and tell the creator nothing
+ * they could act on. All of it is surfaced instead: a specific, visible failure is worth more
+ * than a tidy one. None of these fields are secrets — they describe the shape of the row, not
+ * its contents — so they are safe to show the signed-in owner.
+ */
+function describeSaveError(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object") return fallback;
+  const { message, code, details, hint } = error as {
+    message?: string;
+    code?: string;
+    details?: string;
+    hint?: string;
+  };
+  const parts = [message?.trim() || fallback];
+  if (code) parts.push(`code ${code}`);
+  if (details?.trim()) parts.push(details.trim());
+  if (hint?.trim()) parts.push(`hint: ${hint.trim()}`);
+  return parts.join(" · ");
 }
 
 const starterLetter =
@@ -515,6 +541,12 @@ export default function StudioPage() {
 
   };
 
+  /* The last save failure, in full.
+     Publish and the postcard both save first, and both used to replace the real reason with a
+     generic line of their own — which is how a specific database refusal turned into "Save
+     failed. Please try again." with nothing behind it. They now repeat this instead. */
+  const saveErrorRef = useRef("");
+
   /* The postcard/reveal settings, or nothing at all.
      Kept behind a function so the two write paths stay in step, and so a database without the
      migration receives a payload that names only columns it actually has. */
@@ -579,6 +611,9 @@ export default function StudioPage() {
   const saveDraftBody = async (): Promise<{ ok: true; giftId: string | null; slug: string | null } | null | "retry"> => {
 
     setNotice("Saving your draft and uploading new media…");
+
+    // Cleared up front, so a later failure can never be attributed to an earlier one.
+    saveErrorRef.current = "";
 
     const supabase = createClient();
 
@@ -783,7 +818,12 @@ export default function StudioPage() {
 
       }
 
-      report(error instanceof Error ? error.message : "Could not save the draft. Please try again.");
+      const reason = describeSaveError(error, "Could not save the draft. Please try again.");
+
+      saveErrorRef.current = reason;
+
+      report(reason);
+
       return null;
 
     }
@@ -981,25 +1021,30 @@ export default function StudioPage() {
   const sendPostcard = async () => {
     if (sendingPostcard || saving || publishing) return;
     if (!giftSlug) {
-      setNotice("Publish the gift before sending a postcard.");
+      report("Publish the gift before sending a postcard.");
       return;
     }
     if (countdownEnabled && !revealDate) {
-      setNotice("Choose the date the gift should open.");
+      report("Choose the date the gift should open.");
       return;
     }
     if (!postcardEmail.trim() || !postcardSubject.trim() || !postcardNote.trim()) {
-      setNotice("Add the recipient's email, a subject line and a short message.");
+      report("Add the recipient's email, a subject line and a short message.");
       return;
     }
 
     try {
       setSendingPostcard(true);
-      setNotice("Saving your reveal settings…");
+      report("Saving your reveal settings…");
       const saved = await saveDraft();
-      if (!saved?.ok || !saved.giftId) throw new Error("Could not save your reveal settings.");
+      if (!saved?.ok || !saved.giftId) {
+        // Saving the settings is not sending the email, and the two failures must not be
+        // confused: the settings failed, so nothing was sent, and the reason is the save's.
+        report(saveErrorRef.current || "Could not save your reveal settings.");
+        return;
+      }
 
-      setNotice("Sending the postcard…");
+      report("Sending the postcard…");
       const response = await fetch(`/api/gifts/${encodeURIComponent(giftSlug)}/invitations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1016,10 +1061,10 @@ export default function StudioPage() {
       if (!response.ok) throw new Error(data.error || "Could not send that postcard.");
 
       setLastInvite({ prefix: data.tokenPrefix ?? "", sent: true });
-      setNotice("Postcard sent — the email provider accepted it.");
+      report("Postcard sent — the email provider accepted it.");
     } catch (error) {
       setLastInvite({ prefix: "", sent: false });
-      setNotice(error instanceof Error ? error.message : "Could not send that postcard.");
+      report(error instanceof Error ? error.message : "Could not send that postcard.");
     } finally {
       setSendingPostcard(false);
     }
@@ -1052,7 +1097,9 @@ export default function StudioPage() {
 
     const saved = await saveDraft();
     if (!saved?.ok || !saved.giftId) {
-      report("Save failed. Please try again before publishing.");
+      // The save already named what went wrong. Repeating a generic line here would replace the
+      // one useful sentence with a useless one — which is exactly why this failure was opaque.
+      report(saveErrorRef.current || "Save failed. Please try again before publishing.");
       return;
     }
 
