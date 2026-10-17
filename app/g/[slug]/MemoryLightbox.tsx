@@ -24,12 +24,19 @@ const FLICK_VELOCITY = 0.55;
 /**
  * Full-screen view of a single memory.
  *
- * Deliberately minimal: it renders the media, the words that belong to it, and a close control.
- * Nothing is fetched — the image is already in the browser cache from the grid, so opening it is
- * instant and there is no second request for the same photograph.
+ * The photograph opens first and fills the viewing space on its own. Where there is something
+ * written about it, a control reveals the note in that same space — a crossfade between two
+ * faces of one tile, not a second dialog — and puts it away again without closing anything. A
+ * photograph with no words has no reveal control and no empty panel: there would be nothing to
+ * show and a blank face would only suggest something was missing.
  *
- * Four ways out, because a full-screen overlay on a phone needs at least one that a thumb can
- * reach: the close control, Escape, a tap on the backdrop, and a downward swipe.
+ * The note's backdrop is the photograph itself, blurred, so the message stays tied to the image
+ * it belongs to. Readability wins over transparency: the blur sits under a scrim mixed from the
+ * theme's own paper colour, and the text is the theme's ink, so the contrast is the same one the
+ * letter already uses rather than a guess that only works on one theme.
+ *
+ * Nothing is fetched. The image is already in the browser cache from the grid, and the blurred
+ * backdrop reuses that same request rather than asking for the file a second time.
  */
 export default function MemoryLightbox({
   src,
@@ -39,12 +46,15 @@ export default function MemoryLightbox({
   onClose,
 }: MemoryLightboxProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [showNote, setShowNote] = useState(false);
   // Held in refs rather than state: the gesture is read inside event handlers, and re-rendering
   // on every pointer move would fight the transform being applied.
   const gestureRef = useRef<{ y: number; at: number } | null>(null);
   const dragRef = useRef(0);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
+
+  const hasNote = Boolean(title || caption);
 
   const endGesture = useCallback(
     (commit: boolean) => {
@@ -100,19 +110,37 @@ export default function MemoryLightbox({
       role="dialog"
       aria-modal="true"
       aria-label={title || "Selected memory"}
-      // Clicking the scrim closes; clicking the figure must not, which is why the handler is
-      // on the backdrop and the figure stops propagation. A drag that ends on the figure is
-      // swallowed by the gesture handlers below, so it cannot also arrive here as a click.
+      // Clicking the scrim closes; clicking the tile must not, which is why the handler is on
+      // the backdrop and the tile stops propagation. A drag that ends on the tile is swallowed
+      // by the gesture handlers below, so it cannot also arrive here as a click.
       onClick={onClose}
     >
+      {/* A sibling of the tile rather than a child of it. It used to be positioned off the
+          tile's top edge, which on a near-full-height photograph put it above the viewport
+          entirely — visible in the layout, impossible to click. Anchored to the overlay it
+          cannot travel off-screen, and it stays clear of the safe area on a notched phone. */}
+      <button
+        ref={closeRef}
+        type="button"
+        className="memory-lightbox-close"
+        aria-label="Close photo"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClose();
+        }}
+      >
+        Close
+      </button>
+
       <figure
-        className={`memory-lightbox-figure${dragging ? " is-dragging" : ""}`}
+        className={`memory-lightbox-tile${dragging ? " is-dragging" : ""}`}
         style={dragY ? { transform: `translateY(${dragY}px)` } : undefined}
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => {
-          // Only a downward drag is a dismissal, so the gesture is not claimed until the
-          // pointer is actually on the image — a caption stays selectable and scrollable.
           if (event.button !== 0) return;
+          // Only the photograph is a drag handle. Starting a swipe inside the note would fight
+          // the note's own scrolling, so the gesture is claimed by the image and nothing else.
+          if (!(event.target as HTMLElement).closest("[data-drag-handle]")) return;
           gestureRef.current = { y: event.clientY, at: Date.now() };
           dragRef.current = 0;
           event.currentTarget.setPointerCapture(event.pointerId);
@@ -120,10 +148,9 @@ export default function MemoryLightbox({
         onPointerMove={(event) => {
           const start = gestureRef.current;
           if (!start) return;
-          const distance = event.clientY - start.y;
-          const downward = Math.max(0, distance);
+          const downward = Math.max(0, event.clientY - start.y);
           // Claiming the gesture only once it is clearly downward keeps a sideways or upward
-          // move from nudging the figure at all.
+          // move from nudging the tile at all.
           if (!dragging && downward < 6) return;
           setDragging(true);
           dragRef.current = downward;
@@ -132,20 +159,53 @@ export default function MemoryLightbox({
         onPointerUp={() => endGesture(true)}
         onPointerCancel={() => endGesture(false)}
       >
-        <button
-          ref={closeRef}
-          type="button"
-          className="memory-lightbox-close"
-          onClick={onClose}
-        >
-          Close
-        </button>
-        <img src={src} alt={title || caption || "Selected memory"} decoding="async" draggable={false} />
-        {(title || caption) && (
-          <figcaption className="memory-lightbox-caption">
-            {title && <strong>{title}</strong>}
-            {caption && <p>{caption}</p>}
-          </figcaption>
+        <div className="memory-lightbox-stage" data-drag-handle>
+          {/* Two faces of one tile, stacked. The inactive one is transparent and untouchable,
+              so nothing behind the visible face can receive a tap. */}
+          <div
+            className="lightbox-face lightbox-face-photo"
+            data-active={!showNote}
+            aria-hidden={showNote}
+          >
+            <img
+              src={src}
+              alt={[title, caption].filter(Boolean).join(" — ") || "Selected memory"}
+              decoding="async"
+              draggable={false}
+            />
+          </div>
+
+          {hasNote && (
+            <div
+              className="lightbox-face lightbox-face-note"
+              data-active={showNote}
+              aria-hidden={!showNote}
+            >
+              {/* The photograph, blurred, as the note's own backdrop. Hidden from assistive
+                  tech because it is decoration and the image already carries the alt text. */}
+              <div
+                className="lightbox-note-photo"
+                aria-hidden="true"
+                style={{ backgroundImage: `url("${src}")` }}
+              />
+              <div className="lightbox-note-scrim" aria-hidden="true" />
+              <figcaption className="lightbox-note-text">
+                {title && <strong>{title}</strong>}
+                {caption && <p>{caption}</p>}
+              </figcaption>
+            </div>
+          )}
+        </div>
+
+        {hasNote && (
+          <button
+            type="button"
+            className="lightbox-reveal"
+            aria-pressed={showNote}
+            onClick={() => setShowNote((value) => !value)}
+          >
+            {showNote ? "Back to the photo" : "Read the note"}
+          </button>
         )}
       </figure>
     </div>

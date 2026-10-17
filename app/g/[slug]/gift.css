@@ -1852,53 +1852,206 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   border-radius: 18px;
 }
 
-/* --- 4. Lightbox: swipe down to close ------------------------------------------------------ */
+/* --- 4. Lightbox: a near-full-screen tile with two faces ----------------------------------- */
 
 .memory-lightbox {
   overscroll-behavior: contain;
+  /* Replaces the centred grid from the rule above with a stretch row, so the tile can fill the
+     padded box and the stage below it can take exactly the height that is left over. */
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding-top: calc(clamp(1rem, 3vw, 2.25rem) + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(clamp(1rem, 3vw, 2.25rem) + env(safe-area-inset-bottom, 0px));
 }
 
-/* The entrance animation lived on the figure and filled forwards, which would have overridden
-   the inline transform the drag applies for as long as the dialog was open. It moves to the
-   image, and the figure gets a transition instead — used to spring back when a drag does not
-   travel far enough to dismiss. */
-.memory-lightbox-figure {
+/* Anchored to the overlay, not to the photograph. It previously hung off the tile's top edge,
+   which on a tall image placed it above the screen — present in the DOM, unclickable, and the
+   reason the control appeared broken. */
+.memory-lightbox-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + clamp(.7rem, 2vw, 1.1rem));
+  right: calc(env(safe-area-inset-right, 0px) + clamp(.7rem, 2vw, 1.4rem));
+  transform: none;
+  z-index: 4;
+  padding: .5rem 1.05rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gift-paper) 88%, transparent);
+  backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: 0 1px 2px rgb(28 20 16 / 12%), 0 6px 18px rgb(28 20 16 / 18%);
+}
+
+.memory-lightbox-close:hover {
+  transform: none;
+  border-color: var(--gift-accent);
+  background: color-mix(in srgb, var(--gift-paper) 96%, transparent);
+}
+
+/* The tile: a column of viewing space plus the control that turns it over. */
+.memory-lightbox-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(.7rem, 1.6vw, 1.05rem);
+  width: min(100%, 1160px);
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  /* The entrance animation is deliberately not here. A transform animation that fills forwards
+     would override the inline transform the swipe applies for as long as the dialog stayed
+     open; this element needs a transition it owns. */
   animation: none;
   transition: transform .34s cubic-bezier(.2, .7, .2, 1);
   user-select: none;
   -webkit-user-select: none;
 }
 
-.memory-lightbox-figure.is-dragging {
+.memory-lightbox-tile.is-dragging {
   transition: none;
   cursor: grabbing;
 }
 
-.memory-lightbox-figure img {
-  animation: lightbox-figure-in .42s cubic-bezier(.2, .7, .2, 1);
-  /* Claims the vertical gesture for the swipe without hijacking anything else: the image is
-     the only surface that starts a dismissal. */
+/* Nearly the whole viewport, and the box both faces share — which is what keeps the note in the
+   same viewing space as the photograph rather than in a panel that jumps the layout. */
+.memory-lightbox-stage {
+  position: relative;
+  display: grid;
+  width: 100%;
+  /* Fills whatever the tile has left after the reveal control, so the two faces are always the
+     same size as each other and never push the Close control off the screen. */
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgb(28 20 16 / 14%), 0 30px 70px rgb(3 1 8 / 40%);
+}
+
+.lightbox-face {
+  grid-area: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+  transition: opacity .38s ease;
+}
+
+.lightbox-face[data-active="false"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lightbox-face-photo {
+  display: grid;
+  place-items: center;
+  padding: clamp(.4rem, 1.2vw, .9rem);
+  background: color-mix(in srgb, var(--gift-paper) 90%, #000);
+  /* Only the photograph starts a swipe. Scrolling the note must not dismiss the dialog. */
   touch-action: none;
+}
+
+.lightbox-face-photo img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 14px;
+  object-fit: contain;
   -webkit-user-drag: none;
+  animation: lightbox-figure-in .42s cubic-bezier(.2, .7, .2, 1);
+}
+
+/* --- The note face ------------------------------------------------------------------------- */
+
+.lightbox-face-note {
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+/* The photograph itself, blurred past recognition as a picture but still its colour and light,
+   so the note is visibly about this image and not a generic panel. */
+.lightbox-note-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-position: center;
+  background-size: cover;
+  filter: blur(34px) saturate(1.15);
+  transform: scale(1.25);
+}
+
+/* Readability before transparency. Mixed from the theme's paper, so the note keeps working on
+   the pale themes and the dark ones without a second set of rules. */
+.lightbox-note-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--gift-paper) 86%, transparent);
+}
+
+.lightbox-note-text {
+  max-width: min(62ch, 92%);
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(1.1rem, 3vw, 2.2rem);
+  text-align: center;
+  color: var(--gift-ink);
+  /* Long notes scroll inside the face rather than pushing the Close control off the screen. */
+  scrollbar-width: thin;
+}
+
+.lightbox-note-text strong {
+  display: block;
+  margin-bottom: .5rem;
+  font-size: clamp(1.05rem, 2vw, 1.4rem);
+  font-weight: 500;
+  letter-spacing: -.015em;
+  text-wrap: balance;
+}
+
+.lightbox-note-text p {
+  margin: 0;
+  font-size: clamp(.98rem, 1.5vw, 1.15rem);
+  line-height: 1.72;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+/* The control that turns the tile over. Only rendered when there is something written. */
+.lightbox-reveal {
+  padding: .5rem 1.15rem;
+  border: 1px solid var(--gift-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gift-paper) 84%, transparent);
+  backdrop-filter: blur(12px) saturate(1.1);
+  color: var(--gift-ink);
+  font: 600 .68rem/1 Arial, sans-serif;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color .28s ease, background .28s ease, transform .28s ease;
+}
+
+.lightbox-reveal:hover {
+  border-color: var(--gift-accent);
+  transform: translateY(-1px);
+}
+
+.lightbox-reveal:focus-visible {
+  outline: 2px solid var(--gift-accent);
+  outline-offset: 3px;
 }
 
 /* The scrim lifts as the photograph is pulled away, so the gesture reads as leaving. */
-.memory-lightbox:has(.memory-lightbox-figure.is-dragging) {
+.memory-lightbox:has(.memory-lightbox-tile.is-dragging) {
   background: color-mix(in srgb, var(--gift-paper) 62%, #000);
 }
 
-.memory-lightbox-caption {
-  font-size: .95rem;
-}
-
-.memory-lightbox-caption strong {
-  font-weight: 500;
-  letter-spacing: -.01em;
-}
-
-.memory-lightbox-close {
-  border-radius: 999px;
-  box-shadow: 0 1px 2px rgb(28 20 16 / 10%), 0 6px 18px rgb(28 20 16 / 16%);
+@media (max-width: 760px) {
+  .memory-lightbox-stage { border-radius: 16px; }
+  .lightbox-note-text { padding: 1.1rem 1rem; }
 }
 
 /* --- 5. Softer surfaces everywhere else ---------------------------------------------------- */
@@ -1950,11 +2103,14 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 @media (prefers-reduced-motion: reduce) {
   .public-gift .ambient-photo,
   .memory-media-frame,
-  .memory-lightbox-figure,
-  .memory-lightbox-figure img,
+  .memory-lightbox-tile,
+  .lightbox-face,
+  .lightbox-face-photo img,
+  .lightbox-reveal,
   .public-letter {
     transition: none !important;
     animation: none !important;
   }
   .public-memory:hover .memory-media-frame { transform: none; }
+  .lightbox-reveal:hover { transform: none; }
 }

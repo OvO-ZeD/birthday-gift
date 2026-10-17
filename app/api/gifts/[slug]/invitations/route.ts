@@ -45,7 +45,10 @@ export async function POST(
     if (!note) return noStore({ error: "Write a short message for the postcard." }, 400);
     if (!emailProviderConfigured()) {
       return noStore(
-        { error: "Email isn't configured yet. Add RESEND_API_KEY on the server to send postcards." },
+        {
+          error:
+            "Email isn't configured yet. Add BREVO_API_KEY (and BREVO_FROM) or RESEND_API_KEY on the server to send postcards.",
+        },
         503,
       );
     }
@@ -72,15 +75,21 @@ export async function POST(
 
     // One live invitation per address per gift. A second attempt replaces the first rather than
     // creating a duplicate the recipient could be confused by.
+    //
+    // "Live" only blocks a resend once the postcard actually went out. A row whose email never
+    // left — the provider refused it, or the attempt was interrupted — must not lock the address
+    // out, because the dashboard offers no way to revoke it and the recipient would be
+    // permanently unreachable after a single rejection. The duplicate guard above still holds:
+    // a delivered postcard cannot be sent twice by pressing the button twice.
     const { data: existing } = await admin
       .from("gift_invitations")
-      .select("id")
+      .select("id, email_status")
       .eq("gift_id", gift.id)
       .is("revoked_at", null)
       .ilike("recipient_email", recipientEmail)
       .maybeSingle();
 
-    if (existing) {
+    if (existing && existing.email_status === "sent") {
       return noStore(
         { error: "That address already has an active invitation. Revoke it first to send a new one." },
         409,
@@ -101,26 +110,54 @@ export async function POST(
       expiresAt = parsed.toISOString();
     }
 
-    const { data: invitation, error: insertError } = await admin
-      .from("gift_invitations")
-      .insert({
-        gift_id: gift.id,
-        recipient_email: recipientEmail,
-        recipient_name: recipientName || null,
-        token_hash: hash,
-        token_prefix: prefix,
-        expires_at: expiresAt,
-      })
-      .select("id")
-      .single();
+    // Either a fresh row, or the undelivered one re-armed in place. Reusing the row rather than
+    // replacing it keeps the unique index on (gift_id, lower(recipient_email)) satisfied and
+    // leaves a single record per address instead of a trail of failures.
+    let invitationId: string;
 
-    if (insertError || !invitation) {
-      // The partial unique index is the real guard against duplicate sends; a race that slips
-      // past the check above lands here.
-      if (insertError?.code === "23505") {
-        return noStore({ error: "That address already has an active invitation." }, 409);
+    if (existing) {
+      const { data: reused, error: reuseError } = await admin
+        .from("gift_invitations")
+        .update({
+          recipient_name: recipientName || null,
+          token_hash: hash,
+          token_prefix: prefix,
+          expires_at: expiresAt,
+          email_status: "pending",
+          email_error: null,
+          email_provider: null,
+          email_provider_id: null,
+          email_sent_at: null,
+        })
+        .eq("id", existing.id)
+        .select("id")
+        .single();
+
+      if (reuseError || !reused) throw reuseError || new Error("The invitation could not be re-armed.");
+      invitationId = reused.id;
+    } else {
+      const { data: invitation, error: insertError } = await admin
+        .from("gift_invitations")
+        .insert({
+          gift_id: gift.id,
+          recipient_email: recipientEmail,
+          recipient_name: recipientName || null,
+          token_hash: hash,
+          token_prefix: prefix,
+          expires_at: expiresAt,
+        })
+        .select("id")
+        .single();
+
+      if (insertError || !invitation) {
+        // The partial unique index is the real guard against duplicate sends; a race that slips
+        // past the check above lands here.
+        if (insertError?.code === "23505") {
+          return noStore({ error: "That address already has an active invitation." }, 409);
+        }
+        throw insertError;
       }
-      throw insertError;
+      invitationId = invitation.id;
     }
 
     const origin = new URL(request.url).origin;
@@ -152,20 +189,20 @@ export async function POST(
             }
           : { email_status: "failed", email_provider: emailProviderName(), email_error: result.error },
       )
-      .eq("id", invitation.id);
+      .eq("id", invitationId);
 
     if (!result.ok) {
       return noStore(
         {
           error: `The invitation was created but the email could not be sent: ${result.error}`,
-          invitationId: invitation.id,
+          invitationId,
           sent: false,
         },
         502,
       );
     }
 
-    return noStore({ ok: true, sent: true, invitationId: invitation.id, tokenPrefix: prefix });
+    return noStore({ ok: true, sent: true, invitationId, tokenPrefix: prefix });
   } catch (error) {
     console.error("Invitation send failed:", error);
     return noStore({ error: "Could not send that invitation. Please try again." }, 500);
