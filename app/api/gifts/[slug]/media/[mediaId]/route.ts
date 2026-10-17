@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/app/lib/supabase/admin";
-import {
-  giftAccessCookieName,
-  verifyGiftAccessToken,
-} from "@/app/lib/gifts/security";
+import { giftAccessCookieName } from "@/app/lib/gifts/security";
+import { loadGiftAccessRow, resolveGiftGate } from "@/app/lib/gifts/access";
 
 export const runtime = "nodejs";
 
@@ -34,12 +32,24 @@ export async function GET(
     if (giftError) throw giftError;
     if (!gift) return new NextResponse("Not found", { status: 404 });
 
-    if (gift.password_enabled) {
-      const jar = await cookies();
-      const token = jar.get(giftAccessCookieName(slug))?.value;
-      if (!verifyGiftAccessToken(slug, token)) {
-        return new NextResponse("Password required", { status: 401 });
-      }
+    // Media is served behind the same decision the page makes. If the page says the visitor
+    // may not see the gift, this endpoint must agree — otherwise the photographs and videos
+    // would be reachable directly by URL while the page still showed a countdown or a password
+    // prompt, which would make the whole gate decorative.
+    const { experience, accessVersion } = await loadGiftAccessRow(admin, slug);
+    const jar = await cookies();
+    const gate = resolveGiftGate({
+      slug,
+      accessVersion,
+      experience,
+      token: jar.get(giftAccessCookieName(slug))?.value,
+    });
+
+    if (gate.state !== "open") {
+      return new NextResponse("Not available yet", {
+        status: 401,
+        headers: { "Cache-Control": "no-store" },
+      });
     }
 
     const { data: media, error: mediaError } = await admin

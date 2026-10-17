@@ -2,12 +2,11 @@ import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/app/lib/supabase/admin";
-import {
-  giftAccessCookieName,
-  verifyGiftAccessToken,
-} from "@/app/lib/gifts/security";
+import { giftAccessCookieName } from "@/app/lib/gifts/security";
+import { loadGiftAccessRow, resolveGiftGate } from "@/app/lib/gifts/access";
 import { resolveTheme, themeStyle } from "@/app/lib/gifts/themes";
 import UnlockForm from "./UnlockForm";
+import CountdownGate from "./CountdownGate";
 import PhotoMoodEnhancer from "./PhotoMoodEnhancer";
 import GiftAtmosphere from "./GiftAtmosphere";
 import MemoryCard from "./MemoryCard";
@@ -21,7 +20,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, googleBot: { index: false, follow: false, noimageindex: true } },
 };
 
-type GiftPageProps = { params: Promise<{ slug: string }> };
+type GiftPageProps = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ for?: string }>;
+};
 
 // Storage IDs and UUID-like values are implementation details, not gift captions.
 function isTechnicalLabel(value?: string | null) {
@@ -52,53 +54,106 @@ function GiftDecor() {
   );
 }
 
-export default async function GiftPage({ params }: GiftPageProps) {
+/** The ambient layers every gate shares, so the journey looks continuous between steps. */
+function GateShell({
+  theme,
+  children,
+}: {
+  theme: ReturnType<typeof resolveTheme>;
+  children: React.ReactNode;
+}) {
+  return (
+    <main
+      className="public-gift"
+      data-tone={theme.tone}
+      data-decor={theme.decor}
+      style={themeStyle(theme)}
+    >
+      {/* The gates get the ambient layers but no confetti: nothing is being celebrated yet. */}
+      <GiftDecor />
+      <div className="gift-light" aria-hidden="true" />
+      <div className="gift-balloons" aria-hidden="true">
+        {Array.from({ length: 5 }, (_, index) => (
+          <span key={`gate-balloon-${index + 1}`} className={`gift-balloon gift-balloon-${index + 1}`} />
+        ))}
+      </div>
+      {children}
+    </main>
+  );
+}
+
+export default async function GiftPage({ params, searchParams }: GiftPageProps) {
   const { slug } = await params;
+  const { for: forName } = await searchParams;
   if (!/^[a-zA-Z0-9-]{6,80}$/.test(slug)) notFound();
 
   const admin = createAdminClient();
-  const { data: gift, error } = await admin
-    .from("gifts")
-    .select("id, slug, title, recipient, letter, theme, published, password_enabled")
-    .eq("slug", slug)
-    .eq("published", true)
-    .maybeSingle();
+  const { row: gift, experience, accessVersion } = await loadGiftAccessRow(admin, slug);
 
-  if (error || !gift) notFound();
+  if (!gift) notFound();
 
-  // Resolved once for the whole journey, so the gate and the letter can never disagree, and
+  // Resolved once for the whole journey, so every step and the letter can never disagree, and
   // an unknown or retired stored value degrades to the default instead of throwing.
-  const theme = resolveTheme(gift.theme);
+  const theme = resolveTheme(gift.theme as string);
 
   const cookieJar = await cookies();
   const token = cookieJar.get(giftAccessCookieName(slug))?.value;
-  const unlocked = !gift.password_enabled || verifyGiftAccessToken(slug, token);
 
-  if (!unlocked) {
+  // The single decision point. Every branch below follows from this, and it is computed from
+  // server state alone — the browser is never asked whether the conditions are met.
+  const gate = resolveGiftGate({ slug, accessVersion, experience, token });
+
+  // A name passed through the invitation link, for wording only. Bounded and stripped so it can
+  // never be anything but a short label.
+  const recipientName =
+    typeof forName === "string" ? forName.replace(/[<>&"']/g, "").trim().slice(0, 40) : "";
+
+  if (gate.state === "invite-required") {
     return (
-      <main
-        className="public-gift"
-        data-tone={theme.tone}
-        data-decor={theme.decor}
-        style={themeStyle(theme)}
-      >
-        {/* The gate gets the ambient layers but no confetti: nothing is being celebrated yet. */}
-        <GiftDecor />
-        <div className="gift-light" aria-hidden="true" />
-        <div className="gift-balloons" aria-hidden="true">
-          {Array.from({ length: 5 }, (_, index) => (
-            <span key={`gate-balloon-${index + 1}`} className={`gift-balloon gift-balloon-${index + 1}`} />
-          ))}
-        </div>
+      <GateShell theme={theme}>
         <section className="gift-gate">
           <span className="gift-overline">A LITTLE WORLD, JUST FOR YOU</span>
-          <div className="gift-heart">♡</div>
-          <h1>This gift is <em>just for you.</em></h1>
+          <div className="gift-heart" aria-hidden="true">♡</div>
+          <h1>
+            This gift opens from <em>your invitation.</em>
+          </h1>
+          <p>
+            Follow the link in the email you were sent and it will bring you straight here. If
+            you can&rsquo;t find it, ask the sender for a new one.
+          </p>
+          <small>Invitations are personal and only work for the person they were sent to.</small>
+        </section>
+      </GateShell>
+    );
+  }
+
+  if (gate.state === "countdown") {
+    return (
+      <GateShell theme={theme}>
+        <CountdownGate
+          slug={slug}
+          revealAt={gate.revealAt}
+          serverNow={gate.serverNow}
+          recipientName={recipientName || null}
+        />
+      </GateShell>
+    );
+  }
+
+  if (gate.state === "password") {
+    return (
+      <GateShell theme={theme}>
+        <section className="gift-gate">
+          <span className="gift-overline">A LITTLE WORLD, JUST FOR YOU</span>
+          <div className="gift-heart" aria-hidden="true">♡</div>
+          <h1>
+            This gift is <em>just for you.</em>
+          </h1>
           <p>Someone made something special. Enter the password they shared with you to open it.</p>
           <UnlockForm slug={slug} />
           <small>Your memories stay private until the correct password is entered.</small>
         </section>
-      </main>
+      </GateShell>
     );
   }
 

@@ -1062,3 +1062,231 @@
 @media (max-width: 420px) {
   .theme-options { grid-template-columns: minmax(0, 1fr); }
 }
+/* ============================================================================================
+   Postcard & reveal panel
+   --------------------------------------------------------------------------------------------
+   Appended, matching the pass above. Colours come from the same --gift-* tokens the rest of the
+   studio uses, so the panel follows whichever theme is selected.
+   ============================================================================================ */
+
+.experience-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .9rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--gift-line);
+  border-radius: 14px;
+  background: var(--gift-surface);
+}
+
+.experience-body {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding-top: .35rem;
+  border-top: 1px solid var(--gift-line);
+}
+
+.experience-block {
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+}
+
+.experience-block-title {
+  font-size: .78rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gift-muted);
+  font-weight: 600;
+}
+
+.experience-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .7rem .85rem;
+  border: 1px solid var(--gift-line);
+  border-radius: 11px;
+}
+
+.experience-toggle-row span {
+  display: block;
+  font-size: .93rem;
+}
+
+.experience-toggle-row small {
+  display: block;
+  margin-top: .15rem;
+  color: var(--gift-muted);
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+.experience-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: .7rem .85rem;
+}
+
+.experience-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: .32rem;
+  font-size: .82rem;
+  color: var(--gift-muted);
+}
+
+.experience-wide {
+  grid-column: 1 / -1;
+}
+
+.experience-inline-note {
+  color: var(--gift-muted);
+  font-size: .72rem;
+  opacity: .8;
+}
+
+.experience-hint {
+  grid-column: 1 / -1;
+  color: var(--gift-muted);
+  font-size: .78rem;
+  line-height: 1.6;
+}
+
+.experience-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+}
+
+.experience-ok,
+.experience-bad {
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.experience-ok { color: #7fd6a2; }
+.experience-bad { color: #ff9db0; }
+
+/* ============================================================================================
+   Countdown gate
+   ============================================================================================ */
+
+.gift-gate-countdown .countdown-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(.5rem, 1.6vw, 1.1rem);
+  margin: 1.7rem 0 .6rem;
+}
+
+.countdown-unit {
+  min-width: clamp(64px, 19vw, 106px);
+  padding: .85rem .5rem .7rem;
+  border: 1px solid var(--gift-line);
+  border-radius: 13px;
+  /* More opaque than a plain glass panel: these sit directly over the ambient photography and
+     the numerals have to stay legible against whatever is behind them. */
+  background: color-mix(in srgb, var(--gift-paper) 82%, transparent);
+  backdrop-filter: blur(14px);
+  text-align: center;
+}
+
+.countdown-value {
+  display: block;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(1.7rem, 5.5vw, 2.6rem);
+  line-height: 1;
+  color: var(--gift-ink);
+  letter-spacing: -.03em;
+  /* Digits are tabular so the numerals do not jitter as the seconds tick down. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.countdown-label {
+  display: block;
+  margin-top: .38rem;
+  font-size: .64rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--gift-muted);
+}
+
+/* The seconds unit is the only one that changes every tick; giving it a subtle accent keeps
+   the eye on it without making the whole row loud. */
+.countdown-unit:last-child .countdown-value {
+  color: var(--gift-accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .countdown-value {
+    transition: color .3s ease;
+  }
+}
+
+@media (max-width: 560px) {
+  .countdown-unit {
+    min-width: 62px;
+    padding: .7rem .35rem .6rem;
+  }
+}
+
+/* ============================================================================================
+   Section reveal, shared with the letter
+   ============================================================================================ */
+
+.experience-section .section-title-row {
+  align-items: flex-start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown-value {
+    transition: none;
+  }
+}
+
+/* ============================================================================================
+   Preview dialog: its own message line
+   --------------------------------------------------------------------------------------------
+   The page-level .studio-notice is painted underneath this dialog, so a failed publish used to
+   report itself to nobody and the button looked inert. This line sits inside the dialog, in the
+   reading position directly above the button that raises it. Appended, like the passes above.
+   ============================================================================================ */
+
+.preview-notice {
+  grid-column: 1 / -1;
+  margin: 0 0 .85rem;
+  padding: .72rem .9rem;
+  border: 1px solid var(--gift-line);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--gift-paper) 88%, transparent);
+  color: var(--gift-ink);
+  font-size: .84rem;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.preview-notice:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .preview-notice {
+    animation: preview-notice-in .22s ease both;
+  }
+}
+
+@keyframes preview-notice-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-notice { animation: none; }
+}

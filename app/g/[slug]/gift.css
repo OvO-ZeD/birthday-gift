@@ -1401,3 +1401,276 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   .memory-title,
   .public-memory .memory-caption p { transition: none !important; }
 }
+/* ============================================================================================
+   Interactive letter pass
+   --------------------------------------------------------------------------------------------
+   Appended, like the passes above it. Everything here is additive: no existing rule is
+   rewritten, so the previously tuned layout and the theme tokens are untouched.
+
+   House rules for this block:
+   - transform / opacity / filter only, so nothing here triggers layout.
+   - No JavaScript animation loops. The only script involved is the memory-card selection
+     state and the lightbox, both of which are discrete interactions rather than per-frame work.
+   - Every effect is switched off under prefers-reduced-motion at the end of the block.
+   ============================================================================================ */
+
+/* --- Memory cards: a real surface rather than a bare image ------------------------------- */
+
+.memory-media-frame {
+  position: relative;
+  isolation: isolate;
+  transition:
+    transform .5s cubic-bezier(.2, .7, .2, 1),
+    box-shadow .5s cubic-bezier(.2, .7, .2, 1),
+    border-color .4s ease;
+}
+
+/* A soft sheen that crosses the frame once on hover. Painted with a pseudo-element so the
+   photograph itself is never filtered, recoloured or dimmed to produce the effect. */
+.memory-media-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, var(--gift-accent-soft) 50%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  opacity: 0;
+  transition: opacity .45s ease, background-position .9s cubic-bezier(.2, .7, .2, 1);
+}
+
+.public-memory:hover .memory-media-frame::after,
+.public-memory.is-expanded .memory-media-frame::after {
+  opacity: .85;
+  background-position: -30% 0;
+}
+
+.public-memory:hover .memory-media-frame {
+  transform: translateY(-3px);
+  border-color: var(--gift-accent);
+  box-shadow: 0 20px 52px #05030a3d, 0 0 0 1px var(--gift-accent-soft);
+}
+
+/* The hint only exists where a pointer can hover; on touch it would sit on the photograph
+   permanently, so it is dropped rather than left covering the image. */
+.memory-toggle-hint {
+  position: absolute;
+  z-index: 3;
+  right: .7rem;
+  bottom: .7rem;
+  padding: .34rem .72rem;
+  border: 1px solid var(--gift-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gift-paper) 72%, transparent);
+  backdrop-filter: blur(10px);
+  color: var(--gift-ink);
+  font-size: .64rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .35s ease, transform .35s cubic-bezier(.2, .7, .2, 1);
+  pointer-events: none;
+}
+
+.public-memory:hover .memory-toggle-hint,
+.memory-media-frame:focus-visible .memory-toggle-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (hover: none) {
+  .memory-toggle-hint { display: none; }
+}
+
+/* The button wrapper is the interactive target, so it must not inherit button chrome. */
+.memory-toggle {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--gift-line);
+  background: var(--gift-surface);
+  cursor: pointer;
+  text-align: inherit;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.memory-toggle:focus-visible {
+  outline: 2px solid var(--gift-accent);
+  outline-offset: 3px;
+}
+
+/* --- Selected state: the caption lifts and the frame settles back ------------------------ */
+
+.public-memory .memory-caption {
+  transition: transform .45s cubic-bezier(.2, .7, .2, 1), opacity .35s ease;
+}
+
+.public-memory.is-expanded .memory-caption {
+  transform: translateY(2px);
+}
+
+.public-memory.is-expanded .memory-caption p {
+  opacity: 1;
+}
+
+.public-memory.is-expanded img {
+  transform: scale(1.03);
+  filter: saturate(1.07) brightness(1.02);
+}
+
+/* A selected card is raised out of the grid with a gentle accent ring. */
+.public-memory.is-expanded .memory-media-frame {
+  border-color: var(--gift-accent);
+  box-shadow: 0 26px 60px #04020a4d, 0 0 0 1px var(--gift-accent);
+}
+
+/* --- Lightbox ---------------------------------------------------------------------------- */
+
+.memory-lightbox {
+  position: fixed;
+  inset: 0;
+  /* Above every in-page layer: the confetti canvas sits at a high z-index and the letter
+     content must not show through the scrim. */
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: clamp(.6rem, 2.5vw, 2rem);
+  background: color-mix(in srgb, var(--gift-paper) 82%, #000);
+  backdrop-filter: blur(18px) saturate(1.05);
+  animation: lightbox-in .32s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+.memory-lightbox-figure {
+  position: relative;
+  margin: 0;
+  max-width: min(1120px, 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+  animation: lightbox-figure-in .42s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+.memory-lightbox-figure img {
+  display: block;
+  max-width: 100%;
+  max-height: 74vh;
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 14px;
+  border: 1px solid var(--gift-line);
+  box-shadow: 0 40px 90px #03010866;
+  object-fit: contain;
+}
+
+.memory-lightbox-caption {
+  text-align: center;
+  max-width: 62ch;
+  margin: 0 auto;
+}
+
+.memory-lightbox-caption strong {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 400;
+  letter-spacing: -.02em;
+}
+
+.memory-lightbox-caption p {
+  margin: .35rem 0 0;
+  color: var(--gift-muted);
+  font-size: .9rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.memory-lightbox-close {
+  position: absolute;
+  top: -.2rem;
+  right: 0;
+  transform: translateY(-100%);
+  padding: .4rem .9rem;
+  border: 1px solid var(--gift-line);
+  border-radius: 999px;
+  background: var(--gift-surface);
+  color: var(--gift-ink);
+  font-size: .68rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color .3s ease, transform .3s cubic-bezier(.2, .7, .2, 1);
+}
+
+.memory-lightbox-close:hover {
+  border-color: var(--gift-accent);
+  transform: translateY(-100%) scale(1.04);
+}
+
+.memory-lightbox-close:focus-visible {
+  outline: 2px solid var(--gift-accent);
+  outline-offset: 3px;
+}
+
+@keyframes lightbox-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lightbox-figure-in {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- Section transitions: sections ease in as they meet the fold ------------------------- */
+
+/* Only active once the script has marked the page reveal-ready, so with JavaScript off every
+   block simply renders in place. */
+.public-gift[data-reveal="ready"] [data-reveal] {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity .85s cubic-bezier(.2, .7, .2, 1),
+    transform .85s cubic-bezier(.2, .7, .2, 1);
+  will-change: opacity, transform;
+}
+
+.public-gift[data-reveal="ready"] [data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* --- Reduced motion ---------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-media-frame,
+  .memory-media-frame::after,
+  .memory-toggle-hint,
+  .public-memory .memory-caption,
+  .public-memory img,
+  .memory-lightbox-close {
+    transition: none;
+  }
+
+  .public-memory:hover .memory-media-frame,
+  .public-memory.is-expanded .memory-media-frame {
+    transform: none;
+  }
+
+  .memory-lightbox,
+  .memory-lightbox-figure {
+    animation: none;
+  }
+
+  .public-gift[data-reveal="ready"] [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

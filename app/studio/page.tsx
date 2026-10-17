@@ -2,7 +2,7 @@
 
 
 
-import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
@@ -38,7 +38,7 @@ import {
 
   Palette, Plus, Save, Settings2, Sparkles, Trash2, Upload, WandSparkles,
 
-  X, GripVertical
+  X, GripVertical, Send
 
 } from "lucide-react";
 
@@ -77,6 +77,26 @@ type MediaItem = {
 /* Theme definitions live in one registry, shared with the recipient page, so a theme
    can never look one way here and another way to the person receiving it. */
 
+
+/* Columns added by the postcard/reveal migration (supabase/gift-experience.sql).
+   The studio must work whether or not that SQL has been run: naming a column the database does
+   not have makes the entire request fail, which would take out loading the draft, saving it and
+   publishing it all at once. So a missing-column error is recognised, the experience fields are
+   dropped from the request, and everything that worked before keeps working. */
+const GIFT_COLUMNS = "id, slug, title, recipient, letter, theme, published, updated_at";
+
+const GIFT_EXPERIENCE_COLUMNS = "experience_enabled, countdown_enabled, reveal_at, postcard_subject, postcard_note";
+
+const EXPERIENCE_COLUMN_PATTERN = /experience_enabled|countdown_enabled|reveal_at|postcard_subject|postcard_note/;
+
+function isMissingExperienceColumn(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const { code, message } = error as { code?: string; message?: string };
+  // PGRST204 is PostgREST's "column not found in schema cache"; 42703 is Postgres' undefined_column.
+  // The code alone is not enough: some unrelated column being missing would look identical, and
+  // retrying without the experience fields would not fix it. The message has to name one of them.
+  return EXPERIENCE_COLUMN_PATTERN.test(message ?? "");
+}
 
 const starterLetter =
 
@@ -186,6 +206,18 @@ export default function StudioPage() {
   const [passwordEnabled, setPasswordEnabled] = useState(true);
 
   const [password, setPassword] = useState("");
+  // Postcard & reveal. Switched off for new projects, so nothing changes unless it is asked for.
+  const [experienceEnabled, setExperienceEnabled] = useState(false);
+  const [countdownEnabled, setCountdownEnabled] = useState(false);
+  const [revealDate, setRevealDate] = useState("");
+  const [revealTime, setRevealTime] = useState("19:00");
+  const [postcardEmail, setPostcardEmail] = useState("");
+  const [postcardName, setPostcardName] = useState("");
+  const [postcardSubject, setPostcardSubject] = useState("");
+  const [postcardNote, setPostcardNote] = useState("");
+  const [inviteExpiry, setInviteExpiry] = useState("");
+  const [sendingPostcard, setSendingPostcard] = useState(false);
+  const [lastInvite, setLastInvite] = useState<{ prefix: string; sent: boolean } | null>(null);
 
   const [items, setItems] = useState<MediaItem[]>([]);
 
@@ -197,8 +229,25 @@ export default function StudioPage() {
 
   const [preview, setPreview] = useState(false);
 
+  /* Errors raised while the preview is open. The page-level notice sits behind the dialog, so
+     a failed publish looked like a button that did nothing at all. */
+  const [previewNotice, setPreviewNotice] = useState("");
+
+  /* Set to false the moment the database says the experience columns do not exist, so every
+     later write leaves them out rather than repeating a request that cannot succeed. */
+  const [experienceReady, setExperienceReady] = useState(true);
+
   const [published, setPublished] = useState(false);
-  const [copiedLink, setCopiedLink] = useState("");
+  /* The share link is derived from the slug, never stored.
+     It used to be held in state and filled in only by a publish that had just run in this
+     session. Reopening the studio therefore restored "published" and the slug but not the
+     link, so an already-published gift showed an empty share field — and "Copy gift link"
+     quietly copied nothing. Deriving it means the link is correct the instant the block
+     renders, for a gift published a minute ago or a month ago, with no request involved. */
+  const shareLink = useMemo(
+    () => (giftSlug ? `${typeof window === "undefined" ? "" : window.location.origin}/g/${giftSlug}` : ""),
+    [giftSlug],
+  );
 
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -240,17 +289,41 @@ export default function StudioPage() {
 
       try {
 
-        const { data: gifts, error: giftsError } = await supabase
+        const latestGift = () => supabase
 
           .from("gifts")
 
-          .select("id, slug, title, recipient, letter, theme, published, updated_at")
+          .select(`${GIFT_COLUMNS}, ${GIFT_EXPERIENCE_COLUMNS}`)
 
           .eq("owner_id", authData.user.id)
 
           .order("updated_at", { ascending: false })
 
           .limit(1);
+
+        let loaded = await latestGift();
+
+        if (loaded.error && isMissingExperienceColumn(loaded.error)) {
+
+          // The postcard/reveal migration has not been applied yet. Load the draft without
+          // those columns instead of failing, and remember it so no later write names them.
+          setExperienceReady(false);
+
+          loaded = (await supabase
+
+            .from("gifts")
+
+            .select(GIFT_COLUMNS)
+
+            .eq("owner_id", authData.user.id)
+
+            .order("updated_at", { ascending: false })
+
+            .limit(1)) as unknown as typeof loaded;
+
+        }
+
+        const { data: gifts, error: giftsError } = loaded;
 
         if (giftsError) throw giftsError;
 
@@ -279,6 +352,20 @@ export default function StudioPage() {
           if (storedTheme.custom) setCustomColors(storedTheme.custom);
 
           setPublished(Boolean(gift.published));
+
+          // Restore the reveal settings so reopening a draft does not quietly switch the
+          // experience back off and lose the deadline the sender chose.
+          setExperienceEnabled(Boolean(gift.experience_enabled));
+          setCountdownEnabled(Boolean(gift.countdown_enabled));
+          setPostcardSubject(gift.postcard_subject || "");
+          setPostcardNote(gift.postcard_note || "");
+          if (gift.reveal_at) {
+            // Stored as an instant; the inputs work in local time.
+            const reveal = new Date(gift.reveal_at);
+            const pad = (value: number) => String(value).padStart(2, "0");
+            setRevealDate(`${reveal.getFullYear()}-${pad(reveal.getMonth() + 1)}-${pad(reveal.getDate())}`);
+            setRevealTime(`${pad(reveal.getHours())}:${pad(reveal.getMinutes())}`);
+          }
 
 
 
@@ -407,11 +494,89 @@ export default function StudioPage() {
 
 
 
+  /* Opening the preview clears anything the last visit reported, so a stale error is never
+     left sitting above a button the creator is about to press again. */
+  const openPreview = () => {
+
+    setPreviewNotice("");
+
+    setPreview(true);
+
+  };
+
+  /* Every message goes to both places at once. The page notice is painted underneath the
+     preview dialog, so anything reported only there while the preview is open — including a
+     publish that failed — was invisible, and the button looked like it did nothing. */
+  const report = (message: string) => {
+
+    setNotice(message);
+
+    setPreviewNotice(message);
+
+  };
+
+  /* The postcard/reveal settings, or nothing at all.
+     Kept behind a function so the two write paths stay in step, and so a database without the
+     migration receives a payload that names only columns it actually has. */
+  const experienceFields = () => {
+
+    // No migration, no experience columns — the write must not name what the table lacks.
+    if (!experienceReady) return {};
+
+    // Switching the feature off has to be written, or it would come back on by itself the
+    // next time the draft is opened. Only the two switches are cleared: the deadline and the
+    // postcard wording are kept so turning it back on restores what was already written.
+    if (!experienceEnabled) return { experience_enabled: false, countdown_enabled: false };
+
+    return {
+
+      experience_enabled: true,
+
+      countdown_enabled: countdownEnabled,
+
+      reveal_at: revealInstant(),
+
+      postcard_subject: postcardSubject.trim() || null,
+
+      postcard_note: postcardNote.trim() || null,
+
+    };
+
+  };
+
+  /* Guard and state live here; the work lives in saveDraftBody.
+     The split exists so the body can be run a second time when a write turns out to name
+     columns the database does not have — a retry issued from inside the body would otherwise
+     be refused by the "saving" check, which has not re-rendered yet. */
   const saveDraft = async () => {
 
     if (saving) return null;
 
     setSaving(true);
+
+    try {
+
+      const first = await saveDraftBody();
+
+      // "retry" is internal to this pair of functions and never escapes: the caller only ever
+      // sees a saved draft or null.
+      if (first !== "retry") return first;
+
+      // One retry only: it drops the experience columns, so a second refusal is a real failure
+      // and not something a further attempt could resolve.
+      const second = await saveDraftBody();
+
+      return second === "retry" ? null : second;
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
+  };
+
+  const saveDraftBody = async (): Promise<{ ok: true; giftId: string | null; slug: string | null } | null | "retry"> => {
 
     setNotice("Saving your draft and uploading new media…");
 
@@ -461,6 +626,11 @@ export default function StudioPage() {
 
             theme: encodeThemeValue(theme, customColors),
 
+            // The experience is only written when it is actually being used AND the migration
+            // has provided the columns, so a gift that never touches this section keeps the
+            // exact row shape it had before the feature existed.
+            ...experienceFields(),
+
             published: false,
 
           })
@@ -494,6 +664,8 @@ export default function StudioPage() {
             letter,
 
             theme: encodeThemeValue(theme, customColors),
+
+            ...experienceFields(),
 
             updated_at: new Date().toISOString(),
 
@@ -601,12 +773,18 @@ export default function StudioPage() {
 
     } catch (error) {
 
-      setNotice(error instanceof Error ? error.message : "Could not save the draft. Please try again.");
+      // The load found the experience columns, but the write was refused for them anyway.
+      // Drop them and run once more rather than failing the save — and, with it, the publish.
+      if (isMissingExperienceColumn(error)) {
+
+        setExperienceReady(false);
+
+        return "retry";
+
+      }
+
+      report(error instanceof Error ? error.message : "Could not save the draft. Please try again.");
       return null;
-
-    } finally {
-
-      setSaving(false);
 
     }
 
@@ -786,27 +964,101 @@ export default function StudioPage() {
 
 
 
+  /** Combines the date and time inputs into the instant the reveal happens, in local time. */
+  const revealInstant = () => {
+    if (!countdownEnabled || !revealDate) return null;
+    const combined = new Date(`${revealDate}T${revealTime || "19:00"}`);
+    return Number.isNaN(combined.getTime()) ? null : combined.toISOString();
+  };
+
+  /**
+   * Sends the postcard.
+   *
+   * The experience settings are saved first, because the server reads the countdown and the
+   * deadline from the gift row when it builds the email — sending before saving would produce a
+   * postcard that does not match what the sender configured.
+   */
+  const sendPostcard = async () => {
+    if (sendingPostcard || saving || publishing) return;
+    if (!giftSlug) {
+      setNotice("Publish the gift before sending a postcard.");
+      return;
+    }
+    if (countdownEnabled && !revealDate) {
+      setNotice("Choose the date the gift should open.");
+      return;
+    }
+    if (!postcardEmail.trim() || !postcardSubject.trim() || !postcardNote.trim()) {
+      setNotice("Add the recipient's email, a subject line and a short message.");
+      return;
+    }
+
+    try {
+      setSendingPostcard(true);
+      setNotice("Saving your reveal settings…");
+      const saved = await saveDraft();
+      if (!saved?.ok || !saved.giftId) throw new Error("Could not save your reveal settings.");
+
+      setNotice("Sending the postcard…");
+      const response = await fetch(`/api/gifts/${encodeURIComponent(giftSlug)}/invitations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: postcardEmail.trim(),
+          recipientName: postcardName.trim() || recipient.trim(),
+          subject: postcardSubject.trim(),
+          note: postcardNote.trim(),
+          expiresAt: inviteExpiry ? new Date(`${inviteExpiry}T23:59:59`).toISOString() : "",
+          passwordEnabled,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not send that postcard.");
+
+      setLastInvite({ prefix: data.tokenPrefix ?? "", sent: true });
+      setNotice("Postcard sent — the email provider accepted it.");
+    } catch (error) {
+      setLastInvite({ prefix: "", sent: false });
+      setNotice(error instanceof Error ? error.message : "Could not send that postcard.");
+    } finally {
+      setSendingPostcard(false);
+    }
+  };
+
   const publish = async () => {
     if (publishing || saving) return;
     if (mediaItems.length === 0) {
-      setNotice("Add at least one photo or video before publishing.");
+      report("Add at least one photo or video before publishing.");
       return;
     }
 
     if (passwordEnabled && password.trim().length < 6) {
-      setNotice("Use a password with at least 6 characters, or turn protection off.");
+      report("Use a password with at least 6 characters, or turn protection off.");
       return;
+    }
+
+    if (experienceEnabled) {
+      if (countdownEnabled && !revealInstant()) {
+        report("Choose the date and time the gift should open.");
+        return;
+      }
+      // An experience with no gate would only add steps that protect nothing, so refuse it
+      // rather than publishing a journey the recipient has to walk through for no reason.
+      if (!countdownEnabled && !passwordEnabled) {
+        report("Turn on the countdown, a password, or switch the postcard experience off.");
+        return;
+      }
     }
 
     const saved = await saveDraft();
     if (!saved?.ok || !saved.giftId) {
-      setNotice("Save failed. Please try again before publishing.");
+      report("Save failed. Please try again before publishing.");
       return;
     }
 
     try {
       setPublishing(true);
-      setNotice("Publishing your gift securely…");
+      report("Publishing your gift securely…");
       const response = await fetch("/api/gifts/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -821,13 +1073,12 @@ export default function StudioPage() {
       // must stay in place so they can remove only the flagged ones and try again.
       if (!response.ok) throw new Error(data.error || "Could not publish your gift.");
 
+      // The slug is the only thing worth storing: the share link is derived from it.
       setGiftSlug(data.slug);
-      const shareUrl = `${window.location.origin}/g/${data.slug}`;
-      setCopiedLink(shareUrl);
       setPublished(true);
-      setNotice("Your gift is published and ready to share.");
+      report("Your gift is published and ready to share.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not publish your gift. Please try again.");
+      report(error instanceof Error ? error.message : "Could not publish your gift. Please try again.");
     } finally {
       setPublishing(false);
     }
@@ -861,7 +1112,7 @@ export default function StudioPage() {
 
           <button className="studio-button quiet" onClick={() => void saveDraft()} disabled={!authReady || saving || publishing}><Save size={15} /> {saving ? "Saving…" : "Save draft"}</button>
 
-          <button className="studio-button primary" onClick={() => setPreview(true)} disabled={saving || publishing}><Eye size={15} /> Preview gift</button>
+          <button className="studio-button primary" onClick={openPreview} disabled={saving || publishing}><Eye size={15} /> Preview gift</button>
 
         </div>
 
@@ -1063,11 +1314,77 @@ export default function StudioPage() {
 
 
 
-          <div className="publish-bar"><div><span className="publish-mark"><Sparkles size={17} /></span><div><strong>Ready to see your story?</strong><small>Preview it before sharing it with the world.</small></div></div><button className="studio-button primary large" onClick={() => setPreview(true)} disabled={saving || publishing}><Eye size={16} /> Preview your gift <ArrowRight size={16} /></button></div>
+          <section className="editor-section experience-section" id="experience">
+
+            <div className="section-title-row"><div><span className="step-label">04 / POSTCARD &amp; REVEAL</span><h2>Send it as a postcard</h2><p>Optional. Email a personal postcard that opens the gift on your chosen moment.</p></div><Send size={22} /></div>
+
+            <div className="experience-card">
+              <div className="privacy-card-copy"><span className="privacy-icon"><Send size={18} /></span><div><strong>Enable Postcard &amp; Reveal Experience</strong><p>When this is off, your gift behaves exactly as it does now — same link, same password, no waiting.</p></div></div>
+              <button role="switch" aria-checked={experienceEnabled} className={`switch ${experienceEnabled ? "on" : ""}`} onClick={() => setExperienceEnabled(!experienceEnabled)} aria-label="Enable the postcard and reveal experience"><span /></button>
+
+              {!experienceReady && (
+                <p className="experience-bad" role="status">
+                  The postcard and reveal database migration has not been run yet, so these settings
+                  cannot be saved. Everything else — themes, media, letter, publishing — works
+                  normally. Run <code>supabase/gift-experience.sql</code> to switch this on.
+                </p>
+              )}
+
+              {experienceEnabled && (
+                <div className="experience-body">
+
+                  <div className="experience-block">
+                    <strong className="experience-block-title">When should it open?</strong>
+                    <div className="experience-toggle-row">
+                      <div><span>Countdown</span><small>Hold the gift closed until a date and time you choose.</small></div>
+                      <button role="switch" aria-checked={countdownEnabled} className={`switch ${countdownEnabled ? "on" : ""}`} onClick={() => setCountdownEnabled(!countdownEnabled)} aria-label="Enable the countdown"><span /></button>
+                    </div>
+                    {countdownEnabled && (
+                      <div className="experience-grid">
+                        <label>Reveal date<input type="date" value={revealDate} onChange={(event) => setRevealDate(event.target.value)} /></label>
+                        <label>Reveal time<input type="time" value={revealTime} onChange={(event) => setRevealTime(event.target.value)} /></label>
+                        <small className="experience-hint">Your local time. The deadline is stored on the server, so it opens at the same moment for everyone however their device clock is set.</small>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="experience-block">
+                    <strong className="experience-block-title">The postcard</strong>
+                    <div className="experience-grid">
+                      <label>Recipient&rsquo;s name<input value={postcardName} onChange={(event) => setPostcardName(event.target.value)} maxLength={80} placeholder="Their name or nickname" /></label>
+                      <label>Recipient&rsquo;s email<input type="email" value={postcardEmail} onChange={(event) => setPostcardEmail(event.target.value)} placeholder="name@example.com" autoComplete="off" /></label>
+                      <label className="experience-wide">Subject line<input value={postcardSubject} onChange={(event) => setPostcardSubject(event.target.value)} maxLength={160} placeholder="A little something is waiting for you" /></label>
+                      <label className="experience-wide">Message<textarea value={postcardNote} onChange={(event) => setPostcardNote(event.target.value)} rows={5} maxLength={1200} placeholder="A short note to go with it." /><small className="char-count">{postcardNote.length}/1200 characters</small></label>
+                      <label>Invitation valid until <small className="experience-inline-note">optional</small><input type="date" value={inviteExpiry} onChange={(event) => setInviteExpiry(event.target.value)} /></label>
+                    </div>
+                    <small className="experience-hint">The email carries a personal invitation link, never the gift&rsquo;s own address. Until every condition is met, the gift itself stays unreachable.</small>
+                  </div>
+
+                  <div className="experience-actions">
+                    <button className="studio-button primary" onClick={() => void sendPostcard()} disabled={sendingPostcard || saving || publishing || !giftSlug}>
+                      <Send size={15} /> {sendingPostcard ? "Sending…" : "Send postcard"}
+                    </button>
+                    {!giftSlug && <small className="experience-hint">Publish the gift first, then send the postcard.</small>}
+                    {lastInvite && (
+                      <small className={lastInvite.sent ? "experience-ok" : "experience-bad"}>
+                        {lastInvite.sent
+                          ? `Postcard accepted by the email provider (invitation ${lastInvite.prefix}…).`
+                          : "The conversation above will explain what went wrong."}
+                      </small>
+                    )}
+                  </div>
+
+                </div>
+              )}
+            </div>
+
+          </section>
+
+          <div className="publish-bar"><div><span className="publish-mark"><Sparkles size={17} /></span><div><strong>Ready to see your story?</strong><small>Preview it before sharing it with the world.</small></div></div><button className="studio-button primary large" onClick={openPreview} disabled={saving || publishing}><Eye size={16} /> Preview your gift <ArrowRight size={16} /></button></div>
 
           <div className="mobile-action-dock" aria-label="Gift actions">
             <button className="studio-button quiet" onClick={() => void saveDraft()} disabled={!authReady || saving || publishing}><Save size={15} /> {saving ? "Saving…" : "Save draft"}</button>
-            <button className="studio-button primary" onClick={() => setPreview(true)} disabled={saving || publishing}><Eye size={15} /> Preview / share</button>
+            <button className="studio-button primary" onClick={openPreview} disabled={saving || publishing}><Eye size={15} /> Preview / share</button>
           </div>
 
           {notice && <div className="studio-notice" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="Dismiss message"><X size={14} /></button></div>}
@@ -1114,6 +1431,12 @@ export default function StudioPage() {
 
           <div className="preview-letter"><Heart size={22} /><span>A NOTE FROM ME TO YOU</span><p>{letter}</p><small>MADE WITH LOVE, JUST FOR YOU</small></div>
 
+          {previewNotice && (
+            <p className="preview-notice" role="status">
+              {previewNotice}
+            </p>
+          )}
+
           <div className="preview-bottom"><button className="studio-button quiet" onClick={() => setPreview(false)}>Back to editor</button><button className="studio-button primary" onClick={publish} disabled={saving || publishing}>{publishing ? "Publishing…" : saving ? "Saving…" : <><Sparkles size={15} /> Create preview link</>}</button></div>
 
           {published && giftSlug && (
@@ -1123,17 +1446,19 @@ export default function StudioPage() {
               <input
                 aria-label="Published gift link"
                 readOnly
-                value={copiedLink}
+                value={shareLink}
                 onFocus={(event) => event.currentTarget.select()}
               />
               <button
                 className="studio-button primary"
                 onClick={async () => {
+                  // Feedback goes to the modal's own line, not the page notice: the page notice
+                  // renders underneath this dialog, so "copied" was reported to no one.
                   try {
-                    await navigator.clipboard.writeText(copiedLink);
-                    setNotice("Gift link copied.");
+                    await navigator.clipboard.writeText(shareLink);
+                    setPreviewNotice("Link copied to your clipboard.");
                   } catch {
-                    setNotice("Select the link above and copy it manually.");
+                    setPreviewNotice("Your browser blocked the clipboard — select the link above and copy it manually.");
                   }
                 }}
               >

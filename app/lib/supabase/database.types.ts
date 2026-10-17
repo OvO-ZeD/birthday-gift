@@ -64,44 +64,127 @@ export type Database = {
           },
         ]
       }
-      gifts: {
+      gift_invitations: {
         Row: {
           created_at: string
+          email_error: string | null
+          email_provider: string | null
+          email_provider_id: string | null
+          email_sent_at: string | null
+          email_status: string
+          expires_at: string | null
+          gift_id: string
+          id: string
+          last_used_at: string | null
+          recipient_email: string
+          recipient_name: string | null
+          revoked_at: string | null
+          token_hash: string
+          token_prefix: string
+          use_count: number
+        }
+        Insert: {
+          created_at?: string
+          email_error?: string | null
+          email_provider?: string | null
+          email_provider_id?: string | null
+          email_sent_at?: string | null
+          email_status?: string
+          expires_at?: string | null
+          gift_id: string
+          id?: string
+          last_used_at?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          revoked_at?: string | null
+          token_hash: string
+          token_prefix: string
+          use_count?: number
+        }
+        Update: {
+          created_at?: string
+          email_error?: string | null
+          email_provider?: string | null
+          email_provider_id?: string | null
+          email_sent_at?: string | null
+          email_status?: string
+          expires_at?: string | null
+          gift_id?: string
+          id?: string
+          last_used_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          revoked_at?: string | null
+          token_hash?: string
+          token_prefix?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_invitations_gift_id_fkey"
+            columns: ["gift_id"]
+            isOneToOne: false
+            referencedRelation: "gifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gifts: {
+        Row: {
+          access_version: number
+          countdown_enabled: boolean
+          created_at: string
+          experience_enabled: boolean
           id: string
           letter: string
           owner_id: string
           password_enabled: boolean
           password_hash: string | null
+          postcard_note: string | null
+          postcard_subject: string | null
           published: boolean
           recipient: string
+          reveal_at: string | null
           slug: string
           theme: string
           title: string
           updated_at: string
         }
         Insert: {
+          access_version?: number
+          countdown_enabled?: boolean
           created_at?: string
+          experience_enabled?: boolean
           id?: string
           letter?: string
           owner_id: string
           password_enabled?: boolean
           password_hash?: string | null
+          postcard_note?: string | null
+          postcard_subject?: string | null
           published?: boolean
           recipient?: string
+          reveal_at?: string | null
           slug?: string
           theme?: string
           title?: string
           updated_at?: string
         }
         Update: {
+          access_version?: number
+          countdown_enabled?: boolean
           created_at?: string
+          experience_enabled?: boolean
           id?: string
           letter?: string
           owner_id?: string
           password_enabled?: boolean
           password_hash?: string | null
+          postcard_note?: string | null
+          postcard_subject?: string | null
           published?: boolean
           recipient?: string
+          reveal_at?: string | null
           slug?: string
           theme?: string
           title?: string
@@ -114,7 +197,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      bump_rate_limit: {
+        Args: {
+          p_bucket: string
+          p_key: string
+          p_limit: number
+          p_lock_seconds: number
+          p_window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          attempt_count: number
+          locked_until: string | null
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
