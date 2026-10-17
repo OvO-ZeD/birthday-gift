@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { createInvitationToken } from "@/app/lib/gifts/security";
-import { emailProviderConfigured, sendPostcard } from "@/app/lib/gifts/email";
+import { emailProviderConfigured, emailProviderName, sendPostcard } from "@/app/lib/gifts/email";
 import { requireOwner } from "@/app/lib/gifts/owner";
 
 export const runtime = "nodejs";
@@ -145,12 +145,12 @@ export async function POST(
         result.ok
           ? {
               email_status: "sent",
-              email_provider: "resend",
+              email_provider: emailProviderName(),
               email_provider_id: result.providerId,
               email_sent_at: new Date().toISOString(),
               email_error: null,
             }
-          : { email_status: "failed", email_provider: "resend", email_error: result.error },
+          : { email_status: "failed", email_provider: emailProviderName(), email_error: result.error },
       )
       .eq("id", invitation.id);
 

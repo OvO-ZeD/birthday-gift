@@ -1,13 +1,19 @@
 import { createHash } from "node:crypto";
 
 /**
- * Resend delivery, spoken over its REST API.
+ * Postcard delivery, spoken over whichever provider's REST API is configured.
  *
- * No SDK: one fetch is the whole integration, and the dependency would not buy anything the
- * four fields below do not already give.
+ * No SDK for either: one fetch is the whole integration, and the dependency would not buy
+ * anything the fields below do not already give.
+ *
+ * Two providers, because they have different barriers to entry rather than different merits:
+ * Brevo will send from an address you have merely confirmed by email, which costs nothing and
+ * needs no domain; Resend needs a domain you own but has the better free allowance. Whichever
+ * key is present is used, Resend first, so moving to your own domain later is an environment
+ * variable and not a code change. Set EMAIL_PROVIDER to force one if both are ever present.
  *
  * The contract this module upholds, which the dashboard depends on: `sendPostcard` reports
- * success only when Resend has accepted the message and returned an id for it. A network
+ * success only when the provider has accepted the message and returned an id for it. A network
  * failure, a rejected address or a non-2xx response is a failure, and the caller stores that
  * failure rather than telling the sender their postcard went out.
  */
@@ -29,8 +35,26 @@ export type PostcardContent = {
   expiresAt: string | null;
 };
 
+type Provider = "resend" | "brevo";
+
+/** Which provider to send through, or null when neither is configured. */
+function activeProvider(): Provider | null {
+  const forced = process.env.EMAIL_PROVIDER?.trim().toLowerCase();
+  if (forced === "brevo") return process.env.BREVO_API_KEY ? "brevo" : null;
+  if (forced === "resend") return process.env.RESEND_API_KEY ? "resend" : null;
+  // Resend is preferred when both are present: it is the one that carries a real domain.
+  if (process.env.RESEND_API_KEY) return "resend";
+  if (process.env.BREVO_API_KEY) return "brevo";
+  return null;
+}
+
 export function emailProviderConfigured() {
-  return Boolean(process.env.RESEND_API_KEY);
+  return activeProvider() !== null;
+}
+
+/** The provider's name, for the delivery record the dashboard reads back. */
+export function emailProviderName() {
+  return activeProvider() ?? "none";
 }
 
 /** Escapes text for interpolation into the HTML part of the message. */
@@ -148,41 +172,75 @@ function buildText(content: PostcardContent) {
     .join("\n");
 }
 
-export async function sendPostcard(content: PostcardContent): Promise<SendResult> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM ?? "Afterglow <onboarding@resend.dev>";
+/** Splits `Name <address>` into the two fields Brevo wants separately. */
+function parseSender(from: string) {
+  const match = from.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  if (match) return { name: match[1] || "Afterglow", email: match[2] };
+  return { name: "Afterglow", email: from.trim() };
+}
 
-  if (!apiKey) {
+export async function sendPostcard(content: PostcardContent): Promise<SendResult> {
+  const provider = activeProvider();
+  if (!provider) {
     return { ok: false, error: "Email is not configured on the server." };
   }
 
-  // Deterministic key per (address, invitation, reveal time). If the sender clicks send twice,
-  // or a request is retried, Resend collapses the duplicates instead of the recipient getting
-  // two identical postcards.
+  const html = buildHtml(content);
+  const text = buildText(content);
+
+  // Deterministic per (address, invitation, reveal time). Resend collapses a repeated send with
+  // this key, so clicking send twice does not postcard the recipient twice. Brevo offers no
+  // equivalent header, which is why the dashboard's duplicate-invitation check carries the
+  // weight there instead.
   const idempotencyKey = createHash("sha256")
     .update(`${content.to}|${content.invitationUrl}|${content.revealAt ?? ""}`)
     .digest("hex");
 
+  // Typed as a plain record because the two providers use different header names, and the union
+  // of the two literal shapes is not assignable to fetch's HeadersInit.
+  const request: { url: string; headers: Record<string, string>; body: Record<string, unknown> } =
+    provider === "resend"
+      ? {
+          url: "https://api.resend.com/emails",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: {
+            from: process.env.RESEND_FROM ?? "Afterglow <onboarding@resend.dev>",
+            to: [content.to],
+            subject: content.subject,
+            html,
+            text,
+          },
+        }
+      : {
+          url: "https://api.brevo.com/v3/smtp/email",
+          headers: {
+            "api-key": process.env.BREVO_API_KEY as string,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: {
+            sender: parseSender(process.env.BREVO_FROM ?? "Afterglow <no-reply@example.com>"),
+            to: [{ email: content.to, ...(content.recipientName ? { name: content.recipientName } : {}) }],
+            subject: content.subject,
+            htmlContent: html,
+            textContent: text,
+          },
+        };
+
   try {
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch(request.url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify({
-        from,
-        to: [content.to],
-        subject: content.subject,
-        html: buildHtml(content),
-        text: buildText(content),
-      }),
+      headers: request.headers,
+      body: JSON.stringify(request.body),
       signal: AbortSignal.timeout(15_000),
     });
 
     const payload = (await response.json().catch(() => null)) as
-      | { id?: string; message?: string; error?: { message?: string } }
+      | { id?: string; messageId?: string; message?: string; error?: { message?: string } }
       | null;
 
     if (!response.ok) {
@@ -191,12 +249,14 @@ export async function sendPostcard(content: PostcardContent): Promise<SendResult
       return { ok: false, error: message };
     }
 
-    // No id means the provider did not confirm acceptance, so this is not a success.
-    if (!payload?.id) {
+    // Resend answers with `id`, Brevo with `messageId`. No id from either means the provider
+    // did not confirm acceptance, so this is not a success.
+    const providerId = payload?.id ?? payload?.messageId;
+    if (!providerId) {
       return { ok: false, error: "The email provider did not confirm the message." };
     }
 
-    return { ok: true, providerId: payload.id };
+    return { ok: true, providerId };
   } catch (error) {
     const message =
       error instanceof Error && error.name === "TimeoutError"
