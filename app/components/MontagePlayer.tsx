@@ -42,14 +42,31 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [musicVolume, setMusicVolume] = useState(0.75);
   const [playbackNotice, setPlaybackNotice] = useState("");
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
+  const [photoSize, setPhotoSize] = useState<{ src: string; width: number; height: number } | null>(null);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const youtubeFrameRef = useRef<HTMLIFrameElement | null>(null);
 
   const current = items[index];
+  const fittedPhotoSize = current
+    && stageSize.width > 0
+    && stageSize.height > 0
+    && photoSize?.src === current.src
+    && photoSize.width > 0
+    && photoSize.height > 0
+    ? (() => {
+        const scale = Math.min(stageSize.width / photoSize.width, stageSize.height / photoSize.height);
+        return {
+          width: Math.round(photoSize.width * scale),
+          height: Math.round(photoSize.height * scale),
+        };
+      })()
+    : null;
 
   const stopMusic = useCallback(() => {
     audioRef.current?.pause();
@@ -112,6 +129,21 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
     setOpen(true);
     setPlaying(!reduceMotion);
   }, [playMusic, reduceMotion, youtubeVideoId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      setStageSize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      });
+    });
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -294,7 +326,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                   ))}
                 </div>
 
-                <div className="montage-stage" aria-live="polite" aria-atomic="true">
+                <div className="montage-stage" ref={stageRef} aria-live="polite" aria-atomic="true">
                   <AnimatePresence mode="wait">
                     <motion.figure
                       key={current.src}
@@ -304,7 +336,19 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                       exit={{ opacity: 0, scale: 1, y: reduceMotion ? 0 : -5 }}
                       transition={{ duration: reduceMotion ? 0 : .65, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      <img src={current.src} alt={[current.title, current.caption].filter(Boolean).join(" — ") || `Photo ${index + 1} of ${items.length}`} />
+                      <img
+                        src={current.src}
+                        alt={[current.title, current.caption].filter(Boolean).join(" — ") || `Photo ${index + 1} of ${items.length}`}
+                        style={fittedPhotoSize ? { width: fittedPhotoSize.width, height: fittedPhotoSize.height } : undefined}
+                        onLoad={(event) => {
+                          const image = event.currentTarget;
+                          setPhotoSize({
+                            src: current.src,
+                            width: image.naturalWidth,
+                            height: image.naturalHeight,
+                          });
+                        }}
+                      />
                       <figcaption className="montage-caption">
                         <span>MEMORY {String(index + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
                         <h2>{current.title || "A moment to keep"}</h2>
