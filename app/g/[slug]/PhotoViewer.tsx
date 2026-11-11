@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo, type Variants } from "motion/react";
 import { ChevronLeft, ChevronRight, Image as ImageIcon, MessageSquareText, Pause, Play, X } from "lucide-react";
@@ -8,6 +8,9 @@ import { OPEN_PHOTO_EVENT } from "./viewer-events";
 import "./viewer.css";
 
 export type ViewerItem = { src: string; title: string; caption: string };
+const subscribeToMount = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 type Props = {
   items: ViewerItem[];
@@ -30,7 +33,7 @@ type Props = {
  */
 export default function PhotoViewer({ items, audio = null }: Props) {
   const reduceMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeToMount, getClientSnapshot, getServerSnapshot);
   const [index, setIndex] = useState<number | null>(null);
   const [direction, setDirection] = useState(1);
   const [flipped, setFlipped] = useState(false);
@@ -59,10 +62,7 @@ export default function PhotoViewer({ items, audio = null }: Props) {
     : null;
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
+    if (!open) return;
     const stage = stageRef.current;
     if (!stage) return;
 
@@ -74,7 +74,7 @@ export default function PhotoViewer({ items, audio = null }: Props) {
     });
     observer.observe(stage);
     return () => observer.disconnect();
-  }, [mounted]);
+  }, [open]);
 
   const startMusic = useCallback(() => {
     if (!audio) return;
