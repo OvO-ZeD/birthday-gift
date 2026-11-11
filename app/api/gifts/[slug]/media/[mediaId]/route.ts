@@ -62,11 +62,6 @@ export async function GET(
     if (mediaError) throw mediaError;
     if (!media) return new NextResponse("Not found", { status: 404 });
 
-    const { data: file, error: downloadError } = await admin
-      .storage.from("gift-media").download(media.storage_path);
-
-    if (downloadError || !file) throw downloadError || new Error("Media unavailable.");
-
     const safeInlineTypes = new Set([
       "image/jpeg", "image/png", "image/webp", "image/gif", "image/avif",
       "video/mp4", "video/webm", "video/quicktime",
@@ -76,14 +71,23 @@ export async function GET(
     const mimeType = (media.mime_type || "application/octet-stream").toLowerCase().split(";")[0].trim();
     const canDisplayInline = safeInlineTypes.has(mimeType);
     const filename = encodeURIComponent((media.original_filename || "memory").replace(/[\r\n\\/]/g, "_"));
+    const { data: signed, error: signedError } = await admin
+      .storage.from("gift-media")
+      .createSignedUrl(media.storage_path, 3600, {
+        download: canDisplayInline ? false : media.original_filename || "memory",
+      });
 
-    return new NextResponse(file.stream(), {
+    if (signedError || !signed?.signedUrl) {
+      throw signedError || new Error("Media unavailable.");
+    }
+
+    return NextResponse.redirect(signed.signedUrl, {
+      status: 307,
       headers: {
-        "Content-Type": canDisplayInline ? mimeType : "application/octet-stream",
-        "Content-Disposition": `${canDisplayInline ? "inline" : "attachment"}; filename*=UTF-8''${filename}`,
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
         "Cross-Origin-Resource-Policy": "same-origin",
+        "X-Content-Disposition-Filename": filename,
       },
     });
   } catch (error) {

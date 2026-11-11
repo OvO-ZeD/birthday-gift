@@ -11,6 +11,8 @@ This update focuses on the iPhone/Safari studio workflow when selecting a batch 
 - Save and publish actions are guarded against overlapping operations.
 - Added a fixed mobile action bar for Save Draft and Preview / Share, with iPhone safe-area spacing.
 - Audio remains part of the media save loop and is available on the recipient page through an explicit audio control; it does not autoplay on iOS.
+- Videos up to the configured 500 MB application ceiling use 6 MB resumable TUS chunks, retry interrupted chunks, and expose byte-level progress. Supabase plan and private bucket limits must be configured to support the selected file size.
+- Recipient video playback now uses an access-checked short-lived signed URL redirect instead of buffering the full object in a Next.js route, allowing the browser to request byte ranges for seeking.
 
 ## Verification note
-A production build could not be run in the generation environment because the Next.js executable was unavailable in `node_modules`. Run `npm ci` and `npm run build` locally before pushing. Test on a real iPhone with a mix of images, MOV/MP4 videos, and one soundtrack, keeping the page open until the progress panel disappears and the save confirmation appears.
+Test on a real iPhone with a mix of images, MOV/MP4 videos, and one soundtrack, keeping the page open until the progress panel disappears and the save confirmation appears. For large videos, also test interrupted-upload retry, playback seeking, and the configured Supabase bucket limit.

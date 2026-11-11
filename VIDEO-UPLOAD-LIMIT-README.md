@@ -1,7 +1,13 @@
 # Increasing Afterglow video upload size
 
-The studio now accepts video files up to **500 MB** at the client-side validation layer and gives a more useful error when Supabase rejects a file for exceeding its configured maximum.
+The studio accepts video files up to **500 MB** and uses resumable uploads for larger files. This is only the app-side ceiling; Supabase Storage must also be configured to accept that object size.
 
-**Important:** changing the app limit does not change Supabase Storage's limit. In the Supabase Dashboard, open **Storage → gift-media → bucket settings** and increase the file size limit to a value supported by your project plan. Alternatively, run `supabase/increase-gift-media-size-limit.sql` in the SQL Editor if your plan supports 500 MB. If the plan's maximum is lower, use the highest supported value instead. Supabase plan-level limits cannot be overridden by app code or SQL.
+Before uploading larger videos:
 
-After changing the bucket setting, retry the video upload. Large videos use more bandwidth and may take longer on mobile networks. This update does not transcode/compress videos or implement resumable uploads.
+1. Confirm your Supabase plan supports the desired per-file size.
+2. In **Storage → gift-media → bucket settings**, set the file-size limit to the supported value. The optional `supabase/increase-gift-media-size-limit.sql` sets it to 500 MB only when the plan supports that size.
+3. Keep the bucket private. The recipient media route checks the gift's access gate and then redirects to a short-lived signed URL so video playback can seek without loading the entire object into the Next.js server.
+
+If the plan supports less than 500 MB, configure its maximum and adjust `MAX_VIDEO_BYTES` in `app/lib/gifts/media-limits.ts` to match. The application cannot bypass a lower provider limit. Images remain subject to the existing client-side 25 MB limit and audio remains limited to 30 MB.
+
+Uploads over 6 MB use Supabase's resumable TUS endpoint and show per-file progress. A large upload can still use substantial bandwidth and may take time on mobile networks. The application does not transcode video.

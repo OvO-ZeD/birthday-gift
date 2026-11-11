@@ -1,17 +1,20 @@
 import "server-only";
 
+import {
+  MAX_AUDIO_BYTES,
+  MAX_IMAGE_BYTES,
+  MAX_VIDEO_BYTES,
+  MAX_VISUAL_ITEMS,
+} from "./media-limits";
+
+export { MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_VISUAL_ITEMS };
+
 /** Kinds that appear in the recipient's visual gallery, in the order they are stored. */
 export const VISUAL_KINDS = ["image", "video"] as const;
 export const AUDIO_KINDS = ["audio"] as const;
 export const MEDIA_KINDS = [...VISUAL_KINDS, ...AUDIO_KINDS] as const;
 
 export type MediaKind = (typeof MEDIA_KINDS)[number];
-
-/** The application ceiling for one stored object, matching Supabase Free's per-file limit. */
-export const MAX_MEDIA_BYTES = 50 * 1024 * 1024;
-const MAX_AUDIO_BYTES = 30 * 1024 * 1024;
-
-export const MAX_VISUAL_ITEMS = 40;
 
 /**
  * Only the top-level media family is enforced. Browser- and container-specific subtypes
@@ -33,7 +36,9 @@ export function normalizeMimeType(value: unknown) {
 }
 
 export function maxBytesFor(kind: MediaKind) {
-  return kind === "audio" ? MAX_AUDIO_BYTES : MAX_MEDIA_BYTES;
+  if (kind === "audio") return MAX_AUDIO_BYTES;
+  if (kind === "video") return MAX_VIDEO_BYTES;
+  return MAX_IMAGE_BYTES;
 }
 
 /**
