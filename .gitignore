@@ -45,4 +45,3 @@ supabase/.temp/
 
 # Keep the safe template, never commit real env files
 !.env.example
-node_modules

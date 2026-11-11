@@ -10,6 +10,7 @@ import CountdownGate from "./CountdownGate";
 import PhotoMoodEnhancer from "./PhotoMoodEnhancer";
 import GiftAtmosphere from "./GiftAtmosphere";
 import MemoryCard from "./MemoryCard";
+import PhotoViewer from "./PhotoViewer";
 import "./gift.css";
 
 export const dynamic = "force-dynamic";
@@ -172,6 +173,19 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
   const mediaUrl = (id: string) => `/api/gifts/${encodeURIComponent(slug)}/media/${id}`;
   const letter = gift.letter?.trim() || "Every little moment with you deserves to be remembered.";
 
+  // What the full-screen viewer shows: the same photos, in the same order, with the same
+  // filtered captions as the grid, plus the soundtrack it plays while a photo is open.
+  const viewerItems = imageMedia.map((item) => {
+    const caption = item.caption?.trim() || "";
+    return {
+      src: mediaUrl(item.id),
+      title: item.title?.trim() || "",
+      caption: caption && !isTechnicalLabel(caption) ? caption : "",
+    };
+  });
+  const firstAudio = (media || []).find((item) => item.kind === "audio");
+  const viewerAudio = firstAudio ? { src: mediaUrl(firstAudio.id), title: firstAudio.title?.trim() || "Our soundtrack" } : null;
+
   return (
     <main
       className={`public-gift media-count-${Math.min(visualMedia.length, 5)} ${imageMedia.length === 0 ? "no-photo-mood" : imageMedia.length === 1 ? "single-photo-mood" : "multi-photo-mood"}`}
@@ -260,6 +274,7 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
           ))}
         </section>
       )}
+      {viewerItems.length > 0 && <PhotoViewer items={viewerItems} audio={viewerAudio} />}
       <footer className="public-gift-footer"><span>A little world, made to be remembered.</span><span>AFTERGLOW <i>♡</i></span></footer>
     </main>
   );

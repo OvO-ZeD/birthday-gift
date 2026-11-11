@@ -45,3 +45,30 @@ available), so please run `npm run build` first and read any error it prints.
 ## Also check in Vercel
 Project settings -> Deployment Protection: make sure the production `.vercel.app` link is not
 behind Vercel login, or recipients will be blocked.
+
+---
+
+# Update 2 — photo viewer, fonts and warmer theme
+
+## Why the photo pop-up glitched
+The old pop-up was drawn inside each photo tile. The tile lifts on hover with a CSS transform, and a
+transformed parent traps `position: fixed` children, so the "full-screen" view was stuck to the tile and
+flickered as the mouse moved. The new viewer is drawn in `<body>` and has no mouse-move effects.
+
+## New / changed
+- `app/g/[slug]/PhotoViewer.tsx`, `viewer.css`, `viewer-events.ts` — full-screen viewer: fills the phone
+  screen, sits in a sized window on desktop, photo always fits. Tap the photo (or "Read the message")
+  to turn it over to the caption. Swipe sideways for next/previous, swipe down to close, arrow keys on
+  desktop. The gift soundtrack starts when a photo is opened, with a play/pause button.
+- `app/g/[slug]/MemoryCard.tsx` — tiles now just open the viewer.
+- `app/g/[slug]/page.tsx` — mounts the viewer once and passes it the photos and the soundtrack.
+- `app/layout.tsx` — adds the Fraunces (headings, letters) and DM Sans (interface) fonts.
+- `app/theme-refresh.css` — landing page and gift page: warm ink + champagne / rose-gold instead of violet.
+  Delete this file and its import in `layout.tsx` to go back.
+
+## Apply (PowerShell, from the project folder)
+    Expand-Archive -Path "$HOME\Downloads\afterglow-full-project-v2.zip" -DestinationPath . -Force
+    npm run build
+    git add -A
+    git commit -m "Photo viewer, fonts and warm theme"
+    git push
