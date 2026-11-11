@@ -1636,8 +1636,6 @@ export default function StudioPage() {
 
               <div className="upload-actions"><button onClick={() => fileInput.current?.click()} className="studio-button primary"><Plus size={15} /> Add photos & videos</button><button onClick={() => audioInput.current?.click()} className="studio-button quiet"><Music2 size={15} /> Add soundtrack</button></div>
 
-              <SongPicker onPick={(file) => void addFiles([file])} />
-
               <small>Videos up to 500 MB use resumable uploads. Your Supabase plan and private bucket must support that limit.</small>
 
               {!mediaItems.length && <small>Save your draft to upload selected media to your private Supabase storage bucket.</small>}
@@ -1647,6 +1645,8 @@ export default function StudioPage() {
               <input ref={audioInput} hidden type="file" accept=".mp3,.m4a,.aac,.wav,.ogg,.oga,.webm,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/ogg,audio/webm" onChange={onFileChange} />
 
             </div>
+
+            <SongPicker onPick={(file) => void addFiles([file])} />
 
             {removingIds.length > 0 && (
 

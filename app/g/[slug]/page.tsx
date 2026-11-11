@@ -234,6 +234,17 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
         </section>
       </div>
 
+      {firstAudio && viewerItems.length === 0 && (
+        <section className="public-soundtrack public-soundtrack-inline" aria-label="Gift soundtrack">
+          <span className="soundtrack-note" aria-hidden="true">♫</span>
+          <div className="soundtrack-info">
+            <strong>{firstAudio.title?.trim() || "Our soundtrack"}</strong>
+            {firstAudio.caption && <small>{firstAudio.caption}</small>}
+          </div>
+          <audio controls preload="none" src={mediaUrl(firstAudio.id)} aria-label="Play gift soundtrack" />
+        </section>
+      )}
+
       {visualMedia.length > 0 && (
         <section className="public-memories-wrap" id="memories">
           <div className="memories-heading" data-reveal>
@@ -264,18 +275,6 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
         </section>
       )}
 
-      {media?.some((item) => item.kind === "audio") && (
-        <section className="public-soundtrack" data-reveal>
-          <span className="section-kicker">A SOUND TO REMEMBER</span>
-          {media.filter((item) => item.kind === "audio").map((item) => (
-            <div className="soundtrack-track" key={item.id}>
-              <span className="soundtrack-note" aria-hidden="true">♫</span>
-              <div className="soundtrack-info"><strong>{item.title || "Our soundtrack"}</strong>{item.caption && <small>{item.caption}</small>}</div>
-              <audio controls preload="none" src={mediaUrl(item.id)} />
-            </div>
-          ))}
-        </section>
-      )}
       {viewerItems.length > 0 && <PhotoViewer items={viewerItems} audio={viewerAudio} />}
       <footer className="public-gift-footer"><span>A little world, made to be remembered.</span><span>AFTERGLOW <i>♡</i></span></footer>
     </main>

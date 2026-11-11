@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Mic, Pause, Play, Plus, Square } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Mic, Pause, Play, Plus, Search, Square } from "lucide-react";
 import { BUILT_IN_SONGS, renderSong, type SongId } from "../lib/songs";
 import "./studio-extras.css";
 
@@ -21,6 +21,7 @@ export default function SongPicker({ onPick }: Props) {
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [message, setMessage] = useState("");
+  const [youtubeQuery, setYoutubeQuery] = useState("");
 
   const previewAudio = useRef<HTMLAudioElement | null>(null);
   const previewUrl = useRef<string | null>(null);
@@ -124,13 +125,26 @@ export default function SongPicker({ onPick }: Props) {
     if (recorder.current && recorder.current.state !== "inactive") recorder.current.stop();
   }
 
+  function searchYouTube(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const query = youtubeQuery.trim();
+    if (!query) {
+      setMessage("Enter a song or artist to search YouTube.");
+      return;
+    }
+
+    const url = new URL("https://www.youtube.com/results");
+    url.searchParams.set("search_query", query);
+    window.open(url.toString(), "_blank", "noopener,noreferrer");
+  }
+
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
   return (
     <section className="song-picker" aria-label="Quick ways to add a soundtrack">
       <div className="song-picker-head">
         <strong>No song file? Start here</strong>
-        <small>Pick a built-in tune, or record your own voice.</small>
+        <small>Choose a built-in tune, record a voice note, or find a song on YouTube.</small>
       </div>
 
       <ul className="song-list">
@@ -168,6 +182,21 @@ export default function SongPicker({ onPick }: Props) {
           </button>
         )}
       </div>
+
+      <form className="youtube-search" onSubmit={searchYouTube}>
+        <Search size={16} aria-hidden="true" />
+        <input
+          id="song-picker-youtube-search"
+          type="search"
+          aria-label="Search YouTube for a song or artist"
+          value={youtubeQuery}
+          onChange={(event) => setYoutubeQuery(event.target.value)}
+          maxLength={120}
+          placeholder="Song or artist"
+        />
+        <button type="submit" className="studio-button quiet">Search YouTube</button>
+        <small>YouTube opens in a new tab; add an audio file to include music in the gift.</small>
+      </form>
 
       {message && <p className="song-message" role="status">{message}</p>}
     </section>

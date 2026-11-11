@@ -2163,3 +2163,51 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 
    `!important` because two earlier passes both set a scale on this element on hover. */
 .public-memory:hover img { transform: none !important; }
+
+/* Keep the gallery grid uniform; the full-size viewer uses `contain` to show the entire image. */
+.memory-media-frame img,
+.memory-media-frame video {
+  object-fit: cover !important;
+}
+
+.public-soundtrack-inline {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  width: min(560px, calc(100% - 2.5rem));
+  margin: -.5rem auto 1.3rem;
+  padding: .5rem .75rem;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgb(28 20 16 / 9%), inset 0 1px rgb(255 255 255 / 12%);
+}
+.public-soundtrack-inline .soundtrack-note {
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  font-size: 1.1rem;
+}
+.public-soundtrack-inline .soundtrack-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.public-soundtrack-inline .soundtrack-info strong {
+  display: block;
+  overflow: hidden;
+  font-size: .82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.public-soundtrack-inline .soundtrack-info small { display: none; }
+.public-soundtrack-inline audio {
+  width: min(230px, 42vw);
+  height: 34px;
+  flex: 0 1 230px;
+}
+@media (max-width: 560px) {
+  .public-soundtrack-inline {
+    width: calc(100% - 1.25rem);
+    gap: .5rem;
+    padding: .45rem .55rem;
+  }
+  .public-soundtrack-inline audio { width: min(180px, 43vw); flex-basis: 180px; }
+}
