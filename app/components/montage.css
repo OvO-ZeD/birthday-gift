@@ -62,7 +62,7 @@
 @keyframes montage-progress { to { transform: scaleX(1); } }
 .montage-stage { position: relative; flex: 1; min-height: 0; margin: 0 clamp(10px, 3vw, 28px); overflow: hidden; border: 1px solid rgba(255,238,222,.16); border-radius: 18px; background: rgba(0,0,0,.18); }
 .montage-slide { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; overflow: hidden; }
-.montage-slide > img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center; }
+.montage-slide > img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
 .montage-caption { position: absolute; right: 0; bottom: 0; left: 0; display: grid; gap: 6px; padding: clamp(18px, 4vw, 38px); background: linear-gradient(180deg, transparent, rgba(10,7,5,.86)); text-align: center; }
 .montage-caption > span { color: var(--montage-accent); font-size: 9px; font-weight: 700; letter-spacing: .2em; }
 .montage-caption h2 { margin: 0; font-family: var(--font-display), Georgia, serif; font-size: clamp(1.35rem, 3.4vw, 2.4rem); font-weight: 400; line-height: 1.1; text-wrap: balance; }
