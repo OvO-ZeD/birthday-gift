@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "./polish.css";
+import SoundFx from "./components/SoundFx";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,7 +39,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <SoundFx />
+      </body>
     </html>
   );
 }

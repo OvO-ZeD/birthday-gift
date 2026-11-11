@@ -42,6 +42,10 @@ import {
 
 import "./studio.css";
 
+import SongPicker from "./SongPicker";
+
+import StudioLook from "./StudioLook";
+
 /**
  * The four stops in the editor, in reading order.
  *
@@ -1537,6 +1541,8 @@ export default function StudioPage() {
 
           {/* The dot turns amber while a write is in flight, so autosave is visible rather than
               mysterious, and the line carries the time of the last one. */}
+          <StudioLook />
+
           <span className={`draft-status ${saving ? "is-saving" : ""}`} role="status" aria-live="polite">
             <span /> {saving
               ? "Saving to cloud…"
@@ -1651,6 +1657,8 @@ export default function StudioPage() {
               </div>
 
               <div className="upload-actions"><button onClick={() => fileInput.current?.click()} className="studio-button primary"><Plus size={15} /> Add photos & videos</button><button onClick={() => audioInput.current?.click()} className="studio-button quiet"><Music2 size={15} /> Add soundtrack</button></div>
+
+              <SongPicker onPick={(file) => void addFiles([file])} />
 
               {!mediaItems.length && <small>Save your draft to upload selected media to your private Supabase storage bucket.</small>}
 

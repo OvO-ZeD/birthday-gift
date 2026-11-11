@@ -47,7 +47,7 @@ export default function Home() {
         <nav className={menuOpen ? "landing-links nav-open" : "landing-links"} aria-label="Main navigation">
           <a href="#top" onClick={() => setMenuOpen(false)}>Home</a><a href="#features" onClick={() => setMenuOpen(false)}>Features</a><a href="#demo" onClick={() => setMenuOpen(false)}>Demo</a><a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
         </nav>
-        <div className="landing-nav-actions"><a className="nav-login" href="/login">Log in</a><a className="landing-button landing-button-small" href="/studio">Create a gift <ArrowRight size={15} /></a><a className="github-link" href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer" aria-label="View Afterglow on GitHub" title="View on GitHub"><GitBranch size={16} /><span>GitHub</span></a></div>
+        <div className="landing-nav-actions"><a className="nav-login" href="/studio">Log in</a><a className="landing-button landing-button-small" href="/studio">Create a gift <ArrowRight size={15} /></a><a className="github-link" href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer" aria-label="View Afterglow on GitHub" title="View on GitHub"><GitBranch size={16} /><span>GitHub</span></a></div>
         <button className="landing-menu-toggle" type="button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={21} /> : <Menu size={21} />}</button>
       </header>
 
@@ -82,7 +82,7 @@ export default function Home() {
 
       <section className="landing-final-cta"><motion.div {...reveal}><span className="landing-section-kicker">THE BEST GIFTS FEEL PERSONAL</span><h2>Make something <em>they&rsquo;ll remember.</em></h2><p>Start with a photo. Add the song. Write the words. Let the little things become the whole story.</p><a className="landing-button" href="/studio">Create your first gift <ArrowRight size={17} /></a></motion.div><motion.div className="cta-orbit" aria-hidden="true" animate={reduceMotion ? undefined : { rotate: 360 }} transition={{ duration: 55, repeat: Infinity, ease: "linear" }}><span /><Heart size={31} strokeWidth={1} /><i /><b /></motion.div></section>
 
-      <footer className="landing-footer"><a href="#top" className="landing-brand"><span className="brand-mark"><Heart size={18} /><Sparkles size={10} /></span><span>Afterglow</span></a><span>Little moments. Lasting feelings.</span><div><a href="/login">Log in</a><a href="/studio">Create a gift</a><a href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer"><GitBranch size={14} /> GitHub</a></div></footer>
+      <footer className="landing-footer"><a href="#top" className="landing-brand"><span className="brand-mark"><Heart size={18} /><Sparkles size={10} /></span><span>Afterglow</span></a><span>Little moments. Lasting feelings.</span><div><a href="/studio">Log in</a><a href="/studio">Create a gift</a><a href="https://github.com/OvO-ZeD/birthday-gift" target="_blank" rel="noreferrer"><GitBranch size={14} /> GitHub</a></div></footer>
 
       {activeVideo !== null && createPortal(
         <AnimatePresence>

@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 
-import { redirect } from "next/navigation";
 import { createClient } from "../lib/supabase/server";
+import AuthCard from "../components/AuthCard";
 
 export const metadata: Metadata = { title: "Gift Studio | Afterglow", robots: { index: false, follow: false } };
 
+/**
+ * The studio and sign-in are one place: signed-out visitors see the sign-in card right here
+ * instead of being sent to a separate page, and the studio appears as soon as they are in.
+ */
 export default async function StudioLayout({
   children,
 }: {
@@ -18,7 +22,7 @@ export default async function StudioLayout({
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    redirect("/login");
+    return <AuthCard />;
   }
 
   return <>{children}</>;
