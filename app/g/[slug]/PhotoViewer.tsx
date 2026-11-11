@@ -38,11 +38,8 @@ export default function PhotoViewer({ items, audio = null }: Props) {
   const [direction, setDirection] = useState(1);
   const [flipped, setFlipped] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
-  const [photoSize, setPhotoSize] = useState<{ src: string; width: number; height: number } | null>(null);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const stageRef = useRef<HTMLDivElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -51,30 +48,6 @@ export default function PhotoViewer({ items, audio = null }: Props) {
   const item = index !== null ? items[index] : null;
   const hasNote = Boolean(item && (item.title || item.caption));
   const many = items.length > 1;
-  const fittedPhotoSize = item && photoSize?.src === item.src && photoSize.width > 0 && photoSize.height > 0
-    ? (() => {
-        const scale = Math.min(stageSize.width / photoSize.width, stageSize.height / photoSize.height);
-        return {
-          width: Math.round(photoSize.width * scale),
-          height: Math.round(photoSize.height * scale),
-        };
-      })()
-    : null;
-
-  useEffect(() => {
-    if (!open) return;
-    const stage = stageRef.current;
-    if (!stage) return;
-
-    const observer = new ResizeObserver(([entry]) => {
-      setStageSize({
-        width: entry.contentRect.width,
-        height: entry.contentRect.height,
-      });
-    });
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, [open]);
 
   const startMusic = useCallback(() => {
     if (!audio) return;
@@ -253,7 +226,7 @@ export default function PhotoViewer({ items, audio = null }: Props) {
               </div>
             </header>
 
-            <div className="pv-stage" ref={stageRef}>
+            <div className="pv-stage" style={{ backgroundImage: `url("${item.src}")` }}>
               <AnimatePresence initial={false} custom={direction} mode="popLayout">
                 <motion.div
                   key={item.src}
@@ -263,7 +236,6 @@ export default function PhotoViewer({ items, audio = null }: Props) {
                   initial="enter"
                   animate="center"
                   exit="exit"
-                  style={fittedPhotoSize ? { width: fittedPhotoSize.width, height: fittedPhotoSize.height } : undefined}
                   transition={{ duration: reduceMotion ? 0 : 0.34, ease: [0.22, 1, 0.36, 1] }}
                   drag={flipped ? false : true}
                   dragDirectionLock
@@ -285,14 +257,6 @@ export default function PhotoViewer({ items, audio = null }: Props) {
                         alt={[item.title, item.caption].filter(Boolean).join(" — ") || `Photo ${index + 1}`}
                         decoding="async"
                         draggable={false}
-                        onLoad={(event) => {
-                          const image = event.currentTarget;
-                          setPhotoSize({
-                            src: item.src,
-                            width: image.naturalWidth,
-                            height: image.naturalHeight,
-                          });
-                        }}
                       />
                     </div>
 
