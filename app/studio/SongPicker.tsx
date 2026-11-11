@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Mic, Pause, Play, Plus, Search, Square } from "lucide-react";
+import { Link2, Mic, Pause, Play, Plus, Square } from "lucide-react";
 import { BUILT_IN_SONGS, renderSong, type SongId } from "../lib/songs";
+import { parseYouTubeVideoId, youtubeEmbedUrl } from "../lib/gifts/youtube";
 import "./studio-extras.css";
 
 type Props = {
   /** Receives a ready-to-use audio File, exactly as if it had been chosen from the device. */
   onPick: (file: File) => void;
+  youtubeVideoId: string | null;
+  onPickYouTube: (videoId: string) => void;
+  onRemoveYouTube: () => void;
 };
 
 /**
@@ -15,13 +19,13 @@ type Props = {
  * or hum straight from the microphone. Choosing a file from the device is still available in
  * the main upload buttons.
  */
-export default function SongPicker({ onPick }: Props) {
+export default function SongPicker({ onPick, youtubeVideoId, onPickYouTube, onRemoveYouTube }: Props) {
   const [busyId, setBusyId] = useState<SongId | null>(null);
   const [previewId, setPreviewId] = useState<SongId | null>(null);
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [message, setMessage] = useState("");
-  const [youtubeQuery, setYoutubeQuery] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
 
   const previewAudio = useRef<HTMLAudioElement | null>(null);
   const previewUrl = useRef<string | null>(null);
@@ -125,17 +129,17 @@ export default function SongPicker({ onPick }: Props) {
     if (recorder.current && recorder.current.state !== "inactive") recorder.current.stop();
   }
 
-  function searchYouTube(event: FormEvent<HTMLFormElement>) {
+  function chooseYouTubeLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const query = youtubeQuery.trim();
-    if (!query) {
-      setMessage("Enter a song or artist to search YouTube.");
+    const videoId = parseYouTubeVideoId(youtubeUrl);
+    if (!videoId) {
+      setMessage("Paste a YouTube video link, such as youtube.com/watch?v=… or youtu.be/…");
       return;
     }
 
-    const url = new URL("https://www.youtube.com/results");
-    url.searchParams.set("search_query", query);
-    window.open(url.toString(), "_blank", "noopener,noreferrer");
+    stopPreview();
+    setMessage("");
+    onPickYouTube(videoId);
   }
 
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -144,7 +148,7 @@ export default function SongPicker({ onPick }: Props) {
     <section className="song-picker" aria-label="Quick ways to add a soundtrack">
       <div className="song-picker-head">
         <strong>No song file? Start here</strong>
-        <small>Choose a built-in tune, record a voice note, or find a song on YouTube.</small>
+        <small>Choose a built-in tune, record a voice note, or paste a YouTube link.</small>
       </div>
 
       <ul className="song-list">
@@ -183,20 +187,36 @@ export default function SongPicker({ onPick }: Props) {
         )}
       </div>
 
-      <form className="youtube-search" onSubmit={searchYouTube}>
-        <Search size={16} aria-hidden="true" />
+      <form className="youtube-search" onSubmit={chooseYouTubeLink}>
+        <Link2 size={16} aria-hidden="true" />
         <input
-          id="song-picker-youtube-search"
-          type="search"
-          aria-label="Search YouTube for a song or artist"
-          value={youtubeQuery}
-          onChange={(event) => setYoutubeQuery(event.target.value)}
+          id="song-picker-youtube-link"
+          type="url"
+          aria-label="YouTube video link"
+          value={youtubeUrl}
+          onChange={(event) => setYoutubeUrl(event.target.value)}
           maxLength={120}
-          placeholder="Song or artist"
+          placeholder="Paste YouTube link (youtube.com/watch?v=…)"
         />
-        <button type="submit" className="studio-button quiet">Search YouTube</button>
-        <small>YouTube opens in a new tab; add an audio file to include music in the gift.</small>
+        <button type="submit" className="studio-button quiet">Use this song</button>
+        <small>The song plays from YouTube’s official player; nothing is downloaded. Some videos may not allow embedding.</small>
       </form>
+
+      {youtubeVideoId && (
+        <div className="youtube-selected">
+          <iframe
+            title="Selected YouTube soundtrack"
+            src={youtubeEmbedUrl(youtubeVideoId)}
+            allow="encrypted-media; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
+          <div className="youtube-selected-actions">
+            <span>Selected YouTube song</span>
+            <button type="button" className="studio-button quiet" onClick={onRemoveYouTube}>Remove link</button>
+          </div>
+        </div>
+      )}
 
       {message && <p className="song-message" role="status">{message}</p>}
     </section>

@@ -103,6 +103,10 @@
 .soundtrack-info strong { font-size: .95rem; font-weight: 400; }
 .soundtrack-info small { color: var(--gift-muted); font-size: .8rem; }
 .soundtrack-track audio { grid-column: 1 / -1; width: 100%; margin-top: .25rem; }
+.public-youtube-soundtrack { display:grid; gap:.7rem; }
+.public-youtube-soundtrack > .section-kicker { margin:0; }
+.public-youtube-soundtrack .soundtrack-info { margin-bottom:.2rem; }
+.public-youtube-soundtrack iframe { display:block; width:min(100%,560px); aspect-ratio:16 / 9; min-height:200px; margin-inline:auto; border:0; border-radius:10px; background:#000; }
 .public-gift-footer { margin-top: 1.5rem; padding-top: 1.3rem; padding-bottom: 1.6rem; border-top: 1px solid var(--gift-line); color: var(--gift-muted); font-size: .56rem; letter-spacing: .13em; }
 .gift-gate { position: relative; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 2rem 1.25rem; width: min(620px, 100%); margin: auto; }
 .gift-gate h1 { font-size: clamp(2.7rem, 8vw, 4.8rem); }
@@ -1705,12 +1709,10 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 
 /* --- 1. Background photography ------------------------------------------------------------ */
 
-/* Was blur(.2px) brightness(.78) opacity .58 over a heavy purple wash. The brightness cut and
-   the wash were doing the obscuring, not the blur, so the blur stays near zero and the tile is
-   allowed to be a photograph. */
+/* Keep the collage legible behind the story without making it compete with the foreground. */
 .public-gift .ambient-photo {
-  opacity: .74 !important;
-  filter: blur(0) saturate(.98) brightness(.94) contrast(1.03) !important;
+  opacity: .82 !important;
+  filter: blur(.2px) saturate(.96) brightness(.92) contrast(1.02) !important;
   border-radius: 18px !important;
   border-color: rgb(255 255 255 / 26%) !important;
   box-shadow:
@@ -1726,9 +1728,9 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
     linear-gradient(
       90deg,
       rgb(30 22 18 / 6%) 0%,
-      rgb(30 22 18 / 12%) 30%,
-      rgb(30 22 18 / 20%) 50%,
-      rgb(30 22 18 / 12%) 70%,
+      rgb(30 22 18 / 8%) 30%,
+      rgb(30 22 18 / 14%) 50%,
+      rgb(30 22 18 / 8%) 70%,
       rgb(30 22 18 / 6%) 100%
     ) !important;
   backdrop-filter: none !important;
@@ -1739,15 +1741,15 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
   /* One column of photographs, so there is less room for a collage — the tiles stay visible
      but stop competing with the letter. */
   .public-gift .ambient-photo {
-    opacity: .5 !important;
-    filter: blur(.3px) saturate(.94) brightness(.9) !important;
+    opacity: .6 !important;
+    filter: blur(.35px) saturate(.94) brightness(.9) !important;
   }
   .public-gift .gift-ambient-wash {
     background: linear-gradient(
       180deg,
       rgb(30 22 18 / 8%) 0%,
-      rgb(30 22 18 / 16%) 55%,
-      rgb(30 22 18 / 22%) 100%
+      rgb(30 22 18 / 12%) 55%,
+      rgb(30 22 18 / 17%) 100%
     ) !important;
   }
 }

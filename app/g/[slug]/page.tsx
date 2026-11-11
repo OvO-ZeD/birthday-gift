@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { giftAccessCookieName } from "@/app/lib/gifts/security";
 import { loadGiftAccessRow, resolveGiftGate } from "@/app/lib/gifts/access";
+import { isYouTubeVideoId, youtubeEmbedUrl } from "@/app/lib/gifts/youtube";
 import { resolveTheme, themeStyle } from "@/app/lib/gifts/themes";
 import UnlockForm from "./UnlockForm";
 import CountdownGate from "./CountdownGate";
@@ -173,6 +174,7 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
   const imageMedia = visualMedia.filter((item) => item.kind === "image");
   const mediaUrl = (id: string) => `/api/gifts/${encodeURIComponent(slug)}/media/${id}`;
   const letter = gift.letter?.trim() || "Every little moment with you deserves to be remembered.";
+  const youtubeVideoId = isYouTubeVideoId(gift.youtube_video_id) ? gift.youtube_video_id : null;
 
   // What the full-screen viewer shows: the same photos, in the same order, with the same
   // filtered captions as the grid, plus the soundtrack it plays while a photo is open.
@@ -185,7 +187,12 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
     };
   });
   const firstAudio = (media || []).find((item) => item.kind === "audio");
-  const viewerAudio = firstAudio ? { src: mediaUrl(firstAudio.id), title: firstAudio.title?.trim() || "Our soundtrack" } : null;
+  const uploadedAudio = firstAudio
+    ? { src: mediaUrl(firstAudio.id), title: firstAudio.title?.trim() || "Our soundtrack" }
+    : null;
+  const montageAudio = youtubeVideoId
+    ? { youtubeVideoId, title: "YouTube soundtrack" }
+    : uploadedAudio;
 
   return (
     <main
@@ -234,7 +241,24 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
         </section>
       </div>
 
-      {firstAudio && viewerItems.length === 0 && (
+      {youtubeVideoId && (
+        <section className="public-soundtrack public-youtube-soundtrack" aria-label="YouTube soundtrack">
+          <span className="section-kicker">A SONG FOR YOUR STORY</span>
+          <div className="soundtrack-info">
+            <strong>YouTube soundtrack</strong>
+            <small>Played by YouTube. Use the player controls to listen.</small>
+          </div>
+          <iframe
+            title="YouTube soundtrack"
+            src={youtubeEmbedUrl(youtubeVideoId)}
+            allow="encrypted-media; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
+        </section>
+      )}
+
+      {!youtubeVideoId && firstAudio && viewerItems.length === 0 && (
         <section className="public-soundtrack public-soundtrack-inline" aria-label="Gift soundtrack">
           <span className="soundtrack-note" aria-hidden="true">♫</span>
           <div className="soundtrack-info">
@@ -252,7 +276,7 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
             <h2>Our moments, <em>kept close.</em></h2>
             <p>{visualMedia.length === 1 ? "One little moment, kept close." : `${visualMedia.length} little ${visualMedia.length === 2 ? "moments" : "memories"}, all part of your story.`}</p>
           </div>
-          <MontagePlayer items={viewerItems} audio={viewerAudio} />
+          <MontagePlayer items={viewerItems} audio={montageAudio} />
           <div className={`public-memories layout-${visualMedia.length <= 2 ? "few" : visualMedia.length <= 4 ? "some" : "many"} ${imageMedia.length === 0 ? "video-led-gallery" : imageMedia.length === 1 ? "single-image-gallery" : "photo-led-gallery"}`}>
             {visualMedia.map((item, index) => (
               // Captions sit beneath photos only: a video's caption belongs to its soundtrack
@@ -275,7 +299,7 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
         </section>
       )}
 
-      {viewerItems.length > 0 && <PhotoViewer items={viewerItems} audio={viewerAudio} />}
+      {viewerItems.length > 0 && <PhotoViewer items={viewerItems} audio={youtubeVideoId ? null : uploadedAudio} />}
       <footer className="public-gift-footer"><span>A little world, made to be remembered.</span><span>AFTERGLOW <i>♡</i></span></footer>
     </main>
   );

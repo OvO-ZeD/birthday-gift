@@ -31,9 +31,9 @@ import { uploadMediaResumable } from "../lib/supabase/resumable-upload";
 
 import {
 
-  ArrowDown, ArrowLeft, ArrowRight, Check, ChevronDown,
+  ArrowDown, ArrowLeft, ArrowRight, Check,
 
-  Eye, FileImage, FileVideo, Heart, ImagePlus, LockKeyhole, Music2,
+  Eye, FileImage, FileVideo, FolderOpen, Heart, ImagePlus, LockKeyhole, Music2,
 
   Palette, Plus, Save, Settings2, Sparkles, Trash2, Upload, WandSparkles,
 
@@ -100,11 +100,34 @@ type MediaItem = {
    not have makes the entire request fail, which would take out loading the draft, saving it and
    publishing it all at once. So a missing-column error is recognised, the experience fields are
    dropped from the request, and everything that worked before keeps working. */
-const GIFT_COLUMNS = "id, slug, title, recipient, letter, theme, published, updated_at";
+const GIFT_COLUMNS = "id, slug, title, recipient, letter, theme, published, password_enabled, updated_at";
 
 const GIFT_EXPERIENCE_COLUMNS = "experience_enabled, countdown_enabled, reveal_at, postcard_subject, postcard_note";
+const YOUTUBE_SOUNDTRACK_COLUMN = "youtube_video_id";
+
+type StudioProject = {
+  id: string;
+  slug: string;
+  title: string;
+  recipient: string;
+  published: boolean;
+  updated_at: string;
+  youtube_video_id?: string | null;
+};
+
+type StudioGift = StudioProject & {
+  letter?: string | null;
+  theme?: string | null;
+  password_enabled?: boolean | null;
+  experience_enabled?: boolean | null;
+  countdown_enabled?: boolean | null;
+  reveal_at?: string | null;
+  postcard_subject?: string | null;
+  postcard_note?: string | null;
+};
 
 const EXPERIENCE_COLUMN_PATTERN = /experience_enabled|countdown_enabled|reveal_at|postcard_subject|postcard_note/;
+const YOUTUBE_COLUMN_PATTERN = /youtube_video_id/;
 
 function isMissingExperienceColumn(error: unknown) {
   if (!error || typeof error !== "object") return false;
@@ -114,6 +137,12 @@ function isMissingExperienceColumn(error: unknown) {
   // retrying without the experience fields would not fix that. The message has to name one of
   // them, which is what the pattern does.
   return EXPERIENCE_COLUMN_PATTERN.test(message ?? "");
+}
+
+function isMissingYouTubeColumn(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const { message } = error as { message?: string };
+  return YOUTUBE_COLUMN_PATTERN.test(message ?? "");
 }
 
 /**
@@ -172,6 +201,13 @@ export default function StudioPage() {
   const [giftId, setGiftId] = useState<string | null>(null);
 
   const [giftSlug, setGiftSlug] = useState<string | null>(null);
+  const [projects, setProjects] = useState<StudioProject[]>([]);
+  const [newProjectRequested, setNewProjectRequested] = useState(false);
+  const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
+  const [youtubeReady, setYoutubeReady] = useState(true);
+  const [switchTarget, setSwitchTarget] = useState<{ id: string | null; label: string } | null>(null);
+  const [switchingProject, setSwitchingProject] = useState(false);
+  const [switchError, setSwitchError] = useState("");
 
   const [title, setTitle] = useState("A little world for you");
 
@@ -184,6 +220,7 @@ export default function StudioPage() {
   const [customColors, setCustomColors] = useState<CustomColors>(DEFAULT_CUSTOM_COLORS);
 
   const [passwordEnabled, setPasswordEnabled] = useState(true);
+  const [savedPasswordEnabled, setSavedPasswordEnabled] = useState(true);
 
   const [password, setPassword] = useState("");
   // Postcard & reveal. Switched off for new projects, so nothing changes unless it is asked for.
@@ -254,9 +291,10 @@ export default function StudioPage() {
 
   const previewCloseRef = useRef<HTMLButtonElement>(null);
 
-  /* The draft the autosave compares against. Null means "nothing loaded yet", so the state that
-     arrives from the database is never mistaken for an unsaved edit. */
-  const savedSignature = useRef<string | null>(null);
+  const projectSwitchCloseRef = useRef<HTMLButtonElement>(null);
+
+  /* Null means "nothing loaded yet", so loaded database state is never mistaken for an edit. */
+  const [savedSignature, setSavedSignature] = useState<string | null>(null);
 
   /* The latest items, readable from inside a pointer handler that was bound before the last
      reorder. Reading `items` directly there would compare against a stale array and make the
@@ -266,6 +304,8 @@ export default function StudioPage() {
   /* Removals waiting out their undo window, keyed by item id, each with the timer that will
      settle it. Held in a ref because the handlers read it without re-rendering. */
   const pendingRemoval = useRef<Map<string, { item: MediaItem; timer: number }>>(new Map());
+
+  const newProjectCreationStarted = useRef(false);
 
   const activeItem = items.find((item) => item.id === activeId) ?? null;
 
@@ -277,9 +317,31 @@ export default function StudioPage() {
   const montageItems = items
     .filter((item) => item.kind === "image")
     .map((item) => ({ src: item.url, title: item.title, caption: item.caption }));
-  const montageAudio = audioItem
-    ? { src: audioItem.url, title: audioItem.title.trim() || "your chosen soundtrack" }
-    : null;
+  const montageAudio = youtubeVideoId
+    ? { youtubeVideoId, title: "YouTube soundtrack" }
+    : audioItem
+      ? { src: audioItem.url, title: audioItem.title.trim() || "your chosen soundtrack" }
+      : null;
+  const draftSignature = JSON.stringify([
+    title,
+    recipient,
+    letter,
+    theme,
+    customColors,
+    experienceEnabled,
+    countdownEnabled,
+    revealDate,
+    revealTime,
+    postcardSubject,
+    postcardNote,
+    youtubeVideoId,
+    items.map((item) => [item.id, item.kind, item.title, item.caption]),
+  ]);
+  const hasPendingMedia = items.some((item) => item.file && !item.storagePath);
+  const hasUnsavedChanges = (
+    savedSignature !== null && savedSignature !== draftSignature
+  ) || hasPendingMedia || removingIds.length > 0
+    || passwordEnabled !== savedPasswordEnabled || Boolean(password);
 
   /* Which steps are finished. One definition, used by the stepper, the mobile rail and the
      inspector checklist, so the three can never disagree about the same gift. A step that is
@@ -328,45 +390,58 @@ export default function StudioPage() {
 
       try {
 
-        const latestGift = () => supabase
-
-          .from("gifts")
-
-          .select(`${GIFT_COLUMNS}, ${GIFT_EXPERIENCE_COLUMNS}`)
-
-          .eq("owner_id", authData.user.id)
-
-          .order("updated_at", { ascending: false })
-
-          .limit(1);
-
-        let loaded = await latestGift();
-
-        if (loaded.error && isMissingExperienceColumn(loaded.error)) {
-
-          // The postcard/reveal migration has not been applied yet. Load the draft without
-          // those columns instead of failing, and remember it so no later write names them.
-          setExperienceReady(false);
-
-          loaded = (await supabase
-
+        const ownedGifts = (withExperience: boolean, withYouTube: boolean) => {
+          const columns = [
+            GIFT_COLUMNS,
+            withExperience ? GIFT_EXPERIENCE_COLUMNS : "",
+            withYouTube ? YOUTUBE_SOUNDTRACK_COLUMN : "",
+          ].filter(Boolean).join(", ");
+          return supabase
             .from("gifts")
-
-            .select(GIFT_COLUMNS)
-
+            .select(columns)
             .eq("owner_id", authData.user.id)
+            .order("updated_at", { ascending: false });
+        };
 
-            .order("updated_at", { ascending: false })
+        let includeExperience = true;
+        let includeYouTube = true;
+        let loaded = await ownedGifts(includeExperience, includeYouTube);
 
-            .limit(1)) as unknown as typeof loaded;
+        while (loaded.error && (includeExperience || includeYouTube)) {
+          const missingYouTube = includeYouTube && isMissingYouTubeColumn(loaded.error);
+          const missingExperience = includeExperience && isMissingExperienceColumn(loaded.error);
+          if (!missingYouTube && !missingExperience) break;
 
+          if (missingYouTube) {
+            includeYouTube = false;
+            setYoutubeReady(false);
+          }
+          if (missingExperience) {
+            includeExperience = false;
+            setExperienceReady(false);
+          }
+          loaded = await ownedGifts(includeExperience, includeYouTube) as typeof loaded;
         }
 
         const { data: gifts, error: giftsError } = loaded;
 
         if (giftsError) throw giftsError;
 
-        const gift = gifts?.[0];
+        const projectList = (gifts || []) as unknown as StudioGift[];
+        setProjects(projectList);
+        const search = new URLSearchParams(window.location.search);
+        const requestedProjectId = search.get("gift");
+        const isNewProject = search.get("new") === "1";
+        setNewProjectRequested(isNewProject && !requestedProjectId);
+        const gift = requestedProjectId
+          ? projectList.find((project) => project.id === requestedProjectId)
+          : isNewProject
+            ? undefined
+            : projectList[0];
+
+        if (requestedProjectId && !gift) {
+          setNotice("That project could not be found in your workspace.");
+        }
 
         if (gift) {
 
@@ -389,6 +464,9 @@ export default function StudioPage() {
           if (storedTheme.custom) setCustomColors(storedTheme.custom);
 
           setPublished(Boolean(gift.published));
+          setPasswordEnabled(Boolean(gift.password_enabled));
+          setSavedPasswordEnabled(Boolean(gift.password_enabled));
+          setYoutubeVideoId(gift.youtube_video_id || null);
 
           // Restore the reveal settings so reopening a draft does not quietly switch the
           // experience back off and lose the deadline the sender chose.
@@ -501,7 +579,7 @@ export default function StudioPage() {
 
           /* Marked before the state lands, so the first autosave pass sees the draft exactly as
              it was loaded and treats it as the baseline rather than as an unsaved edit. */
-          savedSignature.current = null;
+          setSavedSignature(null);
 
           setAuthReady(true);
 
@@ -525,10 +603,8 @@ export default function StudioPage() {
 
     };
 
-    // Load the latest draft once when the page opens.
-
+    // Load the selected project once when the page opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-
   }, [router]);
 
   useEffect(() => {
@@ -634,6 +710,19 @@ export default function StudioPage() {
 
   }, [preview]);
 
+  useEffect(() => {
+    if (!switchTarget) return;
+
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
+    projectSwitchCloseRef.current?.focus({ preventScroll: true });
+
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, [switchTarget]);
+
   /* Opening the preview clears anything the last visit reported, so a stale error is never
      left sitting above a button the creator is about to press again. */
   const openPreview = () => {
@@ -690,6 +779,10 @@ export default function StudioPage() {
 
   };
 
+  const youtubeSoundtrackFields = () => (
+    youtubeReady ? { youtube_video_id: youtubeVideoId } : {}
+  );
+
   /* Guard and state live here; the work lives in saveDraftBody.
      The split exists so the body can be run a second time when a write turns out to name
      columns the database does not have — a retry issued from inside the body would otherwise
@@ -718,7 +811,10 @@ export default function StudioPage() {
       // sees a saved draft or null.
       if (first !== "retry") {
 
-        if (first?.ok) setLastSavedAt(new Date());
+        if (first?.ok) {
+          setLastSavedAt(new Date());
+          setSavedSignature(draftSignature);
+        }
 
         return first;
 
@@ -730,7 +826,10 @@ export default function StudioPage() {
 
       if (second === "retry") return null;
 
-      if (second?.ok) setLastSavedAt(new Date());
+      if (second?.ok) {
+        setLastSavedAt(new Date());
+        setSavedSignature(draftSignature);
+      }
 
       return second;
 
@@ -742,12 +841,56 @@ export default function StudioPage() {
 
   };
 
+  const navigateToProject = (id: string | null) => {
+    const destination = id
+      ? `/studio?gift=${encodeURIComponent(id)}`
+      : "/studio?new=1";
+    window.location.assign(destination);
+  };
+
+  const requestProjectSwitch = (id: string | null, label: string) => {
+    if (!authReady || saving || publishing || sendingPostcard || switchingProject || preview) return;
+    if (id === giftId && id !== null) return;
+
+    if (hasUnsavedChanges) {
+      setSwitchError("");
+      setSwitchTarget({ id, label });
+      return;
+    }
+
+    navigateToProject(id);
+  };
+
+  const confirmProjectSwitch = async (save: boolean) => {
+    if (!switchTarget || switchingProject) return;
+    setSwitchingProject(true);
+    setSwitchError("");
+
+    if (save) {
+      const result = await saveDraft();
+      if (!result?.ok) {
+        setSwitchError("Could not save this project. Your changes are still here; check the save message and try again.");
+        setSwitchingProject(false);
+        return;
+      }
+    }
+
+    navigateToProject(switchTarget.id);
+  };
+
   const saveDraftBody = async (auto = false): Promise<{ ok: true; giftId: string | null; slug: string | null } | null | "retry"> => {
 
     if (!auto) setNotice("Saving your draft and uploading new media…");
 
     // Cleared up front, so a later failure can never be attributed to an earlier one.
     saveErrorRef.current = "";
+
+    if (youtubeVideoId && !youtubeReady) {
+      const reason = "To save a YouTube soundtrack, apply supabase/youtube-soundtrack.sql to your Supabase project, then reload this studio.";
+      saveErrorRef.current = reason;
+      report(reason);
+      return null;
+    }
 
     const supabase = createClient();
 
@@ -794,6 +937,7 @@ export default function StudioPage() {
             letter,
 
             theme: encodeThemeValue(theme, customColors),
+            ...youtubeSoundtrackFields(),
 
             // The experience is only written when it is actually being used AND the migration
             // has provided the columns, so a gift that never touches this section keeps the
@@ -817,6 +961,8 @@ export default function StudioPage() {
         setGiftId(created.id);
 
         setGiftSlug(created.slug);
+        setNewProjectRequested(false);
+        window.history.replaceState(null, "", `/studio?gift=${encodeURIComponent(created.id)}`);
 
       } else {
 
@@ -833,6 +979,7 @@ export default function StudioPage() {
             letter,
 
             theme: encodeThemeValue(theme, customColors),
+            ...youtubeSoundtrackFields(),
 
             ...experienceFields(),
 
@@ -961,6 +1108,21 @@ export default function StudioPage() {
 
       setItems(savedItems);
 
+      if (currentGiftId && currentSlug) {
+        const savedProject: StudioProject = {
+          id: currentGiftId,
+          slug: currentSlug,
+          title: title.trim() || "A little world for you",
+          recipient: recipient.trim() || "Someone special",
+          published,
+          updated_at: new Date().toISOString(),
+        };
+        setProjects((current) => [
+          savedProject,
+          ...current.filter((project) => project.id !== savedProject.id),
+        ]);
+      }
+
       if (!auto) setNotice(`Draft saved to Supabase${currentSlug ? ` · gift ${currentSlug}` : ""}. Media is stored in your private bucket.`);
 
     return {
@@ -985,6 +1147,16 @@ export default function StudioPage() {
 
       }
 
+      if (isMissingYouTubeColumn(error)) {
+        setYoutubeReady(false);
+        const reason = youtubeVideoId
+          ? "To save a YouTube soundtrack, apply supabase/youtube-soundtrack.sql to your Supabase project, then reload this studio."
+          : describeSaveError(error, "The YouTube soundtrack database change is not installed yet.");
+        saveErrorRef.current = reason;
+        report(reason);
+        return null;
+      }
+
       const reason = describeSaveError(error, "Could not save the draft. Please try again.");
 
       saveErrorRef.current = reason;
@@ -1003,6 +1175,13 @@ export default function StudioPage() {
   useEffect(() => {
 
     const onKey = (event: KeyboardEvent) => {
+
+      if (event.key === "Escape" && switchTarget) {
+        event.preventDefault();
+        setSwitchTarget(null);
+        setSwitchError("");
+        return;
+      }
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
 
@@ -1033,18 +1212,17 @@ export default function StudioPage() {
 
     if (!ready) return;
 
-    const signature = JSON.stringify([
-
-      title, recipient, letter, theme, customColors,
-
-      experienceEnabled, countdownEnabled, revealDate, revealTime, postcardSubject, postcardNote,
-
-    ]);
+    const signature = draftSignature;
 
     // The first pass after a draft loads is the draft itself, not an edit to it.
-    if (savedSignature.current === null) { savedSignature.current = signature; return; }
+    if (savedSignature === null) {
+      // The first ready pass establishes the loaded draft as the baseline.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSavedSignature(signature);
+      return;
+    }
 
-    if (savedSignature.current === signature) return;
+    if (savedSignature === signature) return;
 
     const timer = window.setTimeout(async () => {
 
@@ -1052,7 +1230,7 @@ export default function StudioPage() {
 
       // Recorded only on success, so a refused write is not mistaken for a saved one and the
       // next keystroke tries again.
-      if (saved?.ok) savedSignature.current = signature;
+      if (saved?.ok) setSavedSignature(signature);
 
     }, 1400);
 
@@ -1063,13 +1241,28 @@ export default function StudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
 
-    authReady, saving, publishing, sendingPostcard, items,
-
-    title, recipient, letter, theme, customColors,
-
-    experienceEnabled, countdownEnabled, revealDate, revealTime, postcardSubject, postcardNote,
+    authReady, saving, publishing, sendingPostcard, items, draftSignature, savedSignature,
 
   ]);
+
+  useEffect(() => {
+    if (
+      !newProjectRequested ||
+      !authReady ||
+      giftId ||
+      savedSignature === null ||
+      saving ||
+      publishing ||
+      sendingPostcard ||
+      switchingProject ||
+      newProjectCreationStarted.current
+    ) return;
+
+    newProjectCreationStarted.current = true;
+    void saveDraft();
+    // The creation guard prevents this from running again after its first save attempt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newProjectRequested, authReady, giftId, savedSignature, saving, publishing, sendingPostcard, switchingProject]);
 
   const addFiles = async (files: FileList | File[]) => {
     if (saving || publishing) {
@@ -1120,6 +1313,7 @@ export default function StudioPage() {
     const audio = next.filter((item) => item.kind === "audio");
     const visual = next.filter((item) => item.kind !== "audio");
     setItems((current) => [...current.filter((item) => item.kind !== "audio"), ...visual, ...audio.slice(-1)]);
+    if (audio.length) setYoutubeVideoId(null);
     if (visual[0]) setActiveId(visual[0].id);
     const summary = rejected.length ? ` ${rejected.length} file${rejected.length === 1 ? " was" : "s were"} skipped: ${rejected.slice(0, 2).join("; ")}${rejected.length > 2 ? "; and more" : ""}.` : "";
     if (audio.length) setNotice(`Soundtrack added for this preview.${summary}`);
@@ -1482,6 +1676,11 @@ export default function StudioPage() {
       // The slug is the only thing worth storing: the share link is derived from it.
       setGiftSlug(data.slug);
       setPublished(true);
+      setSavedPasswordEnabled(passwordEnabled);
+      setPassword("");
+      setProjects((current) => current.map((project) => project.id === saved.giftId
+        ? { ...project, slug: data.slug, published: true, updated_at: new Date().toISOString() }
+        : project));
       report("Your gift is published and ready to share.");
     } catch (error) {
       report(error instanceof Error ? error.message : "Could not publish your gift. Please try again.");
@@ -1526,7 +1725,9 @@ export default function StudioPage() {
               ? "Saving to cloud…"
               : lastSavedAt
                 ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                : authReady ? (giftId ? "Cloud draft" : "New draft") : "Checking sign-in…"}
+                : published
+                  ? "Editing live gift"
+                  : authReady ? (giftId ? "Cloud draft" : "New draft") : "Checking sign-in…"}
           </span>
 
           <button className="studio-button quiet" onClick={() => void saveDraft()} disabled={!authReady || saving || publishing} title="Save draft (Ctrl+S)"><Save size={15} /> {saving ? "Saving…" : "Save draft"}</button>
@@ -1541,9 +1742,44 @@ export default function StudioPage() {
 
         <aside className="studio-sidebar">
 
-          <div className="side-kicker">YOUR WORKSPACE</div>
-
-          <div className="side-project"><span className="project-icon"><Sparkles size={17} /></span><span><strong>Birthday story</strong><small>Untitled gift</small></span><ChevronDown size={14} /></div>
+          <div className="projects-browser">
+            <div className="projects-browser-heading">
+              <span><FolderOpen size={14} /> YOUR PROJECTS <small>{projects.length}</small></span>
+              <button
+                type="button"
+                className="projects-new-button"
+                onClick={() => requestProjectSwitch(null, "New gift")}
+                disabled={!authReady || saving || publishing || switchingProject}
+              >
+                <Plus size={14} /> New
+              </button>
+            </div>
+            {projects.length === 0 ? (
+              <p className="projects-empty">Your saved gifts will appear here.</p>
+            ) : (
+              <div className="projects-list" aria-label="Saved gifts">
+                {projects.map((project) => (
+                  <button
+                    key={project.id}
+                    type="button"
+                    className={`project-tab ${project.id === giftId ? "is-current" : ""}`}
+                    aria-current={project.id === giftId ? "page" : undefined}
+                    onClick={() => requestProjectSwitch(project.id, project.title || "Untitled gift")}
+                    disabled={!authReady || saving || publishing || switchingProject || project.id === giftId}
+                  >
+                    <span className="project-tab-mark"><Sparkles size={13} /></span>
+                    <span className="project-tab-copy">
+                      <strong>{project.title || "Untitled gift"}</strong>
+                      <small>{project.recipient || "Someone special"}</small>
+                    </span>
+                    <span className={`project-tab-status ${project.published ? "is-live" : ""}`}>
+                      {project.published ? "Live" : "Draft"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="side-progress"><div><span>CREATION PROGRESS</span><strong>{progress}%</strong></div><span className="progress-track"><i style={{ width: `${progress}%` }} /></span></div>
 
@@ -1597,9 +1833,13 @@ export default function StudioPage() {
 
           <div className="studio-heading">
 
-            <div><div className="eyebrow-studio"><span /> THE CREATOR STUDIO</div><h1>Make it <em>personal.</em></h1><p>A small world, built from your favourite moments.</p></div>
+            <div>
+              <div className="eyebrow-studio"><span /> THE CREATOR STUDIO</div>
+              <h1>{published ? <>Keep it <em>personal.</em></> : <>Make it <em>personal.</em></>}</h1>
+              <p>{published ? "Saved changes update the gift your recipient sees." : "A small world, built from your favourite moments."}</p>
+            </div>
 
-            <div className="heading-chip"><span className="chip-dot" /> DRAFT MODE</div>
+            <div className={`heading-chip ${published ? "is-live" : ""}`}><span className="chip-dot" /> {published ? "LIVE · SAVED EDITS UPDATE YOUR GIFT" : "DRAFT MODE"}</div>
 
           </div>
 
@@ -1646,7 +1886,16 @@ export default function StudioPage() {
 
             </div>
 
-            <SongPicker onPick={(file) => void addFiles([file])} />
+            <SongPicker
+              onPick={(file) => void addFiles([file])}
+              youtubeVideoId={youtubeVideoId}
+              onPickYouTube={(videoId) => {
+                document.querySelectorAll("audio").forEach((player) => player.pause());
+                setYoutubeVideoId(videoId);
+                setNotice("YouTube soundtrack selected. Save the project to keep it.");
+              }}
+              onRemoveYouTube={() => setYoutubeVideoId(null)}
+            />
 
             {removingIds.length > 0 && (
 
@@ -1732,7 +1981,7 @@ export default function StudioPage() {
 
             </div>}
 
-            {audioItem && <div className="audio-strip"><span className="audio-icon"><Music2 size={17} /></span><div><strong>{audioItem.originalFilename}</strong><small>Soundtrack selected</small></div><audio src={audioItem.url} controls /><button className="icon-button" onClick={() => removeItem(audioItem.id)} aria-label="Remove soundtrack"><Trash2 size={15} /></button></div>}
+            {audioItem && <div className="audio-strip"><span className="audio-icon"><Music2 size={17} /></span><div><strong>{audioItem.originalFilename}</strong><small>{youtubeVideoId ? "Saved as an alternate soundtrack" : "Soundtrack selected"}</small></div>{!youtubeVideoId && <audio src={audioItem.url} controls />}<button className="icon-button" onClick={() => removeItem(audioItem.id)} aria-label="Remove soundtrack"><Trash2 size={15} /></button></div>}
 
             <MontagePlayer items={montageItems} audio={montageAudio} variant="studio" />
 
@@ -1938,6 +2187,47 @@ export default function StudioPage() {
         </aside>
 
       </div>
+
+      {switchTarget && <div className="project-switch-backdrop" role="dialog" aria-modal="true" aria-labelledby="project-switch-title">
+        <div className="project-switch-dialog">
+          <button
+            ref={projectSwitchCloseRef}
+            type="button"
+            className="project-switch-close"
+            onClick={() => { setSwitchTarget(null); setSwitchError(""); }}
+            disabled={switchingProject}
+            aria-label="Stay in this project"
+          >
+            <X size={18} />
+          </button>
+          <span className="project-switch-icon"><FolderOpen size={19} /></span>
+          <span className="project-switch-eyebrow">YOUR PROJECTS</span>
+          <h2 id="project-switch-title">Leave this gift?</h2>
+          <p>
+            You’re switching to <strong>{switchTarget.label}</strong>.
+            {published
+              ? " Saved edits to this live gift update what your recipient sees."
+              : " Your other saved gifts will stay untouched."}
+          </p>
+          {(password || passwordEnabled !== savedPasswordEnabled) && (
+            <p className="project-switch-password">
+              Password protection changes are only applied when you publish. A typed password is never saved in a draft.
+            </p>
+          )}
+          {switchError && <p className="project-switch-error" role="alert">{switchError}</p>}
+          <div className="project-switch-actions">
+            <button type="button" className="studio-button primary" onClick={() => void confirmProjectSwitch(true)} disabled={switchingProject}>
+              <Save size={15} /> {switchingProject ? "Saving…" : "Save & switch"}
+            </button>
+            <button type="button" className="studio-button quiet" onClick={() => void confirmProjectSwitch(false)} disabled={switchingProject}>
+              Discard changes & switch
+            </button>
+            <button type="button" className="project-switch-stay" onClick={() => { setSwitchTarget(null); setSwitchError(""); }} disabled={switchingProject}>
+              Stay in this gift
+            </button>
+          </div>
+        </div>
+      </div>}
 
       {preview && <div className="gift-preview-backdrop" role="dialog" aria-modal="true" aria-label="Gift preview">
 

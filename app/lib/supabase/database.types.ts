@@ -149,6 +149,7 @@ export type Database = {
           theme: string
           title: string
           updated_at: string
+          youtube_video_id: string | null
         }
         Insert: {
           access_version?: number
@@ -169,6 +170,7 @@ export type Database = {
           theme?: string
           title?: string
           updated_at?: string
+          youtube_video_id?: string | null
         }
         Update: {
           access_version?: number
@@ -189,6 +191,7 @@ export type Database = {
           theme?: string
           title?: string
           updated_at?: string
+          youtube_video_id?: string | null
         }
         Relationships: []
       }

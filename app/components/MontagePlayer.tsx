@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, Pause, Play, Sparkles, X } from "lucide-react";
+import { isYouTubeVideoId, youtubeEmbedUrl } from "../lib/gifts/youtube";
 import "./montage.css";
 
 export type MontageItem = {
@@ -14,7 +15,7 @@ export type MontageItem = {
 
 type Props = {
   items: MontageItem[];
-  audio?: { src: string; title: string } | null;
+  audio?: { src?: string; youtubeVideoId?: string; title: string } | null;
   variant?: "recipient" | "studio";
 };
 
@@ -38,6 +39,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const current = items[index];
+  const youtubeVideoId = isYouTubeVideoId(audio?.youtubeVideoId) ? audio.youtubeVideoId : null;
 
   const stopMusic = useCallback(() => {
     audioRef.current?.pause();
@@ -53,7 +55,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
   }, [stopMusic]);
 
   const playMusic = useCallback(async () => {
-    if (!audio) return;
+    if (!audio?.src || youtubeVideoId) return;
     if (!audioRef.current) {
       const element = new Audio(audio.src);
       element.loop = true;
@@ -70,7 +72,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
       setMusicPlaying(false);
       setPlaybackNotice("The soundtrack could not start. Try the music control again.");
     }
-  }, [audio]);
+  }, [audio, youtubeVideoId]);
 
   const start = useCallback(() => {
     triggerRef.current = document.activeElement instanceof HTMLButtonElement
@@ -187,7 +189,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                 <header className="montage-header">
                   <div className="montage-brand"><Sparkles size={15} /><span>YOUR STORY IN MOTION</span></div>
                   <div className="montage-header-actions">
-                    {audio && (
+                    {audio?.src && !youtubeVideoId && (
                       <button
                         type="button"
                         className="montage-control"
@@ -211,6 +213,18 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                     </button>
                   </div>
                 </header>
+
+                {youtubeVideoId && (
+                  <div className="montage-youtube-player">
+                    <iframe
+                      title="YouTube soundtrack"
+                      src={youtubeEmbedUrl(youtubeVideoId, true)}
+                      allow="autoplay; encrypted-media; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
 
                 <div className="montage-progress" aria-hidden="true">
                   {items.map((item, itemIndex) => (

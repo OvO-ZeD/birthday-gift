@@ -76,6 +76,10 @@
 .song-recording { animation: rec-pulse 1.6s ease-in-out infinite; }
 @keyframes rec-pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--studio-accent) 45%, transparent); } 50% { box-shadow: 0 0 0 7px transparent; } }
 .song-message { margin: 10px 0 0; font-size: 11px; color: var(--studio-muted); }
+.youtube-selected { display:grid; justify-items:center; gap:9px; margin-top:12px; padding:10px; border:1px solid var(--studio-border); border-radius:11px; background:color-mix(in srgb, var(--studio-bg) 26%, transparent); }
+.youtube-selected iframe { display:block; width:min(100%,560px); aspect-ratio:16 / 9; min-height:200px; border:0; border-radius:8px; background:#000; }
+.youtube-selected-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; width:min(100%,560px); color:var(--studio-muted); font-size:10px; }
+.youtube-selected-actions .studio-button { min-height:36px; }
 @media (prefers-reduced-motion: reduce) { .song-recording { animation: none; } }
 @media (max-width: 520px) {
   .song-picker { padding:13px; }

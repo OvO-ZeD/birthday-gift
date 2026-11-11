@@ -95,6 +95,7 @@ export function resolveGiftGate(options: {
 const EXPERIENCE_COLUMNS =
   "experience_enabled, countdown_enabled, reveal_at, access_version, postcard_subject, postcard_note";
 const LEGACY_COLUMNS = "id, slug, published, password_enabled, password_hash, theme, recipient, title, letter";
+const YOUTUBE_SOUNDTRACK_COLUMN = "youtube_video_id";
 
 /**
  * Loads the gate-relevant columns for a gift.
@@ -121,6 +122,7 @@ export type GiftAccessRow = {
   access_version: number;
   postcard_subject: string | null;
   postcard_note: string | null;
+  youtube_video_id: string | null;
 };
 
 /** Fills in the shape the rest of the app expects when a column is absent or null. */
@@ -141,6 +143,7 @@ function normaliseRow(raw: Record<string, unknown>): GiftAccessRow {
     access_version: Number(raw.access_version ?? 1) || 1,
     postcard_subject: (raw.postcard_subject as string | null) ?? null,
     postcard_note: (raw.postcard_note as string | null) ?? null,
+    youtube_video_id: (raw.youtube_video_id as string | null) ?? null,
   };
 }
 
@@ -153,23 +156,35 @@ export async function loadGiftAccessRow(
   accessVersion: number;
   migrated: boolean;
 }> {
-  const select = `${LEGACY_COLUMNS}, ${EXPERIENCE_COLUMNS}`;
-  const { data, error } = await admin
+  const load = (columns: string) => admin
     .from("gifts")
-    .select(select)
+    .select(columns)
     .eq("slug", slug)
     .eq("published", true)
     .maybeSingle();
+  const { data, error } = await load(`${LEGACY_COLUMNS}, ${EXPERIENCE_COLUMNS}, ${YOUTUBE_SOUNDTRACK_COLUMN}`);
 
   if (error) {
-    // Almost certainly a missing-column error: the migration has not been applied yet.
-    const fallback = await admin
-      .from("gifts")
-      .select(LEGACY_COLUMNS)
-      .eq("slug", slug)
-      .eq("published", true)
-      .maybeSingle();
+    // Keep published gifts available when one optional migration is not installed yet.
+    const withExperience = await load(`${LEGACY_COLUMNS}, ${EXPERIENCE_COLUMNS}`);
+    if (!withExperience.error) {
+      if (!withExperience.data) {
+        return { row: null, experience: disabledExperience(null), accessVersion: 1, migrated: true };
+      }
+      const row = normaliseRow(withExperience.data as unknown as Record<string, unknown>);
+      return { row, experience: readExperience(row), accessVersion: row.access_version, migrated: true };
+    }
 
+    const withYouTube = await load(`${LEGACY_COLUMNS}, ${YOUTUBE_SOUNDTRACK_COLUMN}`);
+    if (!withYouTube.error) {
+      if (!withYouTube.data) {
+        return { row: null, experience: disabledExperience(null), accessVersion: 1, migrated: false };
+      }
+      const row = normaliseRow(withYouTube.data as unknown as Record<string, unknown>);
+      return { row, experience: disabledExperience(row), accessVersion: 1, migrated: false };
+    }
+
+    const fallback = await load(LEGACY_COLUMNS);
     if (fallback.error) {
       console.error("Gift access lookup failed:", fallback.error.message);
       return { row: null, experience: disabledExperience(null), accessVersion: 1, migrated: false };
@@ -178,8 +193,6 @@ export async function loadGiftAccessRow(
       return { row: null, experience: disabledExperience(null), accessVersion: 1, migrated: false };
     }
 
-    // Treated as though the experience feature is switched off, which is exactly how the gift
-    // behaved before it existed.
     const row = normaliseRow(fallback.data as unknown as Record<string, unknown>);
     return { row, experience: disabledExperience(row), accessVersion: 1, migrated: false };
   }
