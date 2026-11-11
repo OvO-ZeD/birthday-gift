@@ -58,3 +58,86 @@
 @keyframes rec-pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--studio-accent) 45%, transparent); } 50% { box-shadow: 0 0 0 7px transparent; } }
 .song-message { margin: 10px 0 0; font-size: 11px; color: var(--studio-muted); }
 @media (prefers-reduced-motion: reduce) { .song-recording { animation: none; } }
+
+.studio-shell {
+  background-image:
+    radial-gradient(ellipse at 82% 4%, color-mix(in srgb, var(--gift-accent, var(--studio-accent)) 14%, transparent), transparent 40%),
+    radial-gradient(ellipse at 7% 58%, rgba(181, 133, 104, .06), transparent 36%);
+  background-attachment: fixed;
+}
+.studio-shell[data-look="rose"],
+.studio-shell[data-look="sage"] { --glass-wash: rgba(255,255,255,.58); }
+.studio-shell[data-look="ocean"],
+.studio-shell[data-look="sunset"] { --glass-wash: rgba(15,18,24,.34); }
+.studio-shell { --glass-wash: rgba(255,255,255,.035); }
+.studio-topbar {
+  border-bottom-color: color-mix(in srgb, var(--studio-border) 72%, transparent);
+  background: color-mix(in srgb, var(--studio-bg) 76%, transparent);
+  box-shadow: 0 12px 36px rgba(0,0,0,.11), inset 0 1px rgba(255,255,255,.06);
+  backdrop-filter: blur(26px) saturate(1.18);
+  -webkit-backdrop-filter: blur(26px) saturate(1.18);
+}
+.studio-sidebar,
+.studio-inspector {
+  background: color-mix(in srgb, var(--studio-bg) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(1.12);
+  -webkit-backdrop-filter: blur(20px) saturate(1.12);
+}
+.side-project,
+.sidebar-tip,
+.inspector-preview,
+.form-card,
+.theme-card,
+.privacy-card,
+.experience-card,
+.publish-bar,
+.upload-zone,
+.empty-media,
+.item-editor,
+.audio-strip,
+.media-tile {
+  border-color: color-mix(in srgb, var(--studio-accent) 20%, var(--studio-border));
+  background-color: color-mix(in srgb, var(--studio-panel) 75%, transparent);
+  box-shadow: inset 0 1px rgba(255,255,255,.07), 0 16px 42px rgba(0,0,0,.08);
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+}
+.upload-zone { background-image: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--studio-accent) 11%, transparent), transparent 68%); }
+.studio-nav a.selected {
+  border-color: color-mix(in srgb, var(--studio-accent) 32%, transparent);
+  background: color-mix(in srgb, var(--studio-accent) 12%, transparent);
+  box-shadow: inset 0 1px rgba(255,255,255,.07);
+}
+.studio-shell .media-tile.active {
+  border-color: color-mix(in srgb, var(--studio-accent) 76%, white 24%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--studio-accent) 38%, transparent), 0 18px 42px rgba(0,0,0,.15);
+}
+.mobile-action-dock {
+  border-top-color: color-mix(in srgb, var(--studio-accent) 24%, var(--studio-border));
+  background: color-mix(in srgb, var(--studio-bg) 78%, transparent);
+  backdrop-filter: blur(24px) saturate(1.18);
+  -webkit-backdrop-filter: blur(24px) saturate(1.18);
+}
+.studio-shell[data-look="rose"] .mobile-action-dock,
+.studio-shell[data-look="sage"] .mobile-action-dock { background: rgba(248,246,241,.82); }
+.studio-shell[data-look="ocean"] .mobile-action-dock,
+.studio-shell[data-look="sunset"] .mobile-action-dock { background: rgba(12,16,20,.82); }
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-shell .studio-topbar,
+  .studio-shell .studio-sidebar,
+  .studio-shell .studio-inspector,
+  .studio-shell .mobile-action-dock,
+  .studio-shell .form-card,
+  .studio-shell .theme-card,
+  .studio-shell .privacy-card,
+  .studio-shell .experience-card,
+  .studio-shell .upload-zone,
+  .studio-shell .empty-media,
+  .studio-shell .item-editor,
+  .studio-shell .audio-strip,
+  .studio-shell .media-tile {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

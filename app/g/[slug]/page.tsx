@@ -11,6 +11,7 @@ import PhotoMoodEnhancer from "./PhotoMoodEnhancer";
 import GiftAtmosphere from "./GiftAtmosphere";
 import MemoryCard from "./MemoryCard";
 import PhotoViewer from "./PhotoViewer";
+import MontagePlayer from "@/app/components/MontagePlayer";
 import "./gift.css";
 
 export const dynamic = "force-dynamic";
@@ -240,6 +241,7 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
             <h2>Our moments, <em>kept close.</em></h2>
             <p>{visualMedia.length === 1 ? "One little moment, kept close." : `${visualMedia.length} little ${visualMedia.length === 2 ? "moments" : "memories"}, all part of your story.`}</p>
           </div>
+          <MontagePlayer items={viewerItems} audio={viewerAudio} />
           <div className={`public-memories layout-${visualMedia.length <= 2 ? "few" : visualMedia.length <= 4 ? "some" : "many"} ${imageMedia.length === 0 ? "video-led-gallery" : imageMedia.length === 1 ? "single-image-gallery" : "photo-led-gallery"}`}>
             {visualMedia.map((item, index) => (
               // Captions sit beneath photos only: a video's caption belongs to its soundtrack

@@ -70,11 +70,11 @@ export async function GET(
     ]);
     const mimeType = (media.mime_type || "application/octet-stream").toLowerCase().split(";")[0].trim();
     const canDisplayInline = safeInlineTypes.has(mimeType);
-    const filename = encodeURIComponent((media.original_filename || "memory").replace(/[\r\n\\/]/g, "_"));
+    const filename = (media.original_filename || "memory").replace(/[\r\n\\/]/g, "_");
     const { data: signed, error: signedError } = await admin
       .storage.from("gift-media")
       .createSignedUrl(media.storage_path, 3600, {
-        download: canDisplayInline ? false : media.original_filename || "memory",
+        download: canDisplayInline ? false : filename,
       });
 
     if (signedError || !signed?.signedUrl) {
@@ -87,7 +87,6 @@ export async function GET(
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
         "Cross-Origin-Resource-Policy": "same-origin",
-        "X-Content-Disposition-Filename": filename,
       },
     });
   } catch (error) {

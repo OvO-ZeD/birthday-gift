@@ -7,9 +7,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "../lib/supabase/client";
+import MontagePlayer from "../components/MontagePlayer";
 
 import {
-
   DEFAULT_CUSTOM_COLORS,
 
   THEMES,
@@ -25,8 +25,9 @@ import {
   type CustomColors,
 
   type ThemeId,
-
 } from "../lib/gifts/themes";
+import { MAX_VIDEO_BYTES } from "../lib/gifts/media-limits";
+import { uploadMediaResumable } from "../lib/supabase/resumable-upload";
 
 import {
 
@@ -74,6 +75,8 @@ type MediaItem = {
   url: string;
 
   storagePath?: string;
+
+  pendingStoragePath?: string;
 
   originalFilename: string;
 
@@ -148,72 +151,7 @@ function makeId() {
 
 }
 
-const FREE_STORAGE_FILE_LIMIT = 50 * 1024 * 1024;
-const VIDEO_COMPRESSION_TARGET = 44 * 1024 * 1024;
-
-function waitForMediaEvent(element: HTMLMediaElement, eventName: string, timeoutMs = 15000) {
-  return new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => finish(new Error("Timed out while preparing this video.")), timeoutMs);
-    const finish = (error?: Error) => {
-      window.clearTimeout(timeout);
-      element.removeEventListener(eventName, onReady);
-      element.removeEventListener("error", onError);
-      error ? reject(error) : resolve();
-    };
-    const onReady = () => finish();
-    const onError = () => finish(new Error("This video format could not be prepared for compression in this browser."));
-    element.addEventListener(eventName, onReady, { once: true });
-    element.addEventListener("error", onError, { once: true });
-  });
-}
-
-async function compressVideoForFreeStorage(file: File): Promise<File> {
-  if (file.size <= VIDEO_COMPRESSION_TARGET) return file;
-  const Video = document.createElement("video") as HTMLVideoElement & { captureStream?: () => MediaStream; webkitCaptureStream?: () => MediaStream };
-  const sourceUrl = URL.createObjectURL(file);
-  Video.muted = false;
-  Video.playsInline = true;
-  Video.preload = "auto";
-  Video.src = sourceUrl;
-  try {
-    await waitForMediaEvent(Video, "loadedmetadata");
-    const capture = Video.captureStream || Video.webkitCaptureStream;
-    if (!capture || typeof MediaRecorder === "undefined") {
-      throw new Error("This iPhone browser cannot compress this video automatically. Please use the iPhone Photos app to trim or export a smaller copy under 50 MB, then upload it again.");
-    }
-    const stream = capture.call(Video);
-    const mimeType = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/webm;codecs=vp8,opus", "video/mp4", "video/webm"].find((type) => MediaRecorder.isTypeSupported(type));
-    if (!mimeType) throw new Error("Automatic video compression is not supported by this browser. Please upload a copy under 50 MB.");
-    const chunks: BlobPart[] = [];
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 850_000, audioBitsPerSecond: 96_000 });
-    const recorded = new Promise<Blob>((resolve, reject) => {
-      recorder.addEventListener("dataavailable", (event) => { if (event.data.size) chunks.push(event.data); });
-      recorder.addEventListener("error", () => reject(new Error("Video compression failed. Please try a smaller export.")), { once: true });
-      recorder.addEventListener("stop", () => resolve(new Blob(chunks, { type: mimeType })), { once: true });
-    });
-    Video.currentTime = 0;
-    await Video.play();
-    recorder.start(1000);
-    await new Promise<void>((resolve, reject) => {
-      Video.addEventListener("ended", () => resolve(), { once: true });
-      Video.addEventListener("error", () => reject(new Error("Video playback failed during compression.")), { once: true });
-    });
-    if (recorder.state !== "inactive") recorder.stop();
-    const blob = await recorded;
-    stream.getTracks().forEach((track) => track.stop());
-    if (!blob.size || blob.size >= file.size || blob.size > FREE_STORAGE_FILE_LIMIT) {
-      throw new Error("This video could not be reduced below Supabase Free's 50 MB file limit. Try trimming it or exporting at 720p with a lower quality setting.");
-    }
-    const extension = mimeType.includes("mp4") ? "mp4" : "webm";
-    const baseName = file.name.replace(/\.[^.]+$/, "");
-    return new File([blob], `${baseName}-compressed.${extension}`, { type: mimeType.split(";")[0], lastModified: Date.now() });
-  } finally {
-    Video.pause();
-    Video.removeAttribute("src");
-    Video.load();
-    URL.revokeObjectURL(sourceUrl);
-  }
-}
+const RESUMABLE_UPLOAD_THRESHOLD_BYTES = 6 * 1024 * 1024;
 
 export default function StudioPage() {
 
@@ -223,7 +161,13 @@ export default function StudioPage() {
 
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, filename: "" });
+  const [uploadProgress, setUploadProgress] = useState({
+    current: 0,
+    total: 0,
+    filename: "",
+    bytesUploaded: 0,
+    bytesTotal: 0,
+  });
 
   const [giftId, setGiftId] = useState<string | null>(null);
 
@@ -330,6 +274,12 @@ export default function StudioPage() {
   const visibleMediaItems = mediaItems.filter((item) => !removingIds.includes(item.id));
 
   const audioItem = items.find((item) => item.kind === "audio") ?? null;
+  const montageItems = items
+    .filter((item) => item.kind === "image")
+    .map((item) => ({ src: item.url, title: item.title, caption: item.caption }));
+  const montageAudio = audioItem
+    ? { src: audioItem.url, title: audioItem.title.trim() || "your chosen soundtrack" }
+    : null;
 
   /* Which steps are finished. One definition, used by the stepper, the mobile rail and the
      inspector checklist, so the three can never disagree about the same gift. A step that is
@@ -900,9 +850,7 @@ export default function StudioPage() {
 
       const savedItems: MediaItem[] = [];
       const pendingUploads = currentItems.filter((item) => !item.storagePath && Boolean(item.file));
-      let completedUploads = 0;
-      setUploadProgress({ current: 0, total: pendingUploads.length, filename: "" });
-
+      setUploadProgress({ current: 0, total: pendingUploads.length, filename: "", bytesUploaded: 0, bytesTotal: 0 });
       for (let position = 0; position < currentItems.length; position += 1) {
         const item = currentItems[position];
         let storagePath = item.storagePath;
@@ -912,21 +860,52 @@ export default function StudioPage() {
 
         if (!storagePath) {
           if (!item.file) throw new Error(`The original file for "${item.title}" is unavailable. Remove it and upload it again.`);
-          setUploadProgress({ current: completedUploads + 1, total: pendingUploads.length, filename: item.originalFilename });
-          setNotice(`Uploading ${completedUploads + 1} of ${pendingUploads.length}: ${item.originalFilename}`);
-          const safeName = item.originalFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
-          storagePath = `${currentGiftId}/${crypto.randomUUID()}-${safeName}`;
-          const { error: uploadError } = await supabase.storage.from("gift-media").upload(storagePath, item.file, {
-            contentType: item.mimeType,
-            upsert: false,
-            cacheControl: "3600",
+          const uploadPosition = pendingUploads.findIndex((entry) => entry.id === item.id);
+          storagePath = item.pendingStoragePath;
+          if (!storagePath) {
+            const safeName = item.originalFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
+            storagePath = `${currentGiftId}/${crypto.randomUUID()}-${safeName}`;
+            setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, pendingStoragePath: storagePath } : entry));
+          }
+          setUploadProgress({
+            current: uploadPosition,
+            total: pendingUploads.length,
+            filename: item.originalFilename,
+            bytesUploaded: 0,
+            bytesTotal: item.sizeBytes,
           });
-          if (uploadError) {
-            const detail = uploadError.message || "Unknown storage error";
-            if (/maximum allowed size|file size limit|payload too large/i.test(detail)) {
-              throw new Error(`"${item.originalFilename}" exceeds the current Supabase Storage file-size limit. Supabase Free allows a maximum of 50 MB per object. This file must be compressed below 50 MB or uploaded on a plan with a higher limit. Current storage error: ${detail}`);
+          setNotice(`Uploading ${uploadPosition + 1} of ${pendingUploads.length}: ${item.originalFilename}`);
+          if (item.file.size > RESUMABLE_UPLOAD_THRESHOLD_BYTES) {
+            try {
+              await uploadMediaResumable(item.file, storagePath, (bytesUploaded, bytesTotal) => {
+                setUploadProgress({
+                  current: uploadPosition,
+                  total: pendingUploads.length,
+                  filename: item.originalFilename,
+                  bytesUploaded,
+                  bytesTotal,
+                });
+              });
+            } catch (error) {
+              const detail = error instanceof Error ? error.message : String(error);
+              if (/413|maximum allowed size|file size limit|payload too large|entity too large/i.test(detail)) {
+                throw new Error(`"${item.originalFilename}" exceeds the configured Supabase Storage limit. Confirm your plan and the private gift-media bucket support files up to 500 MB. Storage response: ${detail}`);
+              }
+              throw new Error(`Resumable upload failed for "${item.originalFilename}": ${detail}`);
             }
-            throw new Error(`Upload failed for "${item.originalFilename}": ${detail}`);
+          } else {
+            const { error: uploadError } = await supabase.storage.from("gift-media").upload(storagePath, item.file, {
+              contentType: item.mimeType,
+              upsert: false,
+              cacheControl: "3600",
+            });
+            if (uploadError) {
+              const detail = uploadError.message || "Unknown storage error";
+              if (/maximum allowed size|file size limit|payload too large|entity too large/i.test(detail)) {
+                throw new Error(`"${item.originalFilename}" exceeds the configured Supabase Storage limit. Confirm your plan and the private gift-media bucket support files up to 500 MB. Storage response: ${detail}`);
+              }
+              throw new Error(`Upload failed for "${item.originalFilename}": ${detail}`);
+            }
           }
 
           const { data: inserted, error: insertError } = await supabase.from("gift_media").insert({
@@ -949,9 +928,15 @@ export default function StudioPage() {
 
           // Checkpoint each successful upload immediately so retrying after a mobile
           // interruption does not upload the same file or create duplicate rows.
-          const checkpoint = { ...item, dbId, storagePath };
+          const checkpoint = { ...item, dbId, storagePath, pendingStoragePath: undefined };
           setItems((current) => current.map((entry) => entry.id === item.id ? checkpoint : entry));
-          completedUploads += 1;
+          setUploadProgress({
+            current: uploadPosition + 1,
+            total: pendingUploads.length,
+            filename: item.originalFilename,
+            bytesUploaded: item.sizeBytes,
+            bytesTotal: item.sizeBytes,
+          });
         } else if (dbId) {
           const { error: updateMediaError } = await supabase.from("gift_media")
             .update({ title: item.title, caption: item.caption, position })
@@ -1091,7 +1076,7 @@ export default function StudioPage() {
       setNotice("Please wait for the current save or publish to finish before adding more files.");
       return;
     }
-    const limits = { image: 25 * 1024 * 1024, video: FREE_STORAGE_FILE_LIMIT, audio: 30 * 1024 * 1024 };
+    const limits = { image: 25 * 1024 * 1024, video: MAX_VIDEO_BYTES, audio: 30 * 1024 * 1024 };
     const allowedExtensions: Record<MediaItem["kind"], string[]> = {
       image: ["jpg", "jpeg", "png", "webp", "gif", "avif"],
       video: ["mp4", "webm", "mov", "m4v"],
@@ -1100,7 +1085,7 @@ export default function StudioPage() {
     const candidates = Array.from(files);
     const accepted: { file: File; kind: MediaItem["kind"] }[] = [];
     const rejected: string[] = [];
-    setNotice("Checking files and preparing any large videos for Supabase Free…");
+    setNotice("Checking selected files…");
 
     for (const originalFile of candidates) {
       const fileExtension = originalFile.name.split(".").pop()?.toLowerCase() || "";
@@ -1112,25 +1097,11 @@ export default function StudioPage() {
         rejected.push(`${originalFile.name}: unsupported format`);
         continue;
       }
-      if (originalFile.size <= 0 || (kind !== "video" && originalFile.size > limits[kind])) {
+      if (originalFile.size <= 0 || originalFile.size > limits[kind]) {
         rejected.push(`${originalFile.name}: maximum ${Math.round(limits[kind] / (1024 * 1024))} MB`);
         continue;
       }
-      let file = originalFile;
-      if (kind === "video" && file.size > VIDEO_COMPRESSION_TARGET) {
-        setNotice(`Compressing ${file.name} for the Free-plan 50 MB limit… Keep this page open.`);
-        try {
-          file = await compressVideoForFreeStorage(file);
-        } catch (error) {
-          rejected.push(`${originalFile.name}: ${error instanceof Error ? error.message : "could not compress video"}`);
-          continue;
-        }
-      }
-      if (file.size > limits[kind]) {
-        rejected.push(`${originalFile.name}: must be under 50 MB for Supabase Free`);
-        continue;
-      }
-      accepted.push({ file, kind });
+      accepted.push({ file: originalFile, kind });
     }
 
     const currentVisualCount = items.filter((item) => item.kind !== "audio").length;
@@ -1523,6 +1494,13 @@ export default function StudioPage() {
   // same registry the recipient page does — including unsaved custom colours.
   const previewTheme = resolveThemeParts(theme, customColors);
 
+  const activeUploadPercent = uploadProgress.bytesTotal
+    ? Math.round((uploadProgress.bytesUploaded / uploadProgress.bytesTotal) * 100)
+    : 0;
+  const overallUploadPercent = uploadProgress.total
+    ? Math.round(((uploadProgress.current + activeUploadPercent / 100) / uploadProgress.total) * 100)
+    : 0;
+
   return (
 
     <main className="studio-shell" data-tone={previewTheme.tone} style={themeStyle(previewTheme)}>
@@ -1660,6 +1638,8 @@ export default function StudioPage() {
 
               <SongPicker onPick={(file) => void addFiles([file])} />
 
+              <small>Videos up to 500 MB use resumable uploads. Your Supabase plan and private bucket must support that limit.</small>
+
               {!mediaItems.length && <small>Save your draft to upload selected media to your private Supabase storage bucket.</small>}
 
               <input ref={fileInput} hidden type="file" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.webm,.mov,.m4v,image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime" onChange={onFileChange} />
@@ -1681,9 +1661,9 @@ export default function StudioPage() {
             )}
 
             {saving && uploadProgress.total > 0 && <div className="upload-progress" role="status" aria-live="polite">
-              <div className="upload-progress-copy"><strong>Saving your memories</strong><span>{uploadProgress.current} of {uploadProgress.total}{uploadProgress.filename ? ` · ${uploadProgress.filename}` : ""}</span></div>
-              <div className="upload-progress-track"><i style={{ width: `${Math.min(100, uploadProgress.total ? (uploadProgress.current / uploadProgress.total) * 100 : 0)}%` }} /></div>
-              <small>Keep this page open until the save finishes. Large videos can take a little longer on mobile.</small>
+              <div className="upload-progress-copy"><strong>Saving your memories</strong><span>{uploadProgress.current < uploadProgress.total ? `${uploadProgress.current + 1} of ${uploadProgress.total} · ${uploadProgress.filename} · ${activeUploadPercent}%` : `${uploadProgress.total} of ${uploadProgress.total} complete`}</span></div>
+              <div className="upload-progress-track"><i style={{ width: `${Math.min(100, overallUploadPercent)}%` }} /></div>
+              <small>Keep this page open until the save finishes. Large uploads can take time on mobile; interrupted resumable uploads can be retried.</small>
             </div>}
 
             {visibleMediaItems.length > 0 ? <div className="media-grid">{visibleMediaItems.map((item, index) => <article
@@ -1753,6 +1733,8 @@ export default function StudioPage() {
             </div>}
 
             {audioItem && <div className="audio-strip"><span className="audio-icon"><Music2 size={17} /></span><div><strong>{audioItem.originalFilename}</strong><small>Soundtrack selected</small></div><audio src={audioItem.url} controls /><button className="icon-button" onClick={() => removeItem(audioItem.id)} aria-label="Remove soundtrack"><Trash2 size={15} /></button></div>}
+
+            <MontagePlayer items={montageItems} audio={montageAudio} variant="studio" />
 
           </section>
 
