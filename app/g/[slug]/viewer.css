@@ -50,8 +50,14 @@
 .pv-eq b:nth-child(3) { animation-delay: .44s; }
 @keyframes pv-eq { 0%, 100% { height: 3px; } 50% { height: 9px; } }
 
-.pv-stage { position: relative; flex: 1; min-height: 0; margin: 0 clamp(10px, 3vw, 28px); perspective: 1800px; }
-.pv-slide { position: absolute; inset: 0; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.pv-stage {
+  position: relative; display: grid; flex: 1; min-height: 0; place-items: center;
+  margin: 0 clamp(10px, 3vw, 28px); perspective: 1800px;
+}
+.pv-slide {
+  position: relative; width: 100%; height: 100%; max-width: 100%; max-height: 100%;
+  cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none;
+}
 .pv-card { position: absolute; inset: 0; transform-style: preserve-3d; }
 .pv-face {
   position: absolute; inset: 0; display: grid; place-items: center; border-radius: 22px; overflow: hidden;
@@ -59,7 +65,7 @@
 }
 .pv-front { background: rgba(8, 6, 6, .08); }
 .pv-front img {
-  display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center;
+  display: block; width: 100%; height: 100%; max-width: none; max-height: none; object-fit: contain; object-position: center;
   border-radius: 18px; box-shadow: 0 24px 70px rgba(0, 0, 0, .5); pointer-events: none;
 }
 
