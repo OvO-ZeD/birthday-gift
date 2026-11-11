@@ -317,9 +317,11 @@ export default function StudioPage() {
   const montageItems = items
     .filter((item) => item.kind === "image")
     .map((item) => ({ src: item.url, title: item.title, caption: item.caption }));
-  const montageAudio = audioItem
-    ? { src: audioItem.url, title: audioItem.title.trim() || "your chosen soundtrack" }
-    : null;
+  const montageAudio = youtubeVideoId
+    ? { youtubeVideoId, title: "YouTube soundtrack" }
+    : audioItem
+      ? { src: audioItem.url, title: audioItem.title.trim() || "your chosen soundtrack" }
+      : null;
   const draftSignature = JSON.stringify([
     title,
     recipient,

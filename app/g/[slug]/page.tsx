@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { giftAccessCookieName } from "@/app/lib/gifts/security";
 import { loadGiftAccessRow, resolveGiftGate } from "@/app/lib/gifts/access";
+import { isYouTubeVideoId } from "@/app/lib/gifts/youtube";
 import { resolveTheme, themeStyle } from "@/app/lib/gifts/themes";
+import YouTubeSoundtrack from "@/app/components/YouTubeSoundtrack";
 import UnlockForm from "./UnlockForm";
 import CountdownGate from "./CountdownGate";
 import PhotoMoodEnhancer from "./PhotoMoodEnhancer";
@@ -93,6 +95,7 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
   const { row: gift, experience, accessVersion } = await loadGiftAccessRow(admin, slug);
 
   if (!gift) notFound();
+  const youtubeVideoId = isYouTubeVideoId(gift.youtube_video_id) ? gift.youtube_video_id : null;
 
   // Resolved once for the whole journey, so every step and the letter can never disagree, and
   // an unknown or retired stored value degrades to the default instead of throwing.
@@ -153,6 +156,9 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
           </h1>
           <p>Someone made something special. Enter the password they shared with you to open it.</p>
           <UnlockForm slug={slug} />
+          {youtubeVideoId && (
+            <YouTubeSoundtrack videoId={youtubeVideoId} className="youtube-soundtrack-gate" />
+          )}
           <small>Your memories stay private until the correct password is entered.</small>
         </section>
       </GateShell>
@@ -188,7 +194,9 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
   const uploadedAudio = firstAudio
     ? { src: mediaUrl(firstAudio.id), title: firstAudio.title?.trim() || "Our soundtrack" }
     : null;
-  const montageAudio = uploadedAudio;
+  const montageAudio = youtubeVideoId
+    ? { youtubeVideoId, title: "YouTube soundtrack" }
+    : uploadedAudio;
 
   return (
     <main
@@ -237,6 +245,10 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
         </section>
       </div>
 
+      {youtubeVideoId && (
+        <YouTubeSoundtrack videoId={youtubeVideoId} className="youtube-soundtrack-gift" />
+      )}
+
       {firstAudio && viewerItems.length === 0 && (
         <section className="public-soundtrack public-soundtrack-inline" aria-label="Gift soundtrack">
           <span className="soundtrack-note" aria-hidden="true">♫</span>
@@ -278,7 +290,7 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
         </section>
       )}
 
-      {viewerItems.length > 0 && <PhotoViewer items={viewerItems} audio={uploadedAudio} />}
+      {viewerItems.length > 0 && <PhotoViewer items={viewerItems} audio={youtubeVideoId ? null : uploadedAudio} />}
       <footer className="public-gift-footer"><span>A little world, made to be remembered.</span><span>AFTERGLOW <i>♡</i></span></footer>
     </main>
   );

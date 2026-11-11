@@ -199,7 +199,7 @@ export default function SongPicker({ onPick, youtubeVideoId, onPickYouTube, onRe
           placeholder="Paste YouTube link (youtube.com/watch?v=…)"
         />
         <button type="submit" className="studio-button quiet">Use this song</button>
-        <small>YouTube links are preview-only. To include background music in the gift, choose a built-in tune or upload an audio file.</small>
+        <small>The linked video is embedded in the gift as its soundtrack. Browsers may require a tap before sound starts.</small>
       </form>
 
       {youtubeVideoId && (

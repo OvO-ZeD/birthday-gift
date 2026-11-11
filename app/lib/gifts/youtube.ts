@@ -32,10 +32,35 @@ export function parseYouTubeVideoId(value: string): string | null {
   return isYouTubeVideoId(videoId) ? videoId : null;
 }
 
-export function youtubeEmbedUrl(videoId: string, autoplay = false): string {
+export function youtubeEmbedUrl(
+  videoId: string,
+  autoplay = false,
+  options: { controls?: boolean; enableApi?: boolean } = {},
+): string {
   const url = new URL(`https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`);
   url.searchParams.set("playsinline", "1");
   url.searchParams.set("rel", "0");
-  if (autoplay) url.searchParams.set("autoplay", "1");
+  if (autoplay) {
+    url.searchParams.set("autoplay", "1");
+    url.searchParams.set("mute", "0");
+  }
+  if (options.controls === false) url.searchParams.set("controls", "0");
+  if (options.enableApi) url.searchParams.set("enablejsapi", "1");
   return url.toString();
 }
+
+export type YouTubePlayerCommand = "playVideo" | "pauseVideo" | "setVolume";
+
+export function sendYouTubePlayerCommand(
+  frame: HTMLIFrameElement | null,
+  func: YouTubePlayerCommand,
+  args: number[] = [],
+) {
+  frame?.contentWindow?.postMessage(
+    JSON.stringify({ event: "command", func, args }),
+    "https://www.youtube-nocookie.com",
+  );
+}
+
+export const YOUTUBE_PAUSE_EVENT = "afterglow:youtube-pause";
+export const YOUTUBE_RESUME_EVENT = "afterglow:youtube-resume";

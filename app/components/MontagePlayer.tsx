@@ -4,6 +4,13 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, Pause, Play, Sparkles, Volume2, VolumeX, X } from "lucide-react";
+import {
+  isYouTubeVideoId,
+  sendYouTubePlayerCommand,
+  YOUTUBE_PAUSE_EVENT,
+  YOUTUBE_RESUME_EVENT,
+  youtubeEmbedUrl,
+} from "../lib/gifts/youtube";
 import "./montage.css";
 
 export type MontageItem = {
@@ -14,7 +21,7 @@ export type MontageItem = {
 
 type Props = {
   items: MontageItem[];
-  audio?: { src: string; title: string } | null;
+  audio?: { src: string; title: string } | { youtubeVideoId: string; title: string } | null;
   variant?: "recipient" | "studio";
 };
 
@@ -26,6 +33,9 @@ const getServerSnapshot = () => false;
 export default function MontagePlayer({ items, audio = null, variant = "recipient" }: Props) {
   const reduceMotion = useReducedMotion();
   const mounted = useSyncExternalStore(subscribeToMount, getClientSnapshot, getServerSnapshot);
+  const youtubeVideoId = audio && "youtubeVideoId" in audio && isYouTubeVideoId(audio.youtubeVideoId)
+    ? audio.youtubeVideoId
+    : null;
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -37,6 +47,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const youtubeFrameRef = useRef<HTMLIFrameElement | null>(null);
 
   const current = items[index];
 
@@ -47,14 +58,22 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
 
   const close = useCallback(() => {
     stopMusic();
+    if (youtubeVideoId) sendYouTubePlayerCommand(youtubeFrameRef.current, "pauseVideo");
     setOpen(false);
     setPlaying(false);
     setMusicPlaying(false);
     triggerRef.current?.focus({ preventScroll: true });
-  }, [stopMusic]);
+    window.requestAnimationFrame(() => window.dispatchEvent(new Event(YOUTUBE_RESUME_EVENT)));
+  }, [stopMusic, youtubeVideoId]);
 
   const playMusic = useCallback(async () => {
-    if (!audio?.src) return;
+    if (youtubeVideoId) {
+      sendYouTubePlayerCommand(youtubeFrameRef.current, "playVideo");
+      setMusicPlaying(true);
+      setPlaybackNotice("");
+      return;
+    }
+    if (!audio || !("src" in audio) || !audio.src) return;
     if (!audioRef.current) {
       const element = new Audio(audio.src);
       element.loop = true;
@@ -75,7 +94,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
       setMusicPlaying(false);
       setPlaybackNotice("The soundtrack could not start. Try the music control again.");
     }
-  }, [audio, musicVolume]);
+  }, [audio, musicVolume, youtubeVideoId]);
 
   const start = useCallback(() => {
     triggerRef.current = document.activeElement instanceof HTMLButtonElement
@@ -84,10 +103,15 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
     setIndex(0);
     setPlaybackNotice("");
     document.querySelectorAll("audio").forEach((player) => player.pause());
+    if (youtubeVideoId) {
+      window.dispatchEvent(new Event(YOUTUBE_PAUSE_EVENT));
+      setMusicPlaying(true);
+    } else {
+      void playMusic();
+    }
     setOpen(true);
     setPlaying(!reduceMotion);
-    void playMusic();
-  }, [playMusic, reduceMotion]);
+  }, [playMusic, reduceMotion, youtubeVideoId]);
 
   useEffect(() => {
     if (!open) return;
@@ -186,13 +210,12 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                 className="montage-backdrop"
                 aria-hidden="true"
                 onClick={close}
-                style={{ backgroundImage: `url("${current.src}")` }}
               />
               <section className="montage-window">
                 <header className="montage-header">
                   <div className="montage-brand"><Sparkles size={15} /><span>YOUR STORY IN MOTION</span></div>
                   <div className="montage-header-actions">
-                    {audio?.src && (
+                    {audio && (
                       <button
                         type="button"
                         className="montage-control"
@@ -200,7 +223,11 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                         aria-pressed={musicPlaying}
                         onClick={() => {
                           if (musicPlaying) {
-                            audioRef.current?.pause();
+                            if (youtubeVideoId) {
+                              sendYouTubePlayerCommand(youtubeFrameRef.current, "pauseVideo");
+                            } else {
+                              audioRef.current?.pause();
+                            }
                             setMusicPlaying(false);
                           } else {
                             void playMusic();
@@ -211,7 +238,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                         <span className="sr-only">{audio.title}</span>
                       </button>
                     )}
-                    {audio?.src && (
+                    {audio && (
                       <label className="montage-volume-control" title={`Music volume ${Math.round(musicVolume * 100)}%`}>
                         {musicVolume === 0 ? <VolumeX size={15} aria-hidden="true" /> : <Volume2 size={15} aria-hidden="true" />}
                         <input
@@ -225,6 +252,9 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                             const volume = Number(event.currentTarget.value);
                             setMusicVolume(volume);
                             if (audioRef.current) audioRef.current.volume = volume;
+                            if (youtubeVideoId) {
+                              sendYouTubePlayerCommand(youtubeFrameRef.current, "setVolume", [Math.round(volume * 100)]);
+                            }
                           }}
                         />
                       </label>
@@ -234,6 +264,18 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                     </button>
                   </div>
                 </header>
+
+                {youtubeVideoId && (
+                  <div className="montage-youtube-player">
+                    <iframe
+                      ref={youtubeFrameRef}
+                      title="Montage soundtrack"
+                      src={youtubeEmbedUrl(youtubeVideoId, true, { enableApi: true })}
+                      allow="autoplay; encrypted-media; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                    />
+                  </div>
+                )}
 
                 <div className="montage-progress" aria-hidden="true">
                   {items.map((item, itemIndex) => (
