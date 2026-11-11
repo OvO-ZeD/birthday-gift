@@ -47,11 +47,11 @@
 .montage-header { display: flex; align-items: center; justify-content: space-between; min-height: 58px; padding: 8px clamp(14px, 3vw, 26px); }
 .montage-brand { display: inline-flex; align-items: center; gap: 9px; color: var(--montage-accent); font-size: 9px; font-weight: 700; letter-spacing: .16em; }
 .montage-header-actions { display: flex; gap: 8px; }
-.montage-youtube-player { display:grid; place-items:center; flex:none; margin:0 16px 10px; }
-.montage-youtube-player iframe { display:block; width:min(100%,560px); height:clamp(200px,30vh,315px); border:0; border-radius:12px; background:#000; }
 .montage-control, .montage-nav { display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 1px solid rgba(255,238,222,.2); border-radius: 50%; background: rgba(255,255,255,.08); color: var(--montage-ink); cursor: pointer; transition: background .2s, transform .2s; }
 .montage-control:hover, .montage-nav:hover { background: rgba(255,255,255,.16); }
 .montage-control:active, .montage-nav:active { transform: scale(.94); }
+.montage-volume-control { display:flex; align-items:center; gap:6px; min-width:102px; height:42px; padding:0 10px; border:1px solid rgba(255,238,222,.2); border-radius:999px; background:rgba(255,255,255,.08); color:var(--montage-ink); }
+.montage-volume-control input { width:58px; height:24px; accent-color:var(--montage-accent); cursor:pointer; }
 .montage-progress { display: flex; gap: 4px; padding: 0 clamp(14px, 3vw, 26px) 12px; }
 .montage-progress > span { position: relative; flex: 1; height: 2px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.2); }
 .montage-progress > span.is-seen { background: color-mix(in srgb, var(--montage-accent) 48%, rgba(255,255,255,.22)); }
@@ -62,7 +62,7 @@
 @keyframes montage-progress { to { transform: scaleX(1); } }
 .montage-stage { position: relative; flex: 1; min-height: 0; margin: 0 clamp(10px, 3vw, 28px); overflow: hidden; border: 1px solid rgba(255,238,222,.16); border-radius: 18px; background: rgba(0,0,0,.18); }
 .montage-slide { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; overflow: hidden; }
-.montage-slide > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.montage-slide > img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center; }
 .montage-caption { position: absolute; right: 0; bottom: 0; left: 0; display: grid; gap: 6px; padding: clamp(18px, 4vw, 38px); background: linear-gradient(180deg, transparent, rgba(10,7,5,.86)); text-align: center; }
 .montage-caption > span { color: var(--montage-accent); font-size: 9px; font-weight: 700; letter-spacing: .2em; }
 .montage-caption h2 { margin: 0; font-family: var(--font-display), Georgia, serif; font-size: clamp(1.35rem, 3.4vw, 2.4rem); font-weight: 400; line-height: 1.1; text-wrap: balance; }
@@ -80,10 +80,13 @@
 @media (max-width: 640px) {
   .montage-root { padding: 0; }
   .montage-window { width: 100%; height: 100dvh; height: 100svh; min-height: 0; border: 0; border-radius: 0; }
-  .montage-youtube-player { margin:0 12px 8px; }
-  .montage-youtube-player iframe { height:clamp(200px,30vh,260px); }
+  .montage-header { padding-inline: 8px; }
+  .montage-brand { gap:5px; font-size:7px; letter-spacing:.08em; }
+  .montage-header-actions { gap:5px; }
+  .montage-control { width:38px; height:38px; }
+  .montage-volume-control { gap:4px; min-width:76px; height:38px; padding:0 7px; }
+  .montage-volume-control input { width:42px; }
   .montage-stage { margin: 0 8px; border-radius: 13px; }
-  .montage-slide > img { max-height: 100%; }
   .montage-nav { width: 38px; height: 38px; }
   .montage-prev { left: 7px; }
   .montage-next { right: 7px; }

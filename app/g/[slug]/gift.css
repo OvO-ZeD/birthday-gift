@@ -103,10 +103,6 @@
 .soundtrack-info strong { font-size: .95rem; font-weight: 400; }
 .soundtrack-info small { color: var(--gift-muted); font-size: .8rem; }
 .soundtrack-track audio { grid-column: 1 / -1; width: 100%; margin-top: .25rem; }
-.public-youtube-soundtrack { display:grid; gap:.7rem; }
-.public-youtube-soundtrack > .section-kicker { margin:0; }
-.public-youtube-soundtrack .soundtrack-info { margin-bottom:.2rem; }
-.public-youtube-soundtrack iframe { display:block; width:min(100%,560px); aspect-ratio:16 / 9; min-height:200px; margin-inline:auto; border:0; border-radius:10px; background:#000; }
 .public-gift-footer { margin-top: 1.5rem; padding-top: 1.3rem; padding-bottom: 1.6rem; border-top: 1px solid var(--gift-line); color: var(--gift-muted); font-size: .56rem; letter-spacing: .13em; }
 .gift-gate { position: relative; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 2rem 1.25rem; width: min(620px, 100%); margin: auto; }
 .gift-gate h1 { font-size: clamp(2.7rem, 8vw, 4.8rem); }

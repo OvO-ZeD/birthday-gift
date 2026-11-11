@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo, type Variants } from "motion/react";
-import { ChevronLeft, ChevronRight, Image as ImageIcon, MessageSquareText, Pause, Play, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Image as ImageIcon, MessageSquareText, Pause, Play, Volume2, VolumeX, X } from "lucide-react";
 import { OPEN_PHOTO_EVENT } from "./viewer-events";
 import "./viewer.css";
 
@@ -38,6 +38,7 @@ export default function PhotoViewer({ items, audio = null }: Props) {
   const [direction, setDirection] = useState(1);
   const [flipped, setFlipped] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0.75);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [photoSize, setPhotoSize] = useState<{ src: string; width: number; height: number } | null>(null);
 
@@ -82,6 +83,7 @@ export default function PhotoViewer({ items, audio = null }: Props) {
       const element = new Audio(audio.src);
       element.loop = true;
       element.preload = "auto";
+      element.volume = musicVolume;
       element.addEventListener("play", () => setPlaying(true));
       element.addEventListener("pause", () => setPlaying(false));
       audioRef.current = element;
@@ -90,8 +92,9 @@ export default function PhotoViewer({ items, audio = null }: Props) {
     document.querySelectorAll("audio").forEach((other) => {
       if (other !== audioRef.current) other.pause();
     });
+    audioRef.current.volume = musicVolume;
     void audioRef.current.play().catch(() => setPlaying(false));
-  }, [audio]);
+  }, [audio, musicVolume]);
 
   const close = useCallback(() => {
     audioRef.current?.pause();
@@ -246,6 +249,24 @@ export default function PhotoViewer({ items, audio = null }: Props) {
                       <b />
                     </span>
                   </button>
+                )}
+                {audio && (
+                  <label className="pv-volume" title={`Music volume ${Math.round(musicVolume * 100)}%`}>
+                    {musicVolume === 0 ? <VolumeX size={15} aria-hidden="true" /> : <Volume2 size={15} aria-hidden="true" />}
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={musicVolume}
+                      aria-label="Music volume"
+                      onChange={(event) => {
+                        const volume = Number(event.currentTarget.value);
+                        setMusicVolume(volume);
+                        if (audioRef.current) audioRef.current.volume = volume;
+                      }}
+                    />
+                  </label>
                 )}
                 <button ref={closeRef} type="button" className="pv-btn" data-sfx="off" aria-label="Close photo" onClick={close}>
                   <X size={18} />

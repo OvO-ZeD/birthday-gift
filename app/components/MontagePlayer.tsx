@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ChevronLeft, ChevronRight, Pause, Play, Sparkles, X } from "lucide-react";
-import { isYouTubeVideoId, youtubeEmbedUrl } from "../lib/gifts/youtube";
+import { ChevronLeft, ChevronRight, Pause, Play, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 import "./montage.css";
 
 export type MontageItem = {
@@ -15,7 +14,7 @@ export type MontageItem = {
 
 type Props = {
   items: MontageItem[];
-  audio?: { src?: string; youtubeVideoId?: string; title: string } | null;
+  audio?: { src: string; title: string } | null;
   variant?: "recipient" | "studio";
 };
 
@@ -31,6 +30,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [musicPlaying, setMusicPlaying] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0.75);
   const [playbackNotice, setPlaybackNotice] = useState("");
 
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -39,7 +39,6 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const current = items[index];
-  const youtubeVideoId = isYouTubeVideoId(audio?.youtubeVideoId) ? audio.youtubeVideoId : null;
 
   const stopMusic = useCallback(() => {
     audioRef.current?.pause();
@@ -55,16 +54,20 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
   }, [stopMusic]);
 
   const playMusic = useCallback(async () => {
-    if (!audio?.src || youtubeVideoId) return;
+    if (!audio?.src) return;
     if (!audioRef.current) {
       const element = new Audio(audio.src);
       element.loop = true;
       element.preload = "auto";
+      element.volume = musicVolume;
+      element.addEventListener("play", () => setMusicPlaying(true));
+      element.addEventListener("pause", () => setMusicPlaying(false));
       audioRef.current = element;
     }
 
     try {
       const player = audioRef.current;
+      player.volume = musicVolume;
       await player.play();
       setMusicPlaying(true);
       setPlaybackNotice("");
@@ -72,7 +75,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
       setMusicPlaying(false);
       setPlaybackNotice("The soundtrack could not start. Try the music control again.");
     }
-  }, [audio, youtubeVideoId]);
+  }, [audio, musicVolume]);
 
   const start = useCallback(() => {
     triggerRef.current = document.activeElement instanceof HTMLButtonElement
@@ -189,7 +192,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                 <header className="montage-header">
                   <div className="montage-brand"><Sparkles size={15} /><span>YOUR STORY IN MOTION</span></div>
                   <div className="montage-header-actions">
-                    {audio?.src && !youtubeVideoId && (
+                    {audio?.src && (
                       <button
                         type="button"
                         className="montage-control"
@@ -208,23 +211,29 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                         <span className="sr-only">{audio.title}</span>
                       </button>
                     )}
+                    {audio?.src && (
+                      <label className="montage-volume-control" title={`Music volume ${Math.round(musicVolume * 100)}%`}>
+                        {musicVolume === 0 ? <VolumeX size={15} aria-hidden="true" /> : <Volume2 size={15} aria-hidden="true" />}
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={musicVolume}
+                          aria-label="Music volume"
+                          onChange={(event) => {
+                            const volume = Number(event.currentTarget.value);
+                            setMusicVolume(volume);
+                            if (audioRef.current) audioRef.current.volume = volume;
+                          }}
+                        />
+                      </label>
+                    )}
                     <button ref={closeRef} type="button" className="montage-control" aria-label="Close montage" onClick={close}>
                       <X size={18} />
                     </button>
                   </div>
                 </header>
-
-                {youtubeVideoId && (
-                  <div className="montage-youtube-player">
-                    <iframe
-                      title="YouTube soundtrack"
-                      src={youtubeEmbedUrl(youtubeVideoId, true)}
-                      allow="autoplay; encrypted-media; picture-in-picture; web-share"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      allowFullScreen
-                    />
-                  </div>
-                )}
 
                 <div className="montage-progress" aria-hidden="true">
                   {items.map((item, itemIndex) => (
@@ -248,9 +257,9 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
                     <motion.figure
                       key={current.src}
                       className="montage-slide"
-                      initial={{ opacity: 0, scale: reduceMotion ? 1 : 1.025, y: reduceMotion ? 0 : 8 }}
+                      initial={{ opacity: 0, scale: 1, y: reduceMotion ? 0 : 8 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: reduceMotion ? 1 : .985, y: reduceMotion ? 0 : -5 }}
+                      exit={{ opacity: 0, scale: 1, y: reduceMotion ? 0 : -5 }}
                       transition={{ duration: reduceMotion ? 0 : .65, ease: [0.22, 1, 0.36, 1] }}
                     >
                       <img src={current.src} alt={[current.title, current.caption].filter(Boolean).join(" — ") || `Photo ${index + 1} of ${items.length}`} />

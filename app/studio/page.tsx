@@ -317,11 +317,9 @@ export default function StudioPage() {
   const montageItems = items
     .filter((item) => item.kind === "image")
     .map((item) => ({ src: item.url, title: item.title, caption: item.caption }));
-  const montageAudio = youtubeVideoId
-    ? { youtubeVideoId, title: "YouTube soundtrack" }
-    : audioItem
-      ? { src: audioItem.url, title: audioItem.title.trim() || "your chosen soundtrack" }
-      : null;
+  const montageAudio = audioItem
+    ? { src: audioItem.url, title: audioItem.title.trim() || "your chosen soundtrack" }
+    : null;
   const draftSignature = JSON.stringify([
     title,
     recipient,
@@ -1981,7 +1979,7 @@ export default function StudioPage() {
 
             </div>}
 
-            {audioItem && <div className="audio-strip"><span className="audio-icon"><Music2 size={17} /></span><div><strong>{audioItem.originalFilename}</strong><small>{youtubeVideoId ? "Saved as an alternate soundtrack" : "Soundtrack selected"}</small></div>{!youtubeVideoId && <audio src={audioItem.url} controls />}<button className="icon-button" onClick={() => removeItem(audioItem.id)} aria-label="Remove soundtrack"><Trash2 size={15} /></button></div>}
+            {audioItem && <div className="audio-strip"><span className="audio-icon"><Music2 size={17} /></span><div><strong>{audioItem.originalFilename}</strong><small>Background soundtrack</small></div><audio src={audioItem.url} controls /><button className="icon-button" onClick={() => removeItem(audioItem.id)} aria-label="Remove soundtrack"><Trash2 size={15} /></button></div>}
 
             <MontagePlayer items={montageItems} audio={montageAudio} variant="studio" />
 

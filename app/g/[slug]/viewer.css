@@ -34,6 +34,8 @@
 .pv-count { font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: .14em; color: var(--pv-muted); }
 .pv-count i { font-style: normal; opacity: .5; margin: 0 .2em; }
 .pv-actions { display: flex; align-items: center; gap: 10px; }
+.pv-volume { display:flex; align-items:center; gap:6px; height:44px; padding:0 10px; border:1px solid var(--pv-line); border-radius:999px; background:rgba(255,255,255,.07); color:var(--pv-ink); }
+.pv-volume input { width:64px; height:24px; accent-color:var(--pv-accent); cursor:pointer; }
 
 .pv-btn, .pv-nav {
   position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%;
@@ -110,4 +112,12 @@
 @media (prefers-reduced-motion: reduce) {
   .pv-eq b { animation: none; height: 6px; }
   .pv-btn, .pv-nav, .pv-flip { transition: none; }
+}
+
+@media (max-width: 520px) {
+  .pv-bar { padding-inline: 8px; }
+  .pv-actions { gap: 6px; }
+  .pv-volume { gap:4px; padding-inline:7px; }
+  .pv-volume input { width:48px; }
+  .pv-btn { width:40px; height:40px; }
 }
