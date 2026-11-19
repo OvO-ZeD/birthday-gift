@@ -22,7 +22,7 @@
   overflow: hidden;
 }
 
-/* The photo: object-fit contain at the largest size its row allows. Nothing is cropped or stretched. */
+/* The photo fills the area above the separate caption row without cropping. */
 .montage-root .montage-slide > img {
   grid-row: 1;
   justify-self: center;
@@ -37,7 +37,7 @@
   object-position: center;
 }
 
-/* The caption is a normal row under the photo: no overlap, and no cap that hides the words. */
+/* Keep the caption in its own row rather than overlaying the photo. */
 .montage-root .montage-caption {
   grid-row: 2;
   position: relative;
@@ -51,6 +51,37 @@
 .montage-root .montage-caption p { font-size: clamp(.9rem, 1.9vh, 1.2rem); line-height: 1.45; margin: 4px auto 0; }
 
 @media (max-width: 640px) {
-  .montage-root .montage-slide { padding: 6px 6px 0; }
-  .montage-root .montage-caption { padding: 8px 18px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .montage-root .montage-slide {
+    align-items: stretch;
+    justify-items: stretch;
+    padding: 6px 6px 0;
+  }
+  .montage-root .montage-slide > img {
+    justify-self: center;
+    align-self: center;
+    width: auto !important;
+    height: auto !important;
+  }
+  .montage-root .montage-caption {
+    width: 100%;
+    min-width: 0;
+    max-height: min(30svh, 240px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px 48px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .montage-root .montage-window {
+    background: var(--gift-paper, var(--studio-panel, #17120f));
+  }
+  .montage-root .montage-header,
+  .montage-root .montage-footer {
+    background: var(--gift-paper, var(--studio-panel, #17120f));
+  }
+  .montage-root .montage-header {
+    padding-top: max(8px, env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid var(--gift-line, var(--studio-border, rgba(255, 238, 222, .16)));
+  }
+  .montage-root .montage-footer {
+    border-top: 1px solid var(--gift-line, var(--studio-border, rgba(255, 238, 222, .16)));
+  }
 }
