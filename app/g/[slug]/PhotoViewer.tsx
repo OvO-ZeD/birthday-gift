@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion, type PanInfo, type Variants 
 import { ChevronLeft, ChevronRight, Image as ImageIcon, MessageSquareText, Pause, Play, Volume2, VolumeX, X } from "lucide-react";
 import { OPEN_PHOTO_EVENT } from "./viewer-events";
 import "./viewer.css";
+import "./viewer-polish.css";
 
 export type ViewerItem = { src: string; title: string; caption: string };
 const subscribeToMount = () => () => {};

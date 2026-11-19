@@ -1,0 +1,41 @@
+/*
+ * Fit the studio to the screen on desktop and tablets.
+ *
+ * Before: the whole page scrolled, so the publish bar and the preview sat far below the fold.
+ * Now: the top bar stays put, and the sidebar, the editor and the inspector each scroll inside
+ * their own column, so everything you use is visible without scrolling the page.
+ *
+ * Selectors are doubled (.studio-shell .x) so they win over the earlier studio.css rules without
+ * replacing them. Phones keep their own layout from studio.css and are not touched here.
+ */
+
+@media (min-width: 761px) {
+  .studio-shell.studio-shell { height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+  .studio-shell .studio-topbar { flex: none; }
+  .studio-shell .studio-layout { flex: 1 1 auto; min-height: 0; height: auto; overflow: hidden; }
+  .studio-shell .studio-sidebar,
+  .studio-shell .studio-inspector {
+    top: auto; height: 100%; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .18) transparent;
+  }
+  .studio-shell .studio-main {
+    height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-behavior: smooth;
+    padding-top: clamp(20px, 3.2vh, 34px); padding-bottom: clamp(28px, 5vh, 56px);
+    scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .18) transparent;
+  }
+  .studio-shell .studio-heading { margin-bottom: clamp(16px, 2.6vh, 26px); }
+  .studio-shell .studio-section,
+  .studio-shell .editor-section { margin-bottom: clamp(14px, 2.4vh, 24px); }
+}
+
+/* Short laptop screens: tighten spacing so one screen holds more of the editor. */
+@media (min-width: 761px) and (max-height: 820px) {
+  .studio-shell .studio-topbar { height: 64px; }
+  .studio-shell .studio-layout { min-height: 0; }
+  .studio-shell .studio-sidebar,
+  .studio-shell .studio-inspector { padding-top: 18px; padding-bottom: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-shell .studio-main { scroll-behavior: auto; }
+}

@@ -42,8 +42,10 @@ import {
 } from "lucide-react";
 
 import "./studio.css";
+import "./studio-fit.css";
 
 import SongPicker from "./SongPicker";
+import MontageMaker from "./MontageMaker";
 
 import StudioLook from "./StudioLook";
 
@@ -1885,6 +1887,8 @@ export default function StudioPage() {
               <input ref={audioInput} hidden type="file" accept=".mp3,.m4a,.aac,.wav,.ogg,.oga,.webm,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/ogg,audio/webm" onChange={onFileChange} />
 
             </div>
+
+            <MontageMaker onMake={(file) => void addFiles([file])} />
 
             <SongPicker
               onPick={(file) => void addFiles([file])}

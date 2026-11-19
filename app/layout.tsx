@@ -3,6 +3,8 @@ import { DM_Sans, Fraunces, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./polish.css";
 import "./theme-refresh.css";
+import "./glass-refresh.css";
+import "./apple-glass.css";
 import SoundFx from "./components/SoundFx";
 
 const geistSans = Geist({

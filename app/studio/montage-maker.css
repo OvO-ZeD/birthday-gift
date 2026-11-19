@@ -1,0 +1,82 @@
+/* The montage maker panel in the studio. Uses the studio's own colour variables. */
+
+.montage-maker {
+  margin-top: 16px; padding: 16px; display: grid; gap: 14px;
+  border: 1px solid var(--studio-border); border-radius: 16px;
+  background: color-mix(in srgb, var(--studio-panel) 80%, transparent);
+}
+.mm-head { display: flex; gap: 12px; align-items: flex-start; }
+.mm-head strong { display: block; font-size: 13px; }
+.mm-head small { display: block; margin-top: 3px; font-size: 11px; line-height: 1.5; color: var(--studio-muted); }
+.mm-icon {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 9px;
+  color: var(--studio-accent); background: color-mix(in srgb, var(--studio-accent) 14%, transparent);
+}
+
+.mm-photo-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mm-count { font-size: 11px; color: var(--studio-muted); font-variant-numeric: tabular-nums; }
+
+.mm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.mm-item {
+  display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: start; padding: 10px;
+  border: 1px solid var(--studio-border); border-radius: 12px; background: color-mix(in srgb, var(--studio-panel-2) 60%, transparent);
+}
+.mm-item img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; }
+.mm-item-body { display: grid; gap: 8px; min-width: 0; }
+.mm-item-top { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--studio-muted); }
+.mm-item-actions { display: flex; gap: 4px; }
+.mm-item-actions button {
+  min-width: 26px; height: 26px; display: grid; place-items: center; padding: 0 6px; border-radius: 7px;
+  border: 1px solid var(--studio-border); background: transparent; color: var(--studio-text); cursor: pointer; font-size: 12px;
+}
+.mm-item-actions button:disabled { opacity: .35; cursor: default; }
+.mm-item textarea {
+  width: 100%; resize: vertical; min-height: 52px; padding: 8px 10px; border-radius: 9px; font: inherit; font-size: 12px;
+  border: 1px solid var(--studio-border); background: var(--studio-panel); color: var(--studio-text);
+}
+
+.mm-templates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mm-template {
+  display: grid; gap: 4px; padding: 10px; text-align: left; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--studio-border); background: transparent; color: var(--studio-text);
+  transition: transform .18s cubic-bezier(.22, 1, .36, 1), border-color .2s, background .2s;
+}
+.mm-template strong { font-size: 12px; }
+.mm-template small { font-size: 10px; line-height: 1.4; color: var(--studio-muted); }
+.mm-template:hover:not(:disabled) { transform: translateY(-1px); }
+.mm-template.is-active { border-color: var(--studio-accent); background: color-mix(in srgb, var(--studio-accent) 12%, transparent); }
+.mm-template:disabled { opacity: .6; cursor: default; }
+
+.mm-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.mm-fields label, .mm-music { display: grid; gap: 6px; font-size: 11px; color: var(--studio-muted); min-width: 0; }
+.mm-fields input, .mm-fields select {
+  width: 100%; min-height: 36px; padding: 0 10px; border-radius: 9px; font: inherit; font-size: 12px;
+  border: 1px solid var(--studio-border); background: var(--studio-panel); color: var(--studio-text);
+}
+.mm-music { align-content: start; }
+.mm-music .studio-button { justify-content: flex-start; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mm-clear { justify-self: start; border: 0; background: none; color: var(--studio-muted); font-size: 11px; text-decoration: underline; cursor: pointer; padding: 0; }
+
+.mm-estimate { margin: 0; font-size: 11px; color: var(--studio-muted); }
+.mm-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.mm-stage { display: none; gap: 10px; justify-items: center; }
+.mm-stage[data-open="true"] { display: grid; }
+.mm-stage canvas {
+  width: min(100%, 300px); height: auto; aspect-ratio: 9 / 16; border-radius: 14px; background: #07050a;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .35);
+}
+.mm-progress { width: min(100%, 300px); display: grid; gap: 6px; }
+.mm-progress-track { height: 6px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--studio-text) 12%, transparent); }
+.mm-progress-track span { display: block; height: 100%; border-radius: inherit; background: var(--studio-accent); transition: width .3s linear; }
+.mm-progress small { font-size: 11px; color: var(--studio-muted); text-align: center; }
+
+.mm-notice { margin: 0; font-size: 12px; color: var(--studio-accent); }
+
+@media (max-width: 760px) {
+  .mm-templates { grid-template-columns: 1fr; }
+  .mm-fields { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm-template, .mm-progress-track span { transition: none; }
+}

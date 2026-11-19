@@ -1,0 +1,119 @@
+/*
+ * Apple-style glass, layered on top of glass-refresh.css. Loaded last.
+ * Principles: a translucent fill with a blurred backdrop, a hairline light edge, one soft shadow,
+ * generous radius, and quick, springy press feedback. Motion is short, and disabled for people who
+ * ask for reduced motion or reduced transparency.
+ */
+
+:root {
+  --ag-radius-lg: 22px;
+  --ag-radius-md: 14px;
+  --ag-edge: rgba(255, 255, 255, .13);
+  --ag-fill: rgba(255, 255, 255, .06);
+  --ag-fill-strong: rgba(255, 255, 255, .11);
+  --ag-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 20px 50px -12px rgba(0, 0, 0, .45);
+  --ag-spring: cubic-bezier(.22, 1, .36, 1);
+  --ag-ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+/* Type: system UI first so text feels native on Apple devices, with the app's own font behind it. */
+.studio-shell,
+.auth-page,
+.afterglow-landing {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-ui), "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Panels */
+.studio-shell .form-card,
+.studio-shell .song-picker,
+.studio-shell .montage-maker,
+.studio-shell .studio-inspector .inspector-preview,
+.auth-page .auth-card {
+  border-radius: var(--ag-radius-lg);
+  box-shadow: var(--ag-shadow);
+  transition: border-color .3s var(--ag-ease), box-shadow .3s var(--ag-ease), transform .4s var(--ag-spring);
+}
+.studio-shell .form-card:hover,
+.studio-shell .song-picker:hover,
+.studio-shell .montage-maker:hover {
+  border-color: rgba(255, 255, 255, .18);
+}
+
+/* Buttons: glass pills, primary keeps the accent colour. */
+.studio-shell .studio-button {
+  border-radius: 999px;
+  background: var(--ag-fill-strong);
+  border: 1px solid var(--ag-edge);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+  transition: transform .2s var(--ag-spring), background .25s var(--ag-ease), border-color .25s var(--ag-ease), box-shadow .25s var(--ag-ease);
+}
+.studio-shell .studio-button:hover:not(:disabled) { background: rgba(255, 255, 255, .17); border-color: rgba(255, 255, 255, .24); transform: translateY(-1px); }
+.studio-shell .studio-button:active:not(:disabled) { transform: scale(.96); }
+.studio-shell .studio-button.primary:hover:not(:disabled) { box-shadow: 0 10px 28px rgba(232, 195, 158, .28); }
+.studio-shell .studio-button:disabled { opacity: .45; }
+
+/* Inputs: softer fields with a clear focus ring. */
+.studio-shell input:not([type="checkbox"]):not([type="radio"]),
+.studio-shell textarea,
+.studio-shell select {
+  border-radius: 12px;
+  background: var(--ag-fill);
+  border: 1px solid var(--ag-edge);
+  transition: border-color .2s var(--ag-ease), background .2s var(--ag-ease), box-shadow .2s var(--ag-ease);
+}
+.studio-shell input:not([type="checkbox"]):not([type="radio"]):focus,
+.studio-shell textarea:focus,
+.studio-shell select:focus {
+  outline: none;
+  background: rgba(255, 255, 255, .09);
+  border-color: rgba(232, 195, 158, .65);
+  box-shadow: 0 0 0 4px rgba(232, 195, 158, .14);
+}
+
+/* Lists and thumbnails: lift slightly on hover, press on tap. */
+.studio-shell .media-thumb,
+.studio-shell .theme-card,
+.studio-shell .song-row,
+.studio-shell .mm-item,
+.studio-shell .item-editor {
+  border-radius: var(--ag-radius-md);
+  transition: transform .3s var(--ag-spring), box-shadow .3s var(--ag-ease), border-color .3s var(--ag-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .studio-shell .media-thumb:hover,
+  .studio-shell .theme-card:hover,
+  .studio-shell .song-row:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -10px rgba(0, 0, 0, .5); }
+}
+.studio-shell .media-thumb:active,
+.studio-shell .theme-card:active { transform: scale(.985); }
+
+/* Gentle entrance for panels as the studio opens. */
+@keyframes ag-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.studio-shell .form-card,
+.studio-shell .montage-maker,
+.studio-shell .song-picker {
+  animation: ag-rise .55s var(--ag-spring) both;
+}
+.studio-shell .form-card:nth-of-type(2) { animation-delay: .05s; }
+.studio-shell .form-card:nth-of-type(3) { animation-delay: .1s; }
+
+/* Landing and recipient-facing cards: the same glass language. */
+.afterglow-landing .demo-card,
+.afterglow-landing .floating-chip,
+.afterglow-landing .hero-visual-caption {
+  border-radius: var(--ag-radius-lg);
+  box-shadow: var(--ag-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-shell *, .auth-page *, .afterglow-landing .demo-card { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .studio-shell .studio-button, .studio-shell input, .studio-shell textarea, .studio-shell select { backdrop-filter: none; -webkit-backdrop-filter: none; background: #1d151c; }
+}

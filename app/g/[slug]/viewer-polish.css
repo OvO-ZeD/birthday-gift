@@ -1,0 +1,49 @@
+/*
+ * Photo viewer polish, layered on viewer.css. Loaded from PhotoViewer.tsx after viewer.css.
+ * Goal: the photo always fits, nothing hides under the iPhone notch or home bar, tap targets are
+ * comfortable, and the message side reads clearly. Selectors are doubled so they win over
+ * viewer.css without replacing it.
+ */
+
+.pv-root .pv-window { overscroll-behavior: contain; }
+
+/* Photo size: fill the space that is actually visible, on desktop and phones. */
+.pv-root .pv-front img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 20px;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .6);
+}
+
+/* Bigger, easier controls on touch screens. */
+@media (hover: none), (pointer: coarse) {
+  .pv-root .pv-btn, .pv-root .pv-nav { width: 48px; height: 48px; }
+  .pv-root .pv-flip { min-height: 52px; padding: 0 26px; font-size: 14px; }
+  .pv-root .pv-bar { min-height: 64px; }
+}
+
+/* Phones: the viewer is a full-screen sheet, clear of the notch and the home bar. */
+@media (max-width: 820px) {
+  .pv-root .pv-window {
+    padding-top: max(env(safe-area-inset-top), 8px);
+    padding-bottom: max(env(safe-area-inset-bottom), 8px);
+  }
+  .pv-root .pv-stage { margin: 0 10px; }
+  .pv-root .pv-front img { border-radius: 16px; }
+  .pv-root .pv-foot { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
+}
+
+/* Captions on the back: sized to the screen and easy to scroll. */
+.pv-root .pv-note { -webkit-overflow-scrolling: touch; }
+.pv-root .pv-note p { hyphens: auto; }
+
+/* Calm, glassy controls. */
+.pv-root .pv-btn, .pv-root .pv-nav, .pv-root .pv-flip {
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv-root .pv-front img { transition: none; }
+}

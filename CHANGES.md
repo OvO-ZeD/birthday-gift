@@ -72,3 +72,47 @@ flickered as the mouse moved. The new viewer is drawn in `<body>` and has no mou
     git add -A
     git commit -m "Photo viewer, fonts and warm theme"
     git push
+
+---
+
+# Update 3 — montage video maker, glass surfaces, Supabase keep-alive check
+
+## Files in this update (patch)
+- NEW `app/lib/montage.ts` — the montage engine: draws each photo, its message and the template
+  on a canvas frame by frame, and records it to a video in the browser.
+- NEW `app/studio/MontageMaker.tsx` + `montage-maker.css` — the studio panel: choose up to 12 photos,
+  write a message for each, reorder, pick a template (Cinematic, Polaroid scrapbook, Dreamy glass),
+  add an opening title, a closing line and optional music, preview it, then "Make video for the gift".
+  The finished video is added to the gift like any uploaded video.
+- NEW `app/glass-refresh.css` — frosted-glass panels in the studio, sign-in card and landing page.
+- EDIT `app/studio/page.tsx` — two lines: an import, and `<MontageMaker />` placed above the song picker.
+- EDIT `app/layout.tsx` — one line: loads `glass-refresh.css` last.
+
+## Notes
+- Keep the browser tab open and in front while a video is made. Browsers slow background tabs, which
+  slows the recording. A 4-photo video takes about 16 seconds to make.
+- Videos are recorded as WebM in most browsers (MP4 where supported). Both are accepted by the studio.
+
+## Keeping the Supabase project from pausing
+The free plan pauses after 7 days with no activity. The daily keep-alive (`app/api/keepalive`, run by
+`vercel.json` at 06:00 UTC) runs one read on the `gifts` table each day, which counts as activity.
+- Check it's running: Vercel → project → Settings → Cron Jobs should list `/api/keepalive`.
+  Then Logs → filter `/api/keepalive`; you should see 200 responses once a day.
+- Check the Production environment variables in Vercel include `NEXT_PUBLIC_SUPABASE_URL` and
+  `SUPABASE_SECRET_KEY`. If `CRON_SECRET` is set, Vercel sends it automatically.
+- The keep-alive is a free workaround. For a project you want to keep permanently, upgrading to
+  Supabase Pro removes the pausing rule entirely.
+
+---
+
+# Update 4 — studio fits the screen, Apple-style glass, photo viewer polish
+
+- `app/studio/studio-fit.css` (new, imported in `studio/page.tsx`): on desktop and tablet the top bar stays
+  fixed and the sidebar, editor and inspector each scroll inside their own column, so you rarely need to
+  scroll the whole page. Phones keep their existing layout.
+- `app/apple-glass.css` (new, imported in `layout.tsx`): glass buttons, softer inputs, lifted cards on hover,
+  a gentle entrance for panels, system fonts first on Apple devices. Respects reduced motion and reduced transparency.
+- `app/g/[slug]/viewer-polish.css` (new, imported in `PhotoViewer.tsx`): photo always fits, clears the iPhone
+  notch and home bar, larger touch targets on phones.
+
+Nothing existing was rewritten; each change is a new stylesheet plus one import line.
