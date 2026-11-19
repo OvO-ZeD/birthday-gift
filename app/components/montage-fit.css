@@ -1,19 +1,28 @@
 /*
- * Montage player: show each photo as large as possible without cropping, and keep the caption
- * in its own band beneath the photo so the two never overlap. Loaded from MontagePlayer.tsx after
- * montage.css. Doubled selectors (.montage-root .x) win over montage.css without replacing it.
+ * Montage player: the photo fills the space above a compact caption row, shown whole with no
+ * cropping, zoom or overlap. Loaded from MontagePlayer.tsx after montage.css.
  */
 
+/* Larger window on desktop, so portrait photos get more height. */
+@media (min-width: 641px) {
+  .montage-root .montage-window {
+    width: min(98vw, 1400px);
+    height: min(97dvh, 1000px);
+  }
+}
+
+/* The YouTube player takes less of the header. */
+.montage-root .montage-youtube-player iframe { width: 128px; height: 72px; }
+
+/* Photo row fills the remaining height; the caption sits in its own row beneath it. */
 .montage-root .montage-slide {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  padding: clamp(8px, 1.6vh, 18px) clamp(8px, 1.6vw, 18px) 0;
+  padding: clamp(6px, 1.2vh, 14px) clamp(6px, 1.2vw, 14px) 0;
   overflow: hidden;
 }
 
-/* The photo fills the whole row. object-fit: contain scales it to fit inside that space with its
-   proportions intact, so nothing is cropped, zoomed or stretched. The inline size set by the
-   player is overridden here on purpose, because it was what made photos look small. */
+/* The photo: object-fit contain at the largest size its row allows. Nothing is cropped or stretched. */
 .montage-root .montage-slide > img {
   grid-row: 1;
   justify-self: center;
@@ -28,24 +37,20 @@
   object-position: center;
 }
 
-/* The caption is a normal row under the photo, not a layer on top of it. */
+/* The caption is a normal row under the photo: no overlap, and no cap that hides the words. */
 .montage-root .montage-caption {
   grid-row: 2;
   position: relative;
   left: auto;
   right: auto;
   bottom: auto;
-  max-height: 34%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   background: none;
-  padding: clamp(10px, 2vh, 20px) clamp(14px, 4vw, 40px) clamp(12px, 2.4vh, 24px);
+  padding: clamp(8px, 1.6vh, 16px) clamp(14px, 4vw, 40px) clamp(10px, 2vh, 20px);
 }
+.montage-root .montage-caption h2 { font-size: clamp(1.05rem, 2.6vh, 1.8rem); margin: 0; }
+.montage-root .montage-caption p { font-size: clamp(.9rem, 1.9vh, 1.2rem); line-height: 1.45; margin: 4px auto 0; }
 
 @media (max-width: 640px) {
   .montage-root .montage-slide { padding: 6px 6px 0; }
-  .montage-root .montage-caption {
-    padding: 10px 18px calc(12px + env(safe-area-inset-bottom, 0px));
-    max-height: 38%;
-  }
+  .montage-root .montage-caption { padding: 8px 18px calc(10px + env(safe-area-inset-bottom, 0px)); }
 }

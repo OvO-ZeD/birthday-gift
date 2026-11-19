@@ -130,3 +130,18 @@ Nothing existing was rewritten; each change is a new stylesheet plus one import 
   so the photo gets more of the screen.
 - Studio: the colour dots were removed from the top bar. The sunset look is now the only studio theme.
 - Share panel: dark to match the studio, with a clearly readable link field.
+
+---
+
+# Update 6 — homepage restored; montage player and photo viewer sizing
+
+- Homepage restored to the original: `app/page.tsx` and `app/layout.tsx` are the original files. The homepage
+  no longer loads the landing theme, the global smooth-scroll rule, the sound button or the page-fade wrapper.
+- `app/template.tsx` is now a plain pass-through, so nothing wraps the homepage.
+- Styles and fonts load only on the routes that use them: gift pages (`app/g/[slug]/layout.tsx`), the studio
+  and sign-in (`app/studio/layout.tsx`, `app/login/layout.tsx`). Fonts are defined once in `app/lib/fonts.ts`
+  and applied with a zero-size wrapper.
+- Sound effects run in the studio only.
+- Montage player (`app/components/montage-fit.css`): the photo fills the space above a compact caption row.
+  The caption is no longer capped, and the window is larger on desktop.
+- Photo viewer (`app/g/[slug]/viewer-fit.css`): on desktop the window fills the screen.
