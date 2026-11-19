@@ -155,11 +155,15 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
 
     const source = document.querySelector<HTMLElement>(".public-gift, .studio-shell");
     const root = rootRef.current;
+    const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    const previousThemeColor = themeColorMeta?.content;
     if (source && root) {
       for (let i = 0; i < source.style.length; i += 1) {
         const name = source.style.item(i);
         if (name.startsWith("--")) root.style.setProperty(name, source.style.getPropertyValue(name));
       }
+      const themeColor = getComputedStyle(source).getPropertyValue("--gift-paper").trim();
+      if (themeColorMeta && themeColor) themeColorMeta.content = themeColor;
     }
 
     closeRef.current?.focus({ preventScroll: true });
@@ -189,6 +193,7 @@ export default function MontagePlayer({ items, audio = null, variant = "recipien
 
     return () => {
       body.style.overflow = previousOverflow;
+      if (themeColorMeta && previousThemeColor !== undefined) themeColorMeta.content = previousThemeColor;
       window.removeEventListener("keydown", onKey);
     };
   }, [close, items.length, open]);
