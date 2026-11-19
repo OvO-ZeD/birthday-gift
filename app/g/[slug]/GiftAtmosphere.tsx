@@ -28,14 +28,11 @@ type ConfettiPiece = {
 
 const MAX_PIECES = 160;
 const ARRIVAL_DELAY_MS = 420;
-/**
- * The gentle drift that is always present. Deliberately small — this is atmosphere, not a
- * shower, so a handful of faint pieces reads as light rather than as debris.
- */
-const AMBIENT_PIECES = 20;
-const AMBIENT_PIECES_NARROW = 12;
+/** A continuous, light rain that stays visible without obscuring the photos. */
+const AMBIENT_PIECES = 48;
+const AMBIENT_PIECES_NARROW = 30;
 
-/** Draws the translucent confetti that greets the recipient and answers their taps. */
+/** Draws the automatic confetti rain over the gift. */
 export default function GiftAtmosphere() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -164,7 +161,7 @@ export default function GiftAtmosphere() {
         context.save();
         // Kept low on purpose: the confetti should read as a suggestion of light over the
         // photography, never as an opaque layer of paper in front of it.
-        context.globalAlpha = 0.28;
+        context.globalAlpha = 0.36;
         context.translate(piece.x, piece.y);
         context.rotate(piece.rotation);
         context.fillStyle = piece.color;
@@ -189,13 +186,12 @@ export default function GiftAtmosphere() {
     // uses it: pieces spawned above the sky take over a second to drift into sight, so without
     // this the arrival pour leaves the screen before the drift arrives and the canvas reads as
     // empty for a beat.
-    const spawn = (fromSky: boolean, spread = false, ambient = false) => {
+    const spawn = (spread = false, ambient = false) => {
       if (pieces.length >= MAX_PIECES) return;
       pieces.push({
         ambient,
         fall: AMBIENT_MAX_FALL * (AMBIENT_FALL_MIN + Math.random() * (1 - AMBIENT_FALL_MIN)),
-        // A pour falls in from across the top; a tap bursts outward from the middle.
-        x: fromSky ? Math.random() * width : width / 2 + (Math.random() - 0.5) * width * 0.5,
+        x: Math.random() * width,
         // Spawning across a full screen height above the viewport, rather than in a shallow band,
         // desynchronises the drift: pieces arrive as a steady trickle instead of crossing as one
         // wave and leaving the canvas briefly empty between waves.
@@ -204,11 +200,9 @@ export default function GiftAtmosphere() {
         // where the arrival pour has left but the steady drift has not yet filled in.
         y: spread
           ? Math.random() * height * 2 - height
-          : fromSky
-            ? -20 - Math.random() * height
-            : height * 0.44,
+          : -20 - Math.random() * height,
         vx: (Math.random() - 0.5) * 2.4,
-        vy: fromSky ? 1.1 + Math.random() * 1.4 : -3.2 - Math.random() * 2.4,
+        vy: 1.1 + Math.random() * 1.4,
         size: 3 + Math.random() * 4,
         rotation: Math.random() * Math.PI * 2,
         spin: (Math.random() - 0.5) * 0.2,
@@ -222,7 +216,7 @@ export default function GiftAtmosphere() {
     // the previous version visibly stop a few seconds in.
     const topUp = (spread = false) => {
       const target = narrow() ? AMBIENT_PIECES_NARROW : AMBIENT_PIECES;
-      for (let index = pieces.length; index < target; index += 1) spawn(true, spread, true);
+      for (let index = pieces.length; index < target; index += 1) spawn(spread, true);
     };
 
     const tick = () => {
@@ -241,25 +235,16 @@ export default function GiftAtmosphere() {
       frame = requestAnimationFrame(tick);
     };
 
-    const burst = (count: number, pouring: boolean) => {
+    const burst = (count: number) => {
       if (!context) return;
       resize();
-      for (let index = 0; index < count; index += 1) {
-        spawn(pouring || index % 3 !== 0);
-      }
+      for (let index = 0; index < count; index += 1) spawn();
       start();
     };
 
     const arrival = context
-      ? window.setTimeout(() => burst(narrow() ? 44 : 78, true), ARRIVAL_DELAY_MS)
+      ? window.setTimeout(() => burst(narrow() ? 44 : 78), ARRIVAL_DELAY_MS)
       : 0;
-
-    const onCelebrate = (event: Event) => {
-      event.preventDefault();
-      burst(narrow() ? 46 : 70, false);
-    };
-    const celebrateTargets = Array.from(root.querySelectorAll<HTMLElement>("[data-celebrate]"));
-    celebrateTargets.forEach((target) => target.addEventListener("click", onCelebrate));
     window.addEventListener("resize", resize);
 
     // The canvas is fixed and full-viewport, so its loop is continuous by design — that is what
@@ -281,7 +266,6 @@ export default function GiftAtmosphere() {
       revealTimers.forEach((timer) => window.clearTimeout(timer));
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisibility);
-      celebrateTargets.forEach((target) => target.removeEventListener("click", onCelebrate));
       if (frame) cancelAnimationFrame(frame);
       observer?.disconnect();
       delete root.dataset.reveal;

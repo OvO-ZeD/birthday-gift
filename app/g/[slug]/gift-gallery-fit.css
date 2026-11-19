@@ -1,29 +1,19 @@
-/*
- * Gallery tiles fit their photos. Each tile takes the photo's own shape, so the whole photo shows
- * with nothing cropped. The column widths and the grid layout are unchanged. Loaded from page.tsx.
- *
- * Why: a later pass set `object-fit: cover` on every tile photo, which trimmed the edges of each one.
- * `contain` plus a frame that wraps the picture shows it whole, without side bars.
- */
+/* Keep the gallery cards uniform while fitting every photo completely inside its card. */
 
 .public-gift .public-memory .memory-media-frame {
+  width: 100% !important;
   height: auto !important;
+  aspect-ratio: 4 / 5 !important;
   display: block;
+  padding: 0 !important;
 }
 
 .public-gift .public-memory .memory-media-frame img,
 .public-gift .public-memory .memory-media-frame video {
   width: 100% !important;
-  height: auto !important;
-  max-height: 78vh !important;
+  height: 100% !important;
+  max-height: none !important;
   aspect-ratio: auto !important;
   object-fit: contain !important;
   object-position: center !important;
-}
-
-@media (max-width: 760px) {
-  .public-gift .public-memory .memory-media-frame img,
-  .public-gift .public-memory .memory-media-frame video {
-    max-height: 70vh !important;
-  }
 }

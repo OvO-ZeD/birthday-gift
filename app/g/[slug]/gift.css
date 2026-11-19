@@ -1059,38 +1059,6 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 .gift-light::before { top: -18%; left: -14%; }
 .gift-light::after { bottom: -22%; right: -12%; animation-duration: 58s; animation-delay: -14s; }
 .gift-heart-pulse { animation: heart-pulse 3.4s ease-in-out infinite; }
-/* Reset only what a <button> imposes from the UA stylesheet: font-family is the one
-   `.gift-heart` never declares, so without it the heart would render in the system UI
-   font. Colour, size and line-height are intentionally left alone — this block is
-   appended last, so redeclaring them here would override `.gift-heart` itself. */
-.gift-heart-button {
-  position: relative;
-  padding: 0;
-  border: 0;
-  background: none;
-  font-family: inherit;
-  cursor: pointer;
-  transition: transform .3s cubic-bezier(.2,.7,.2,1), text-shadow .3s ease;
-}
-/* Widens the tap target to a comfortable size without adding layout weight to the hero. */
-.gift-heart-button::before {
-  content: "";
-  position: absolute;
-  inset: -16px -20px;
-}
-.gift-heart-button:hover { transform: scale(1.09); }
-.gift-heart-button:active { transform: scale(.95); }
-.gift-heart-button:focus-visible { outline: 2px solid var(--gift-accent); outline-offset: 6px; border-radius: 50%; }
-.celebrate-hint {
-  display: block;
-  margin: .5rem auto 0;
-  color: var(--gift-muted);
-  font: 600 .54rem/1.4 Arial, sans-serif;
-  letter-spacing: .13em;
-  text-transform: uppercase;
-  opacity: .78;
-}
-
 /* Reveals stay invisible to crawlers and no-JS readers: the hiding rule only applies
    once the atmosphere script has confirmed it can observe the page. The offset uses the
    independent `translate` property so it composes with each block's own hover transform. */
@@ -2161,12 +2129,6 @@ html:has(.public-gift) { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 
    `!important` because two earlier passes both set a scale on this element on hover. */
 .public-memory:hover img { transform: none !important; }
-
-/* Keep the gallery grid uniform; the full-size viewer uses `contain` to show the entire image. */
-.memory-media-frame img,
-.memory-media-frame video {
-  object-fit: cover !important;
-}
 
 .public-soundtrack-inline {
   display: flex;

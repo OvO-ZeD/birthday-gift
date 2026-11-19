@@ -228,14 +228,7 @@ export default async function GiftPage({ params, searchParams }: GiftPageProps) 
       <div className={`gift-intro-layout ${visualMedia.length === 0 ? "intro-no-media" : "intro-with-media"}`}>
         <section className={`public-gift-hero ${visualMedia.length === 0 ? "hero-no-media" : visualMedia.length <= 2 ? "hero-few-media" : "hero-gallery-media"}`}>
           <span className="gift-overline">A LITTLE WORLD, JUST FOR {(gift.recipient || "YOU").toUpperCase()}</span>
-          <button
-            type="button"
-            className="gift-heart gift-heart-pulse gift-heart-button"
-            data-celebrate
-            title="Tap for a little celebration"
-            aria-label="Tap for a little celebration"
-          >♡</button>
-          <span className="celebrate-hint" aria-hidden="true">TAP THE HEART</span>
+          <div className="gift-heart gift-heart-pulse" aria-hidden="true">♡</div>
           <h1>{gift.title || "A little world for you"}</h1>
           <p>A few favourite moments, gathered in one little place.</p>
           {visualMedia.length > 0 && <a href="#memories">EXPLORE THE MEMORIES <span aria-hidden="true">↓</span></a>}
