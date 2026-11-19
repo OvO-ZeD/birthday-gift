@@ -144,3 +144,10 @@ Nothing existing was rewritten; each change is a new stylesheet plus one import 
 - Checked: studio colours already pass WCAG AA contrast (lowest 6.3:1 for secondary text).
 - Press feedback on gift page buttons: they scale to 97% the instant they are pressed (Apple and Emil
   Kowalski guidance), and this is turned off for people who ask for reduced motion.
+
+---
+
+# Gallery tiles fit their photos
+
+- `app/g/[slug]/gift-gallery-fit.css` (new, imported in the gift page): each memory tile now takes its photo's
+  own shape, so the whole photo shows without cropping. Column widths and the grid layout are unchanged.

@@ -17,6 +17,7 @@ import MontagePlayer from "@/app/components/MontagePlayer";
 import "./gift.css";
 import "./background-clarity.css";
 import "./gift-touch.css";
+import "./gift-gallery-fit.css";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
