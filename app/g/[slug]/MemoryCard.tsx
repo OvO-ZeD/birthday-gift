@@ -1,7 +1,6 @@
 "use client";
 
 import { openPhoto } from "./viewer-events";
-import "./gallery-fit.css";
 
 type MemoryCardProps = {
   index: number;

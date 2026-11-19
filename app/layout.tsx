@@ -1,10 +1,30 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, Fraunces, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "./polish.css";
+import "./theme-refresh.css";
+import "./glass-refresh.css";
+import "./apple-glass.css";
+import SoundFx from "./components/SoundFx";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+});
+
+// Display serif for headings and letters, a clean sans for interface text. Loaded by Next at
+// build time and served from your own domain, so there is no extra request to Google at runtime.
+const fraunces = Fraunces({
+  variable: "--font-display",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  variable: "--font-ui",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -23,7 +43,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#100817",
+  themeColor: "#0e0a09",
   colorScheme: "dark",
 };
 
@@ -35,9 +55,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${dmSans.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <SoundFx />
+      </body>
     </html>
   );
 }

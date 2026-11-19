@@ -47,6 +47,7 @@ import "./studio-fit.css";
 import SongPicker from "./SongPicker";
 import MontageMaker from "./MontageMaker";
 
+import StudioLook from "./StudioLook";
 
 /**
  * The four stops in the editor, in reading order.
@@ -1719,6 +1720,7 @@ export default function StudioPage() {
 
           {/* The dot turns amber while a write is in flight, so autosave is visible rather than
               mysterious, and the line carries the time of the last one. */}
+          <StudioLook />
 
           <span className={`draft-status ${saving ? "is-saving" : ""}`} role="status" aria-live="polite">
             <span /> {saving

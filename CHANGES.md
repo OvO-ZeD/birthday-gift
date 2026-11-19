@@ -119,29 +119,9 @@ Nothing existing was rewritten; each change is a new stylesheet plus one import 
 
 ---
 
-# Update 5 — photo sizing, montage captions, one studio theme, readable share link
+# Final — Afterglow Update 4 restored, with montage and photo viewer sizing
 
-- Montage player (`components/montage-fit.css`): each photo fills its space and is shown whole
-  (`object-fit: contain`, no cropping or zoom). The caption now sits in its own band under the photo,
-  so text no longer overlaps the image.
-- Gallery tiles (`g/[slug]/gallery-fit.css`): tiles follow each photo's own shape, so there are no
-  empty side bars. Photos are capped at 78% of the screen height so tall photos still fit whole.
-- Photo viewer (`g/[slug]/viewer-fit.css`): less top and bottom chrome, and a larger desktop window,
-  so the photo gets more of the screen.
-- Studio: the colour dots were removed from the top bar. The sunset look is now the only studio theme.
-- Share panel: dark to match the studio, with a clearly readable link field.
-
----
-
-# Update 6 — homepage restored; montage player and photo viewer sizing
-
-- Homepage restored to the original: `app/page.tsx` and `app/layout.tsx` are the original files. The homepage
-  no longer loads the landing theme, the global smooth-scroll rule, the sound button or the page-fade wrapper.
-- `app/template.tsx` is now a plain pass-through, so nothing wraps the homepage.
-- Styles and fonts load only on the routes that use them: gift pages (`app/g/[slug]/layout.tsx`), the studio
-  and sign-in (`app/studio/layout.tsx`, `app/login/layout.tsx`). Fonts are defined once in `app/lib/fonts.ts`
-  and applied with a zero-size wrapper.
-- Sound effects run in the studio only.
-- Montage player (`app/components/montage-fit.css`): the photo fills the space above a compact caption row.
-  The caption is no longer capped, and the window is larger on desktop.
-- Photo viewer (`app/g/[slug]/viewer-fit.css`): on desktop the window fills the screen.
+- Landing page, memory tiles, gift page and studio are exactly as in Afterglow Update 4.
+- Montage player (`app/components/montage-fit.css`): photos fill the space above a compact caption;
+  captions no longer overlap the photo; the window is larger on desktop.
+- Photo viewer (`app/g/[slug]/viewer-fit.css`): on desktop the window fills the screen so the photo is larger.
