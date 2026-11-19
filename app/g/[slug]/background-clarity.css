@@ -1,0 +1,33 @@
+/*
+ * Background photographs: keep them recognisable behind the story.
+ *
+ * Before: each photo was blurred, then a paper-coloured wash with 13–26px of backdrop blur was laid
+ * over them, so the photos read as grey shapes. Now the photos are nearly sharp and the wash is a
+ * light veil, with the blur reduced to a whisper. The paper colour still takes over toward the
+ * bottom, so the letter and the memories stay easy to read.
+ *
+ * Scoped to the gift page (loaded from page.tsx after gift.css), with doubled selectors and
+ * !important on the wash so it wins over the responsive rules in gift.css.
+ */
+
+.public-gift .gift-ambient .ambient-photo {
+  opacity: .9 !important;
+  filter: blur(.4px) saturate(1.02) brightness(.98) contrast(1.02) !important;
+  box-shadow: 0 18px 50px rgba(9, 6, 13, .24) !important;
+}
+
+.public-gift .gift-ambient .gift-ambient-wash {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--gift-paper) 8%, transparent) 0%,
+    color-mix(in srgb, var(--gift-paper) 22%, transparent) 40%,
+    color-mix(in srgb, var(--gift-paper) 70%, transparent) 72%,
+    var(--gift-paper) 92%
+  ) !important;
+  backdrop-filter: blur(2px) saturate(1.04) !important;
+  -webkit-backdrop-filter: blur(2px) saturate(1.04) !important;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .public-gift .gift-ambient .gift-ambient-wash { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+}

@@ -125,3 +125,22 @@ Nothing existing was rewritten; each change is a new stylesheet plus one import 
 - Montage player (`app/components/montage-fit.css`): photos fill the space above a compact caption;
   captions no longer overlap the photo; the window is larger on desktop.
 - Photo viewer (`app/g/[slug]/viewer-fit.css`): on desktop the window fills the screen so the photo is larger.
+
+---
+
+# Background photographs: clearer, same identity
+
+- `app/g/[slug]/background-clarity.css` (new, imported in the gift page): the background photographs are
+  now nearly sharp, and the veil over them is light. The paper colour still takes over toward the bottom,
+  so the letter and memories stay readable. Scoped to the gift page only.
+
+---
+
+# TypeUI design pass: touch targets
+
+- Applied the TypeUI rule that touch targets are at least 44 × 44 px. On touch screens only, small studio
+  and recipient controls get a larger invisible tap area (`app/studio/studio-touch.css`,
+  `app/g/[slug]/gift-touch.css`). Their look and layout do not change; desktop is unaffected.
+- Checked: studio colours already pass WCAG AA contrast (lowest 6.3:1 for secondary text).
+- Press feedback on gift page buttons: they scale to 97% the instant they are pressed (Apple and Emil
+  Kowalski guidance), and this is turned off for people who ask for reduced motion.

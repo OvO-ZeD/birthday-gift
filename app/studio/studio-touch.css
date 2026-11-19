@@ -1,0 +1,25 @@
+/*
+ * Touch targets (TypeUI: at least 44 × 44 px, with space between neighbours).
+ * On touch screens, small icon buttons get a larger invisible tap area around them. Their look and
+ * layout do not change. Applied only on coarse pointers, so desktop is untouched.
+ */
+@media (pointer: coarse) {
+  .studio-shell .studio-button { min-height: 44px; }
+  .studio-shell .song-preview { width: 44px; height: 44px; }
+
+  .studio-shell .mm-item-actions button,
+  .studio-shell .look-dot,
+  .studio-shell .mm-clear,
+  .studio-shell .tile-remove {
+    position: relative;
+  }
+  .studio-shell .mm-item-actions button::after,
+  .studio-shell .look-dot::after,
+  .studio-shell .tile-remove::after {
+    content: "";
+    position: absolute;
+    inset: -11px;
+  }
+  .studio-shell .mm-item-actions button { min-width: 44px; min-height: 44px; }
+  .studio-shell .mm-clear { min-height: 44px; display: inline-flex; align-items: center; }
+}

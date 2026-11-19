@@ -43,6 +43,7 @@ import {
 
 import "./studio.css";
 import "./studio-fit.css";
+import "./studio-touch.css";
 
 import SongPicker from "./SongPicker";
 import MontageMaker from "./MontageMaker";

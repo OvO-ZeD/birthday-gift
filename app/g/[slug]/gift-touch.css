@@ -1,0 +1,29 @@
+/*
+ * Touch targets on the recipient's page (TypeUI: at least 44 × 44 px). Only on touch screens.
+ * The montage and photo controls keep their look; their tappable area grows to 44 px.
+ */
+@media (pointer: coarse) {
+  .montage-root .montage-control,
+  .montage-root .montage-nav,
+  .pv-root .pv-btn,
+  .pv-root .pv-nav {
+    width: 44px;
+    height: 44px;
+  }
+  .montage-root .montage-play-toggle { min-height: 44px; }
+}
+
+/*
+ * Press feedback (Apple and Emil Kowalski: respond the instant a button is pressed).
+ * Only buttons inside the gift page itself. The montage and photo viewer are portalled outside
+ * .public-gift, so they are unaffected. No transition is added, so existing hover transitions stay as they are.
+ */
+.public-gift button:not(:disabled):active,
+.public-gift a[role="button"]:active {
+  transform: scale(.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-gift button:active,
+  .public-gift a[role="button"]:active { transform: none; }
+}
