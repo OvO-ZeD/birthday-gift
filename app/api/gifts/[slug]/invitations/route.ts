@@ -233,6 +233,7 @@ export async function DELETE(
 
     if (!gift) return noStore({ error: "That gift could not be found." }, 404);
 
+    // The database trigger bumps access_version in this transaction, invalidating existing gift cookies.
     const { error } = await admin
       .from("gift_invitations")
       .update({ revoked_at: new Date().toISOString() })
