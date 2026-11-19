@@ -49,6 +49,7 @@ import SongPicker from "./SongPicker";
 import MontageMaker from "./MontageMaker";
 
 import StudioLook from "./StudioLook";
+import "./studio-mobile.css";
 
 /**
  * The four stops in the editor, in reading order.

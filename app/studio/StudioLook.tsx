@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const LOOKS = [
   { id: "violet", name: "Violet night", swatch: "#e58cac" },
@@ -17,33 +17,44 @@ const STORAGE_KEY = "afterglow-studio-look";
 function applyLook(id: LookId) {
   const shell = document.querySelector<HTMLElement>(".studio-shell");
   if (!shell) return;
-  if (id === "violet") shell.removeAttribute("data-look");
-  else shell.setAttribute("data-look", id);
+  shell.setAttribute("data-look", id);
+}
+
+function getLookSnapshot(): LookId | null {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    const match = LOOKS.find((entry) => entry.id === saved);
+    return match?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function subscribeToLook(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function getServerLook(): LookId | null {
+  return null;
 }
 
 /**
- * Changes the colours of the studio itself (not the gift) and remembers the choice on this
- * device. It only sets one data attribute on the studio shell, so it does not touch the
- * studio's own state.
+ * The palette changes only the studio's accent; its warm surfaces stay consistent on every device.
  */
 export default function StudioLook() {
-  const [look, setLook] = useState<LookId>("violet");
+  const storedLook = useSyncExternalStore(subscribeToLook, getLookSnapshot, getServerLook);
+  const [chosenLook, setChosenLook] = useState<LookId | null>(null);
+  const look = chosenLook ?? storedLook ?? "sunset";
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      const match = LOOKS.find((entry) => entry.id === saved);
-      if (match) {
-        setLook(match.id);
-        applyLook(match.id);
-      }
-    } catch {
-      /* Keep the default look when storage is unavailable. */
-    }
-  }, []);
+    applyLook(look);
+  }, [look]);
 
   function choose(id: LookId) {
-    setLook(id);
+    setChosenLook(id);
     applyLook(id);
     try {
       window.localStorage.setItem(STORAGE_KEY, id);

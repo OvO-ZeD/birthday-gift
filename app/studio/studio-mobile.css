@@ -1,0 +1,237 @@
+@media (max-width: 760px) {
+  .studio-shell {
+    min-height: 100svh;
+    min-height: 100dvh;
+    background-attachment: scroll;
+  }
+
+  .studio-shell .studio-topbar {
+    min-height: 58px;
+    height: auto;
+    gap: 8px;
+    flex-wrap: nowrap;
+    padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+  }
+
+  .studio-shell .studio-brand {
+    gap: 8px;
+    min-width: 0;
+    font-size: 9px;
+    letter-spacing: .14em;
+  }
+
+  .studio-shell .studio-brand small { font-size: 7px; }
+  .studio-shell .brand-mark { width: 30px; height: 30px; }
+
+  .studio-shell .studio-top-actions {
+    width: auto;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 0;
+    margin-left: auto;
+  }
+
+  .studio-shell .studio-top-actions .studio-look,
+  .studio-shell .studio-top-actions > .studio-button { display: none; }
+
+  .studio-shell .studio-top-actions .draft-status {
+    display: flex;
+    max-width: 112px;
+    margin: 0;
+    overflow: hidden;
+    font-size: 8px;
+    line-height: 1.35;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .studio-shell .studio-layout { display: block; }
+
+  .studio-shell .studio-sidebar {
+    position: relative;
+    top: auto;
+    height: auto;
+    padding: 8px 12px 9px;
+    border-right: 0;
+  }
+
+  .studio-shell .projects-browser {
+    margin: 0 0 8px;
+    border-radius: 14px;
+  }
+
+  .studio-shell .projects-browser-heading {
+    min-height: 42px;
+    padding-inline: 9px;
+  }
+
+  .studio-shell .projects-new-button { min-height: 38px; }
+  .studio-shell .projects-list { gap: 6px; padding: 6px; }
+  .studio-shell .project-tab { flex-basis: min(74vw, 260px); min-height: 48px; }
+  .studio-shell .project-tab-copy strong { font-size: 11px; }
+  .studio-shell .project-tab-copy small { font-size: 9px; }
+
+  .studio-shell .studio-nav {
+    gap: 6px;
+    padding: 0 0 3px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .studio-shell .studio-nav::-webkit-scrollbar { display: none; }
+
+  .studio-shell .studio-nav a {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 0 11px;
+    border-radius: 999px;
+    font-size: 11px;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+
+  .studio-shell .studio-nav a.selected {
+    border-color: color-mix(in srgb, var(--studio-accent) 38%, transparent);
+    background: color-mix(in srgb, var(--studio-accent) 12%, transparent);
+    box-shadow: none;
+  }
+
+  .studio-shell .studio-main {
+    padding: 14px 14px calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .studio-shell .studio-heading {
+    gap: 6px;
+    margin: 2px 0 14px;
+  }
+
+  .studio-shell .studio-heading h1 {
+    margin: 10px 0 6px;
+    font-size: clamp(28px, 7.3vw, 34px);
+    line-height: 1.08;
+  }
+
+  .studio-shell .studio-heading p,
+  .studio-shell .section-title-row p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .studio-shell .editor-section {
+    padding: 15px 0;
+    scroll-margin-top: calc(62px + env(safe-area-inset-top));
+  }
+
+  .studio-shell .section-title-row {
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .studio-shell .section-title-row h2 {
+    margin: 6px 0;
+    font-size: 20px;
+    line-height: 1.2;
+  }
+
+  .studio-shell .count-pill {
+    padding: 6px 8px;
+    font-size: 8px;
+  }
+
+  .studio-shell label { gap: 6px; font-size: 12px; }
+  .studio-shell label > span { font-size: 9px; }
+
+  .studio-shell .form-card,
+  .studio-shell .theme-card,
+  .studio-shell .privacy-card,
+  .studio-shell .experience-card,
+  .studio-shell .montage-maker {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .studio-shell .form-card { gap: 11px; }
+  .studio-shell .theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .studio-shell .theme-option { min-height: 44px; gap: 7px; padding: 7px; font-size: 11px; }
+
+  .studio-shell .upload-zone { gap: 9px; padding: 16px 12px; }
+  .studio-shell .upload-icon { width: 36px; height: 36px; margin-bottom: 3px; }
+  .studio-shell .upload-zone > small { font-size: 10px; }
+
+  .studio-shell .upload-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  .studio-shell .upload-actions .studio-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+
+  .studio-shell .publish-bar { display: none; }
+
+  .studio-shell .mobile-action-dock {
+    gap: 8px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    border-top-color: color-mix(in srgb, var(--studio-accent) 24%, var(--studio-border));
+    background: color-mix(in srgb, var(--studio-bg) 92%, transparent);
+  }
+
+  .studio-shell .mobile-action-dock .studio-button {
+    min-height: 44px;
+    font-size: 12px;
+  }
+
+  .studio-shell .studio-notice {
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    left: 12px;
+    width: calc(100% - 24px);
+    max-width: none;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    transform: none;
+  }
+
+  .studio-shell .project-switch-backdrop {
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .studio-shell .project-switch-dialog {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
+  }
+}
+
+@media (max-width: 380px) {
+  .studio-shell .studio-main { padding-inline: 12px; }
+  .studio-shell .studio-topbar { padding-inline: 10px; }
+  .studio-shell .studio-nav a { padding-inline: 9px; font-size: 10px; }
+  .studio-shell .theme-option { font-size: 10px; }
+}
+
+@media (max-width: 760px) and (prefers-reduced-motion: no-preference) {
+  .studio-shell .studio-nav a { transition-duration: .18s; }
+  .studio-shell .editor-section,
+  .studio-shell .form-card,
+  .studio-shell .song-picker,
+  .studio-shell .montage-maker { animation-duration: .36s; }
+}
+
+@media (max-width: 760px) and (hover: none) {
+  .studio-shell .studio-nav a:hover { transform: none; }
+}
+
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .studio-shell .studio-main { scroll-behavior: auto; }
+}
