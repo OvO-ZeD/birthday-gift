@@ -1,0 +1,51 @@
+/*
+ * Montage player: show each photo as large as possible without cropping, and keep the caption
+ * in its own band beneath the photo so the two never overlap. Loaded from MontagePlayer.tsx after
+ * montage.css. Doubled selectors (.montage-root .x) win over montage.css without replacing it.
+ */
+
+.montage-root .montage-slide {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  padding: clamp(8px, 1.6vh, 18px) clamp(8px, 1.6vw, 18px) 0;
+  overflow: hidden;
+}
+
+/* The photo fills the whole row. object-fit: contain scales it to fit inside that space with its
+   proportions intact, so nothing is cropped, zoomed or stretched. The inline size set by the
+   player is overridden here on purpose, because it was what made photos look small. */
+.montage-root .montage-slide > img {
+  grid-row: 1;
+  justify-self: center;
+  align-self: stretch;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* The caption is a normal row under the photo, not a layer on top of it. */
+.montage-root .montage-caption {
+  grid-row: 2;
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  max-height: 34%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: none;
+  padding: clamp(10px, 2vh, 20px) clamp(14px, 4vw, 40px) clamp(12px, 2.4vh, 24px);
+}
+
+@media (max-width: 640px) {
+  .montage-root .montage-slide { padding: 6px 6px 0; }
+  .montage-root .montage-caption {
+    padding: 10px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+    max-height: 38%;
+  }
+}

@@ -12,6 +12,7 @@ import {
   youtubeEmbedUrl,
 } from "../lib/gifts/youtube";
 import "./montage.css";
+import "./montage-fit.css";
 
 export type MontageItem = {
   src: string;

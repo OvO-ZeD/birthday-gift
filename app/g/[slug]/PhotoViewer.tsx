@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Image as ImageIcon, MessageSquareText, Pause
 import { OPEN_PHOTO_EVENT } from "./viewer-events";
 import "./viewer.css";
 import "./viewer-polish.css";
+import "./viewer-fit.css";
 
 export type ViewerItem = { src: string; title: string; caption: string };
 const subscribeToMount = () => () => {};

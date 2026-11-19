@@ -39,3 +39,46 @@
 @media (prefers-reduced-motion: reduce) {
   .studio-shell .studio-main { scroll-behavior: auto; }
 }
+
+/* One studio theme only: the sunset look you were using. The colour dots were removed from the top bar. */
+.studio-shell.studio-shell {
+  --studio-bg: #180d0b;
+  --studio-panel: #221410;
+  --studio-panel-2: #2b1a14;
+  --studio-border: rgba(255, 222, 200, .12);
+  --studio-muted: #b39a8c;
+  --studio-text: #fbefe6;
+  --studio-accent: #f1995a;
+  --studio-accent-2: #d96a7e;
+  background: radial-gradient(ellipse at 75% 0%, rgba(190, 90, 50, .24), transparent 38%), var(--studio-bg);
+}
+
+/* Share panel: dark, matching the studio, with a link that is clearly readable. */
+.gift-preview-backdrop .preview-publish-result {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 222, 200, .16);
+  background: linear-gradient(160deg, rgba(255, 255, 255, .06), transparent 50%), #221410;
+  color: #fbefe6;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+}
+.gift-preview-backdrop .preview-publish-result strong { color: #fbefe6; font-size: 15px; }
+.gift-preview-backdrop .preview-publish-result p,
+.gift-preview-backdrop .preview-publish-result small { color: #c9b3a6; margin: 0; }
+.gift-preview-backdrop .preview-publish-result input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(241, 153, 90, .45);
+  background: #120b09;
+  color: #fbefe6;
+  -webkit-text-fill-color: #fbefe6;
+  opacity: 1;
+  font: 500 13px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: .01em;
+}
+.gift-preview-backdrop .preview-publish-result input:focus { outline: none; border-color: #f1995a; box-shadow: 0 0 0 4px rgba(241, 153, 90, .18); }
+.gift-preview-backdrop .preview-publish-result .studio-button.primary { justify-self: start; }

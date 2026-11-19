@@ -116,3 +116,17 @@ The free plan pauses after 7 days with no activity. The daily keep-alive (`app/a
   notch and home bar, larger touch targets on phones.
 
 Nothing existing was rewritten; each change is a new stylesheet plus one import line.
+
+---
+
+# Update 5 — photo sizing, montage captions, one studio theme, readable share link
+
+- Montage player (`components/montage-fit.css`): each photo fills its space and is shown whole
+  (`object-fit: contain`, no cropping or zoom). The caption now sits in its own band under the photo,
+  so text no longer overlaps the image.
+- Gallery tiles (`g/[slug]/gallery-fit.css`): tiles follow each photo's own shape, so there are no
+  empty side bars. Photos are capped at 78% of the screen height so tall photos still fit whole.
+- Photo viewer (`g/[slug]/viewer-fit.css`): less top and bottom chrome, and a larger desktop window,
+  so the photo gets more of the screen.
+- Studio: the colour dots were removed from the top bar. The sunset look is now the only studio theme.
+- Share panel: dark to match the studio, with a clearly readable link field.

@@ -1,0 +1,22 @@
+/*
+ * Gallery tiles: the tile takes the photo's own proportions, so the photo fills the tile with no
+ * empty side bars. Nothing is cropped: the photo is shown whole (object-fit: contain) and capped at
+ * most of the screen height so tall photos still fit. Loaded from MemoryCard.tsx.
+ */
+
+.public-gift .public-memory .memory-media-frame {
+  display: block;
+  height: auto;
+  aspect-ratio: auto;
+  padding: 0;
+  overflow: hidden;
+}
+
+.public-gift .public-memory .memory-media-frame img,
+.public-gift .public-memory .memory-media-frame video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 78vh;
+  object-fit: contain;
+}
